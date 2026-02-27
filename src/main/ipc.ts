@@ -148,6 +148,15 @@ async function getAheadBehind(
   }
 }
 
+async function getWorktreeLastActivity(worktreePath: string): Promise<string | undefined> {
+  try {
+    const output = await runGitCommand(worktreePath, ['log', '-1', '--format=%ar', 'HEAD'])
+    return output.trim() || undefined
+  } catch {
+    return undefined
+  }
+}
+
 async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = []
   let currentBranch = ''
@@ -243,11 +252,12 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     const result: WorktreeWithDiff[] = []
     await Promise.all(
       worktrees.map(async (wt) => {
-        const [diff, remote] = await Promise.all([
+        const [diff, remote, lastActivity] = await Promise.all([
           getWorktreeDiff(wt.path),
           getAheadBehind(wt.path, wt.branch),
+          getWorktreeLastActivity(wt.path),
         ])
-        result.push({ ...wt, ...diff, ...remote })
+        result.push({ ...wt, ...diff, ...remote, lastActivity })
       }),
     )
     // Sort: main worktree first, then by branch name

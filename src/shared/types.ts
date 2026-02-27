@@ -5,6 +5,7 @@ export interface Worktree {
   isBare: boolean
   isLocked: boolean
   head?: string
+  lastActivity?: string
 }
 
 export interface DiffStats {
