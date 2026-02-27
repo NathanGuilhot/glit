@@ -22,12 +22,15 @@ import ErrorBoundary from './components/ErrorBoundary'
 
 function AppContent() {
   const { loading, repoInfo, settings, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
-  const { handleDelete, handleSaveSettings } = useAppActions()
+  const { handleDelete, handleBatchDelete, handleSaveSettings } = useAppActions()
   const api = useAPI()
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeWithDiff | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [cleanupMode, setCleanupMode] = useState(false)
+  const [mergedBranches, setMergedBranches] = useState<string[]>([])
+  const [cleanupLoading, setCleanupLoading] = useState(false)
 
   const toast = useToast()
 
@@ -93,6 +96,32 @@ function AppContent() {
     setDeleteTarget(null)
   }
 
+  const handleEnterCleanup = useCallback(async () => {
+    if (!repoInfo) return
+    setCleanupLoading(true)
+    setCleanupMode(true)
+    const baseBranch = settings.defaultBaseBranch || 'main'
+    const result = await api.worktree.getMergedBranches(repoInfo.path, baseBranch)
+    setMergedBranches(result)
+    setCleanupLoading(false)
+  }, [api, repoInfo, settings.defaultBaseBranch])
+
+  const handleExitCleanup = useCallback(() => {
+    setCleanupMode(false)
+    setMergedBranches([])
+  }, [])
+
+  const handleBatchDeleteConfirm = useCallback(async (worktrees: WorktreeWithDiff[]) => {
+    const { deleted, failed } = await handleBatchDelete(worktrees)
+    if (failed === 0) {
+      toast({ title: `Deleted ${deleted} worktree${deleted !== 1 ? 's' : ''}`, status: 'success', duration: 3000 })
+    } else {
+      toast({ title: `Deleted ${deleted}, failed ${failed}`, status: 'warning', duration: 4000 })
+    }
+    setCleanupMode(false)
+    setMergedBranches([])
+  }, [handleBatchDelete, toast])
+
   if (loading) {
     return (
       <Flex h="100vh" align="center" justify="center" direction="column" gap={4}>
@@ -110,12 +139,25 @@ function AppContent() {
     <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
       <Box h="28px" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} flexShrink={0} />
 
-      <Header onOpenCreate={() => setShowCreate(true)} onOpenSettings={openSettings} />
+      <Header
+        onOpenCreate={() => setShowCreate(true)}
+        onOpenSettings={openSettings}
+        onOpenCleanup={handleEnterCleanup}
+        cleanupMode={cleanupMode}
+        cleanupLoading={cleanupLoading}
+        onExitCleanup={handleExitCleanup}
+      />
 
       <FilterBar />
 
       <Box flex={1} overflowY="auto" px={5} pb={5}>
-        <WorktreeList onDelete={(wt) => setDeleteTarget(wt)} />
+        <WorktreeList
+          onDelete={(wt) => setDeleteTarget(wt)}
+          cleanupMode={cleanupMode}
+          mergedBranches={mergedBranches}
+          onExitCleanup={handleExitCleanup}
+          onBatchDelete={handleBatchDeleteConfirm}
+        />
       </Box>
 
       <ShortcutHints />

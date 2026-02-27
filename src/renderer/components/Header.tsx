@@ -1,13 +1,17 @@
-import { Box, HStack, VStack, Heading, Text, Badge, IconButton, Tooltip, Spinner } from '@chakra-ui/react'
+import { Box, HStack, VStack, Heading, Text, Badge, IconButton, Tooltip, Spinner, Button } from '@chakra-ui/react'
 import { RefreshIcon, SettingsIcon, PlusIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 
 interface HeaderProps {
   onOpenCreate: () => void
   onOpenSettings: () => void
+  onOpenCleanup: () => void
+  cleanupMode?: boolean
+  cleanupLoading?: boolean
+  onExitCleanup?: () => void
 }
 
-export default function Header({ onOpenCreate, onOpenSettings }: HeaderProps) {
+export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cleanupMode, cleanupLoading, onExitCleanup }: HeaderProps) {
   const { repoInfo, worktrees, refreshing, refresh } = useWorktree()
 
   return (
@@ -29,6 +33,21 @@ export default function Header({ onOpenCreate, onOpenSettings }: HeaderProps) {
           )}
         </VStack>
         <HStack spacing={1}>
+          {cleanupMode ? (
+            <Button size="sm" variant="ghost" colorScheme="orange" onClick={onExitCleanup}>
+              Done
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              colorScheme="orange"
+              onClick={onOpenCleanup}
+              isLoading={cleanupLoading}
+            >
+              Clean up
+            </Button>
+          )}
           <Tooltip label="New worktree (c)" placement="bottom">
             <IconButton
               aria-label="Create worktree"

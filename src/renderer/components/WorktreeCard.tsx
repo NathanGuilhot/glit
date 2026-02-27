@@ -21,6 +21,7 @@ import { useAppActions } from '../contexts/AppActionsContext'
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onDelete?: (worktree: WorktreeWithDiff) => void
+  isMerged?: boolean
 }
 
 function CardContent({
@@ -29,6 +30,7 @@ function CardContent({
   branchDisplayText,
   branchJustCopied,
   isMain,
+  isMerged,
   shortPath,
   preferredTerminal,
   preferredIDE,
@@ -44,6 +46,7 @@ function CardContent({
   branchDisplayText: string
   branchJustCopied: boolean
   isMain: boolean
+  isMerged?: boolean
   shortPath: string
   preferredTerminal: TerminalOption
   preferredIDE: IDEOption
@@ -55,7 +58,7 @@ function CardContent({
   onDelete?: () => void
 }) {
   const bg = 'whiteAlpha.50'
-  const borderColor = 'whiteAlpha.100'
+  const borderColor = isMerged ? 'orange.500' : 'whiteAlpha.100'
   const hoverBg = 'whiteAlpha.100'
   const hasDiff = worktree.fileCount > 0
 
@@ -93,6 +96,11 @@ function CardContent({
             {isMain && (
               <Badge colorScheme="green" variant="outline" fontSize="9px">
                 main
+              </Badge>
+            )}
+            {isMerged && (
+              <Badge colorScheme="orange" variant="subtle" fontSize="9px">
+                merged
               </Badge>
             )}
             {worktree.isLocked && (
@@ -238,7 +246,7 @@ function getBranchColor(branch: string): string {
   return 'purple'
 }
 
-export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) {
+export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeCardProps) {
   const { settings } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
@@ -261,6 +269,7 @@ export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) 
       branchDisplayText={branchDisplayText}
       branchJustCopied={branchJustCopied}
       isMain={isMain}
+      isMerged={isMerged}
       shortPath={shortPath}
       preferredTerminal={settings.preferredTerminal}
       preferredIDE={settings.preferredIDE}

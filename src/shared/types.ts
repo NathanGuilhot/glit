@@ -73,6 +73,7 @@ export interface GlitAPI {
     list: (repoPath: string) => Promise<WorktreeWithDiff[]>
     delete: (options: DeleteWorktreeOptions) => Promise<{ success: boolean; error?: string }>
     create: (options: CreateWorktreeOptions) => Promise<{ success: boolean; error?: string; worktree?: Worktree }>
+    getMergedBranches: (repoPath: string, baseBranch: string) => Promise<string[]>
   }
   branch: {
     list: (repoPath: string) => Promise<BranchInfo[]>

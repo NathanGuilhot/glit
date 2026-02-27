@@ -503,5 +503,19 @@ end tell'`
     return getBranches(repoPath)
   })
 
+  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
+    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
+    try {
+      const output = await runGitCommand(repoPath, ['branch', '--merged', baseBranch])
+      return output
+        .split('\n')
+        .map((l) => l.replace(/^\*\s*/, '').trim())
+        .filter((name) => name && name !== baseBranch)
+    } catch (error) {
+      log.warn('getMergedBranches failed:', error)
+      return []
+    }
+  })
+
   log.info('IPC handlers setup complete')
 }
