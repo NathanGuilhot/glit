@@ -9,22 +9,33 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'src/shared/**/*.ts'],
+    ignores: ['**/*.d.ts'],
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    },
+  },
+  {
     files: ['src/renderer/**/*.{ts,tsx}'],
+    ignores: ['**/*.d.ts'],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: {
       globals: globals.browser,
+      parserOptions: {
+        project: './tsconfig.renderer.json',
+      },
     },
     settings: { react: { version: 'detect' } },
     rules: {
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-    },
-  },
-  {
-    files: ['src/main/**/*.ts', 'src/preload/**/*.ts'],
-    languageOptions: {
-      globals: globals.node,
     },
   },
 )
