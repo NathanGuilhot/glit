@@ -1,0 +1,92 @@
+{
+  "name": "glit",
+  "version": "0.1.0",
+  "description": "Git worktree manager",
+  "type": "module",
+  "main": "dist/main/index.js",
+  "bin": {
+    "glit": "./bin/glit.js"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "wait-on http://localhost:5173 && npm run build:main && npm run build:preload && electron .",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && electron-builder",
+    "build:main": "tsc --project tsconfig.main.json",
+    "build:preload": "tsc --project tsconfig.preload.json",
+    "build:renderer": "vite build",
+    "package": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "start": "electron .",
+    "typecheck": "npm run typecheck:main && npm run typecheck:renderer",
+    "typecheck:main": "tsc --project tsconfig.main.json --noEmit",
+    "typecheck:renderer": "tsc --project tsconfig.renderer.json",
+    "typecheck:preload": "tsc --project tsconfig.preload.json --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "install:global": "bash scripts/install-global.sh"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.3",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.9",
+    "js-yaml": "^4.1.1"
+  },
+  "devDependencies": {
+    "@chakra-ui/react": "^2.10.9",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@eslint/js": "^9.39.3",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.5",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.1.2",
+    "electron": "^29.4.6",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.39.3",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "framer-motion": "^11.18.2",
+    "globals": "^17.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^5.4.21",
+    "wait-on": "^8.0.2"
+  },
+  "build": {
+    "appId": "com.glit.app",
+    "productName": "Glit",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
