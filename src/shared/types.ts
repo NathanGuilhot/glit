@@ -1,5 +1,6 @@
 export interface Worktree {
   path: string
+  displayPath?: string
   branch: string
   isBare: boolean
   isLocked: boolean
@@ -32,8 +33,12 @@ export interface CreateProgress {
   detail?: string
 }
 
+export type IDEOption = 'VSCode' | 'Cursor' | 'Zed' | 'WebStorm' | 'Sublime'
+export type TerminalOption = 'Terminal' | 'iTerm2' | 'Hyper' | 'Kitty' | 'Alacritty' | 'Warp'
+
 export interface AppSettings {
-  preferredTerminal: string
+  preferredTerminal: TerminalOption
+  preferredIDE: IDEOption
   defaultBaseBranch: string
   autoRefresh: boolean
 }
@@ -41,6 +46,7 @@ export interface AppSettings {
 export interface RepoInfo {
   isRepo: boolean
   path: string
+  displayPath?: string
   name?: string
 }
 
@@ -84,6 +90,9 @@ export interface GlitAPI {
   }
   terminal: {
     open: (path: string, terminal?: string) => Promise<{ success: boolean; error?: string }>
+  }
+  ide: {
+    open: (path: string, ide?: string) => Promise<{ success: boolean; error?: string }>
   }
   repo: {
     detect: () => Promise<RepoInfo>

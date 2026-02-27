@@ -35,6 +35,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
   const [settings, setSettings] = useState<AppSettings>({
     preferredTerminal: 'Terminal',
+    preferredIDE: 'VSCode',
     defaultBaseBranch: '',
     autoRefresh: true,
   })

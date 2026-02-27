@@ -20,7 +20,7 @@ import {
   Badge,
   IconButton,
 } from '@chakra-ui/react'
-import type { AppSettings, SetupConfig } from '../../shared/types'
+import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
 import { CloseIcon } from './Icons'
 
@@ -32,7 +32,7 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
-const TERMINALS = [
+const TERMINALS: { value: TerminalOption; label: string }[] = [
   { value: 'Terminal', label: 'Terminal.app' },
   { value: 'iTerm2', label: 'iTerm2' },
   { value: 'Hyper', label: 'Hyper' },
@@ -41,9 +41,18 @@ const TERMINALS = [
   { value: 'Warp', label: 'Warp' },
 ]
 
+const IDES: { value: IDEOption; label: string }[] = [
+  { value: 'VSCode',    label: 'Visual Studio Code' },
+  { value: 'Cursor',   label: 'Cursor' },
+  { value: 'Zed',      label: 'Zed' },
+  { value: 'WebStorm', label: 'WebStorm' },
+  { value: 'Sublime',  label: 'Sublime Text' },
+]
+
 export default function SettingsModal({ settings, repoPath, setupConfig, onSave, onClose }: SettingsModalProps) {
   const api = useAPI()
-  const [terminal, setTerminal] = useState(settings.preferredTerminal)
+  const [terminal, setTerminal] = useState<TerminalOption>(settings.preferredTerminal)
+  const [ide, setIde] = useState<IDEOption>(settings.preferredIDE)
   const [baseBranch, setBaseBranch] = useState(settings.defaultBaseBranch)
   const [autoRefresh, setAutoRefresh] = useState(settings.autoRefresh)
   const [saving, setSaving] = useState(false)
@@ -54,7 +63,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
 
   const handleSave = async () => {
     setSaving(true)
-    await onSave({ preferredTerminal: terminal, defaultBaseBranch: baseBranch, autoRefresh })
+    await onSave({ preferredTerminal: terminal, preferredIDE: ide, defaultBaseBranch: baseBranch, autoRefresh })
     const filteredPackages = packages.filter(Boolean)
     const filteredEnvFiles = envFiles.filter(Boolean)
     const filteredCommands = commands.filter(Boolean)
@@ -77,6 +86,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
 
   const isDirty =
     terminal !== settings.preferredTerminal ||
+    ide !== settings.preferredIDE ||
     baseBranch !== settings.defaultBaseBranch ||
     autoRefresh !== settings.autoRefresh ||
     setupChanged
@@ -163,7 +173,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
               <FormLabel fontSize="sm">Preferred terminal</FormLabel>
               <Select
                 value={terminal}
-                onChange={(e) => setTerminal(e.target.value)}
+                onChange={(e) => setTerminal(e.target.value as TerminalOption)}
                 bg="whiteAlpha.50"
                 borderColor="whiteAlpha.200"
                 fontSize="sm"
@@ -174,6 +184,24 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
               </Select>
               <FormHelperText fontSize="xs" color="whiteAlpha.500">
                 Used when opening worktrees in terminal
+              </FormHelperText>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize="sm">Preferred IDE</FormLabel>
+              <Select
+                value={ide}
+                onChange={(e) => setIde(e.target.value as IDEOption)}
+                bg="whiteAlpha.50"
+                borderColor="whiteAlpha.200"
+                fontSize="sm"
+              >
+                {IDES.map((i) => (
+                  <option key={i.value} value={i.value}>{i.label}</option>
+                ))}
+              </Select>
+              <FormHelperText fontSize="xs" color="whiteAlpha.500">
+                Used when opening worktrees in an editor
               </FormHelperText>
             </FormControl>
 

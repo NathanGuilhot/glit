@@ -39,6 +39,9 @@ export interface API {
   terminal: {
     open: (path: string, terminal?: string) => ReturnType<GlitAPI['terminal']['open']>
   }
+  ide: {
+    open: (path: string, ide?: string) => ReturnType<GlitAPI['ide']['open']>
+  }
   repo: {
     detect: () => ReturnType<GlitAPI['repo']['detect']>
     defaultBranch: (repoPath: string) => ReturnType<GlitAPI['repo']['defaultBranch']>
@@ -75,6 +78,9 @@ export function createAPI(glit: GlitAPI): API {
     },
     terminal: {
       open: glit.terminal.open,
+    },
+    ide: {
+      open: glit.ide.open,
     },
     repo: {
       detect: glit.repo.detect,

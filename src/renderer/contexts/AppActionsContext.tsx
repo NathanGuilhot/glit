@@ -9,6 +9,7 @@ interface AppActionsContextValue {
   handleCopyPath: (worktreePath: string) => Promise<void>
   handleCopyBranch: (branch: string) => Promise<void>
   handleOpenTerminal: (worktreePath: string) => Promise<void>
+  handleOpenIDE: (worktreePath: string) => Promise<void>
   handleOpenFinder: (worktreePath: string) => Promise<void>
   handleSaveSettings: (newSettings: AppSettings) => Promise<void>
 }
@@ -63,6 +64,13 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     }
   }, [api, settings.preferredTerminal, toast])
 
+  const handleOpenIDE = useCallback(async (worktreePath: string) => {
+    const result = await api.ide.open(worktreePath, settings.preferredIDE)
+    if (!result.success) {
+      toast({ title: 'Failed to open IDE', description: result.error, status: 'error', duration: 4000 })
+    }
+  }, [api, settings.preferredIDE, toast])
+
   const handleOpenFinder = useCallback(async (worktreePath: string) => {
     await api.shell.openPath(worktreePath)
   }, [api])
@@ -77,6 +85,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     handleCopyPath,
     handleCopyBranch,
     handleOpenTerminal,
+    handleOpenIDE,
     handleOpenFinder,
     handleSaveSettings,
   }

@@ -56,7 +56,7 @@ export default function DeleteModal({ worktree, onConfirm, onClose }: DeleteModa
                   {worktree.branch}
                 </Badge>
                 <Code fontSize="xs" bg="transparent" color="whiteAlpha.600" wordBreak="break-all">
-                  {worktree.path}
+                  {worktree.displayPath ?? worktree.path}
                 </Code>
               </VStack>
             </Box>

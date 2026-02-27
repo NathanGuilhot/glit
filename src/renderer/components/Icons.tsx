@@ -99,6 +99,16 @@ export const PlusIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const IDEIcon = createIcon({
+  displayName: 'IDEIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <polyline key="open" points="16 18 22 12 16 6" />,
+    <polyline key="close" points="8 6 2 12 8 18" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const CloseIcon = createIcon({
   displayName: 'CloseIcon',
   viewBox: '0 0 24 24',

@@ -20,7 +20,7 @@ export default function Header({ onOpenCreate, onOpenSettings }: HeaderProps) {
           {repoInfo && (
             <HStack spacing={2}>
               <Text fontSize="11px" color="whiteAlpha.500" fontFamily="mono" noOfLines={1}>
-                {repoInfo.path}
+                {repoInfo.displayPath ?? repoInfo.path}
               </Text>
               <Badge colorScheme="green" fontSize="9px" variant="subtle">
                 {worktrees.length} worktree{worktrees.length !== 1 ? 's' : ''}

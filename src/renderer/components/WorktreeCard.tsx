@@ -13,8 +13,8 @@ import {
   MenuItem,
   MenuDivider,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff } from '../../shared/types'
-import { CopyIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
+import type { WorktreeWithDiff, IDEOption, TerminalOption } from '../../shared/types'
+import { CopyIcon, IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 
@@ -31,9 +31,11 @@ function CardContent({
   isMain,
   shortPath,
   preferredTerminal,
+  preferredIDE,
   onCopyBranchClick,
   onCopyPath,
   onOpenTerminal,
+  onOpenIDE,
   onOpenFinder,
   onDelete,
 }: {
@@ -43,10 +45,12 @@ function CardContent({
   branchJustCopied: boolean
   isMain: boolean
   shortPath: string
-  preferredTerminal: string
+  preferredTerminal: TerminalOption
+  preferredIDE: IDEOption
   onCopyBranchClick: () => void
   onCopyPath: (path: string) => void
   onOpenTerminal: (path: string) => void
+  onOpenIDE: (path: string) => void
   onOpenFinder: (path: string) => void
   onDelete?: () => void
 }) {
@@ -144,6 +148,16 @@ function CardContent({
                 onClick={() => onOpenTerminal(worktree.path)}
               />
             </Tooltip>
+            <Tooltip label={`Open in ${preferredIDE}`} placement="top">
+              <IconButton
+                aria-label="Open in IDE"
+                icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />}
+                size="xs"
+                variant="ghost"
+                colorScheme="whiteAlpha"
+                onClick={() => onOpenIDE(worktree.path)}
+              />
+            </Tooltip>
             <Tooltip label="Copy path" placement="top">
               <IconButton
                 aria-label="Copy path"
@@ -207,20 +221,13 @@ function getBranchColor(branch: string): string {
   return 'purple'
 }
 
-function shortenPath(fullPath: string): string {
-  if (process.env.HOME && fullPath.startsWith(process.env.HOME)) {
-    return '~' + fullPath.slice(process.env.HOME.length)
-  }
-  return fullPath
-}
-
 export default function WorktreeCard({ worktree }: WorktreeCardProps) {
   const { settings } = useWorktree()
-  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenFinder } = useAppActions()
+  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
 
   const isMain = worktree.branch === 'main' || worktree.branch === 'master'
-  const shortPath = shortenPath(worktree.path)
+  const shortPath = worktree.displayPath ?? worktree.path
   const branchColor = getBranchColor(worktree.branch)
   const branchDisplayText = worktree.branch || '(no branch)'
 
@@ -239,9 +246,11 @@ export default function WorktreeCard({ worktree }: WorktreeCardProps) {
       isMain={isMain}
       shortPath={shortPath}
       preferredTerminal={settings.preferredTerminal}
+      preferredIDE={settings.preferredIDE}
       onCopyBranchClick={handleCopyBranchClick}
       onCopyPath={handleCopyPath}
       onOpenTerminal={handleOpenTerminal}
+      onOpenIDE={handleOpenIDE}
       onOpenFinder={handleOpenFinder}
       onDelete={() => {}}
     />

@@ -27,6 +27,9 @@ const api: GlitAPI = {
   terminal: {
     open: (path: string, terminal?: string) => ipcRenderer.invoke('terminal:open', path, terminal),
   },
+  ide: {
+    open: (path: string, ide?: string) => ipcRenderer.invoke('ide:open', path, ide),
+  },
   repo: {
     detect: () => ipcRenderer.invoke('repo:detect'),
     defaultBranch: (repoPath: string) => ipcRenderer.invoke('repo:defaultBranch', repoPath),

@@ -33,8 +33,17 @@ function getRepoPath(): string {
   return process.cwd()
 }
 
+function shortenPathForDisplay(fullPath: string): string {
+  const home = process.env.HOME
+  if (home && fullPath.startsWith(home)) {
+    return '~' + fullPath.slice(home.length)
+  }
+  return fullPath
+}
+
 const defaultSettings: AppSettings = {
   preferredTerminal: 'Terminal',
+  preferredIDE: 'VSCode',
   defaultBaseBranch: '',
   autoRefresh: true,
 }
@@ -82,7 +91,7 @@ async function getWorktrees(repoPath: string): Promise<Worktree[]> {
     }
 
     if (wtPath) {
-      worktrees.push({ path: wtPath, branch, isBare, isLocked, head })
+      worktrees.push({ path: wtPath, displayPath: shortenPathForDisplay(wtPath), branch, isBare, isLocked, head })
     }
   }
 
@@ -197,12 +206,13 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle('repo:detect', async () => {
     const cwd = getRepoPath()
+    const displayPath = shortenPathForDisplay(cwd)
     try {
       await runGitCommand(cwd, ['rev-parse', '--git-dir'])
       const name = path.basename(cwd)
-      return { isRepo: true, path: cwd, name }
+      return { isRepo: true, path: cwd, displayPath, name }
     } catch {
-      return { isRepo: false, path: cwd }
+      return { isRepo: false, path: cwd, displayPath }
     }
   })
 
@@ -324,7 +334,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       await sendProgress(getWindow, { step: 'done', message: 'Worktree ready!' })
       return {
         success: true,
-        worktree: { path: worktreePath, branch: branchName, isBare: false, isLocked: false },
+        worktree: { path: worktreePath, displayPath: shortenPathForDisplay(worktreePath), branch: branchName, isBare: false, isLocked: false },
       }
     } catch (error) {
       log.error('Error creating worktree:', error)
@@ -421,8 +431,27 @@ end tell'`
     }
   })
 
+  ipcMain.handle('ide:open', async (_event, worktreePath: string, ide?: string) => {
+    const resolvedIDE = ide ?? store.get('settings').preferredIDE ?? 'VSCode'
+    log.info(`Opening IDE at: ${worktreePath}, ide: ${resolvedIDE}`)
+    try {
+      let cmd = ''
+      if (resolvedIDE === 'Cursor')        cmd = `cursor ${JSON.stringify(worktreePath)}`
+      else if (resolvedIDE === 'Zed')      cmd = `zed ${JSON.stringify(worktreePath)}`
+      else if (resolvedIDE === 'WebStorm') cmd = `open -a WebStorm ${JSON.stringify(worktreePath)}`
+      else if (resolvedIDE === 'Sublime')  cmd = `subl ${JSON.stringify(worktreePath)}`
+      else                                 cmd = `code ${JSON.stringify(worktreePath)}`
+      await execAsync(cmd)
+      return { success: true }
+    } catch (error) {
+      log.error('Error opening IDE:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      return { success: false, error: msg }
+    }
+  })
+
   ipcMain.handle('settings:get', async () => {
-    return store.get('settings', defaultSettings)
+    return { ...defaultSettings, ...store.get('settings', defaultSettings) }
   })
 
   ipcMain.handle('settings:set', async (_event, newSettings: Partial<AppSettings>) => {
