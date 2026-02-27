@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
-import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress } from '../../shared/types'
+import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress, PRStatus } from '../../shared/types'
 import { type API, defaultAPI } from '../api'
 
 interface WorktreeContextValue {
   repoInfo: RepoInfo | null
   worktrees: WorktreeWithDiff[]
+  prStatuses: Record<string, PRStatus | null>
   settings: AppSettings
   loading: boolean
   refreshing: boolean
@@ -43,6 +44,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState('')
   const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
+  const [prStatuses, setPrStatuses] = useState<Record<string, PRStatus | null>>({})
 
   const loadRepo = useCallback(async () => {
     try {
@@ -59,6 +61,10 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       ])
       setWorktrees(wts)
       setSettings({ ...cfg, defaultBaseBranch: cfg.defaultBaseBranch || detectedBranch })
+      Promise.all(wts.map(async (wt) => {
+        const status = await api.pr.getStatus(wt.path)
+        return [wt.path, status] as const
+      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
     } catch (err) {
       toast({ title: 'Failed to load repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
@@ -72,6 +78,10 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     try {
       const wts = await api.worktree.list(repoInfo.path)
       setWorktrees(wts)
+      Promise.all(wts.map(async (wt) => {
+        const status = await api.pr.getStatus(wt.path)
+        return [wt.path, status] as const
+      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
     } catch (err) {
       toast({ title: 'Failed to refresh', description: String(err), status: 'error', duration: 3000 })
     } finally {
@@ -99,6 +109,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const value: WorktreeContextValue = {
     repoInfo,
     worktrees: filter ? filtered : worktrees,
+    prStatuses,
     settings,
     loading,
     refreshing,

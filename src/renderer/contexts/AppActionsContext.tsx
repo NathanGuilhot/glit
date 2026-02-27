@@ -6,6 +6,7 @@ import { type API, defaultAPI } from '../api'
 
 interface AppActionsContextValue {
   handleDelete: (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => Promise<void>
+  handleBatchDelete: (worktrees: WorktreeWithDiff[]) => Promise<{ deleted: number; failed: number }>
   handleCopyPath: (worktreePath: string) => Promise<void>
   handleCopyBranch: (branch: string) => Promise<void>
   handleOpenTerminal: (worktreePath: string) => Promise<void>
@@ -47,6 +48,27 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     }
   }, [api, repoInfo, refresh, toast])
 
+  const handleBatchDelete = useCallback(async (worktrees: WorktreeWithDiff[]): Promise<{ deleted: number; failed: number }> => {
+    if (!repoInfo) return { deleted: 0, failed: 0 }
+    let deleted = 0
+    let failed = 0
+    for (const wt of worktrees) {
+      const result = await api.worktree.delete({
+        repoPath: repoInfo.path,
+        worktreePath: wt.path,
+        force: true,
+        deleteFiles: false,
+      })
+      if (result.success) {
+        deleted++
+      } else {
+        failed++
+      }
+    }
+    refresh()
+    return { deleted, failed }
+  }, [api, repoInfo, refresh])
+
   const handleCopyPath = useCallback(async (worktreePath: string) => {
     await api.clipboard.copy(worktreePath)
     toast({ title: 'Path copied', status: 'success', duration: 1500, position: 'bottom-right' })
@@ -82,6 +104,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
 
   const value: AppActionsContextValue = {
     handleDelete,
+    handleBatchDelete,
     handleCopyPath,
     handleCopyBranch,
     handleOpenTerminal,

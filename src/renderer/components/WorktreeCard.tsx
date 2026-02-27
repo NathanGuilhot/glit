@@ -13,14 +13,16 @@ import {
   MenuItem,
   MenuDivider,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff, IDEOption, TerminalOption } from '../../shared/types'
+import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
 import { CopyIcon, IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
+import { useAPI } from '../api'
 
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onDelete?: (worktree: WorktreeWithDiff) => void
+  isMerged?: boolean
 }
 
 function CardContent({
@@ -29,6 +31,8 @@ function CardContent({
   branchDisplayText,
   branchJustCopied,
   isMain,
+  isMerged,
+  prStatus,
   shortPath,
   preferredTerminal,
   preferredIDE,
@@ -37,6 +41,7 @@ function CardContent({
   onOpenTerminal,
   onOpenIDE,
   onOpenFinder,
+  onOpenUrl,
   onDelete,
 }: {
   worktree: WorktreeWithDiff
@@ -44,6 +49,8 @@ function CardContent({
   branchDisplayText: string
   branchJustCopied: boolean
   isMain: boolean
+  isMerged?: boolean
+  prStatus?: PRStatus | null
   shortPath: string
   preferredTerminal: TerminalOption
   preferredIDE: IDEOption
@@ -52,10 +59,11 @@ function CardContent({
   onOpenTerminal: (path: string) => void
   onOpenIDE: (path: string) => void
   onOpenFinder: (path: string) => void
+  onOpenUrl: (url: string) => void
   onDelete?: () => void
 }) {
   const bg = 'whiteAlpha.50'
-  const borderColor = 'whiteAlpha.100'
+  const borderColor = isMerged ? 'orange.500' : 'whiteAlpha.100'
   const hoverBg = 'whiteAlpha.100'
   const hasDiff = worktree.fileCount > 0
 
@@ -95,10 +103,29 @@ function CardContent({
                 main
               </Badge>
             )}
+            {isMerged && (
+              <Badge colorScheme="orange" variant="subtle" fontSize="9px">
+                merged
+              </Badge>
+            )}
             {worktree.isLocked && (
               <Badge colorScheme="orange" variant="subtle" fontSize="9px">
                 locked
               </Badge>
+            )}
+            {prStatus && (
+              <Tooltip label={`PR #${prStatus.number} — click to open`} placement="bottom" openDelay={500}>
+                <Badge
+                  colorScheme={prStatus.state === 'OPEN' ? 'green' : prStatus.state === 'MERGED' ? 'purple' : 'gray'}
+                  variant="subtle"
+                  fontSize="9px"
+                  cursor="pointer"
+                  onClick={() => onOpenUrl(prStatus.url)}
+                  _hover={{ opacity: 0.8 }}
+                >
+                  {prStatus.state === 'OPEN' ? '● Open' : prStatus.state === 'MERGED' ? '✓ Merged' : '⊘ Closed'}
+                </Badge>
+              </Tooltip>
             )}
           </HStack>
 
@@ -238,9 +265,10 @@ function getBranchColor(branch: string): string {
   return 'purple'
 }
 
-export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) {
-  const { settings } = useWorktree()
+export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeCardProps) {
+  const { settings, prStatuses } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
+  const api = useAPI()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
 
   const isMain = worktree.branch === 'main' || worktree.branch === 'master'
@@ -261,6 +289,8 @@ export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) 
       branchDisplayText={branchDisplayText}
       branchJustCopied={branchJustCopied}
       isMain={isMain}
+      isMerged={isMerged}
+      prStatus={prStatuses[worktree.path]}
       shortPath={shortPath}
       preferredTerminal={settings.preferredTerminal}
       preferredIDE={settings.preferredIDE}
@@ -269,6 +299,7 @@ export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) 
       onOpenTerminal={handleOpenTerminal}
       onOpenIDE={handleOpenIDE}
       onOpenFinder={handleOpenFinder}
+      onOpenUrl={api.shell.openUrl}
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
     />
   )

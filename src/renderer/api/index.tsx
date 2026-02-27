@@ -11,6 +11,7 @@ export type {
   RepoInfo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
+  PRStatus,
 } from '../../shared/types'
 
 export interface API {
@@ -18,6 +19,7 @@ export interface API {
     list: (repoPath: string) => ReturnType<GlitAPI['worktree']['list']>
     delete: (options: Parameters<GlitAPI['worktree']['delete']>[0]) => ReturnType<GlitAPI['worktree']['delete']>
     create: (options: Parameters<GlitAPI['worktree']['create']>[0]) => ReturnType<GlitAPI['worktree']['create']>
+    getMergedBranches: (repoPath: string, baseBranch: string) => ReturnType<GlitAPI['worktree']['getMergedBranches']>
   }
   branch: {
     list: (repoPath: string) => ReturnType<GlitAPI['branch']['list']>
@@ -46,8 +48,12 @@ export interface API {
     detect: () => ReturnType<GlitAPI['repo']['detect']>
     defaultBranch: (repoPath: string) => ReturnType<GlitAPI['repo']['defaultBranch']>
   }
+  pr: {
+    getStatus: (worktreePath: string) => ReturnType<GlitAPI['pr']['getStatus']>
+  }
   shell: {
     openPath: (path: string) => ReturnType<GlitAPI['shell']['openPath']>
+    openUrl: (url: string) => ReturnType<GlitAPI['shell']['openUrl']>
   }
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void
 }
@@ -58,6 +64,7 @@ export function createAPI(glit: GlitAPI): API {
       list: glit.worktree.list,
       delete: glit.worktree.delete,
       create: glit.worktree.create,
+      getMergedBranches: glit.worktree.getMergedBranches,
     },
     branch: {
       list: glit.branch.list,
@@ -86,8 +93,12 @@ export function createAPI(glit: GlitAPI): API {
       detect: glit.repo.detect,
       defaultBranch: glit.repo.defaultBranch,
     },
+    pr: {
+      getStatus: glit.pr.getStatus,
+    },
     shell: {
       openPath: glit.shell.openPath,
+      openUrl: glit.shell.openUrl,
     },
     on: glit.on,
   }
