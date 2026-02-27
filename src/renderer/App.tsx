@@ -30,7 +30,6 @@ function AppContent() {
   const [cleanupMode, setCleanupMode] = useState(false)
   const [cancellingCreate, setCancellingCreate] = useState(false)
   const [mergedBranches, setMergedBranches] = useState<string[]>([])
-  const [cleanupLoading, setCleanupLoading] = useState(false)
 
   const toast = useToast()
 
@@ -109,19 +108,29 @@ function AppContent() {
     setDeleteTarget(null)
   }
 
-  const handleEnterCleanup = useCallback(async () => {
-    if (!repoInfo) return
-    setCleanupLoading(true)
-    setCleanupMode(true)
+  const fetchMergedBranches = useCallback(async () => {
+    if (!repoInfo?.isRepo) return
     const baseBranch = settings.defaultBaseBranch || 'main'
     const result = await api.worktree.getMergedBranches(repoInfo.path, baseBranch)
     setMergedBranches(result)
-    setCleanupLoading(false)
-  }, [api, repoInfo, settings.defaultBaseBranch])
+  }, [api, repoInfo?.path, repoInfo?.isRepo, settings.defaultBaseBranch])
+
+  useEffect(() => {
+    fetchMergedBranches()
+  }, [fetchMergedBranches])
+
+  const handleEnterCleanup = useCallback(() => {
+    setCleanupMode(true)
+    const count = mergedBranches.length
+    toast({
+      title: `${count} worktree${count !== 1 ? 's' : ''} with merged branches`,
+      status: 'info',
+      duration: 3000,
+    })
+  }, [mergedBranches.length, toast])
 
   const handleExitCleanup = useCallback(() => {
     setCleanupMode(false)
-    setMergedBranches([])
   }, [])
 
   const handleBatchDeleteConfirm = useCallback(async (worktrees: WorktreeWithDiff[]) => {
@@ -132,8 +141,8 @@ function AppContent() {
       toast({ title: `Deleted ${deleted}, failed ${failed}`, status: 'warning', duration: 4000 })
     }
     setCleanupMode(false)
-    setMergedBranches([])
-  }, [handleBatchDelete, toast])
+    await fetchMergedBranches()
+  }, [handleBatchDelete, toast, fetchMergedBranches])
 
   if (loading) {
     return (
@@ -167,7 +176,7 @@ function AppContent() {
         onOpenSettings={openSettings}
         onOpenCleanup={handleEnterCleanup}
         cleanupMode={cleanupMode}
-        cleanupLoading={cleanupLoading}
+        hasMergedBranches={mergedBranches.length > 0}
         onExitCleanup={handleExitCleanup}
       />
 

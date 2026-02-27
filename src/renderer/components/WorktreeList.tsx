@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  VStack, Flex, Text, Button, Box, HStack,
+  VStack, Flex, Text, Button, HStack,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
 } from '@chakra-ui/react'
 import { useWorktree } from '../contexts/WorktreeContext'
@@ -40,32 +40,16 @@ export default function WorktreeList({ onDelete, cleanupMode, mergedBranches, on
 
   return (
     <VStack spacing={2} align="stretch">
-      {cleanupMode && (
-        <Box
-          bg="orange.900"
-          border="1px solid"
-          borderColor="orange.600"
-          borderRadius="md"
-          px={4}
-          py={3}
-          mb={1}
+      {cleanupMode && mergedWorktrees.length > 0 && onBatchDelete && (
+        <Button
+          size="xs"
+          colorScheme="orange"
+          variant="solid"
+          alignSelf="flex-end"
+          onClick={() => setShowBatchConfirm(true)}
         >
-          <HStack justify="space-between" align="center">
-            <Text fontSize="sm" color="orange.200" fontWeight="500">
-              {mergedWorktrees.length} worktree{mergedWorktrees.length !== 1 ? 's' : ''} with merged branches found
-            </Text>
-            {mergedWorktrees.length > 0 && onBatchDelete && (
-              <Button
-                size="xs"
-                colorScheme="orange"
-                variant="solid"
-                onClick={() => setShowBatchConfirm(true)}
-              >
-                Remove {mergedWorktrees.length} merged
-              </Button>
-            )}
-          </HStack>
-        </Box>
+          Delete all ({mergedWorktrees.length})
+        </Button>
       )}
       {worktrees.map((wt) => (
         <WorktreeCard
