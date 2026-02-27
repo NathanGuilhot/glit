@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions } from '../shared/types'
+import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions, SetupConfig } from '../shared/types'
 
 const api: GlitAPI = {
   worktree: {
@@ -16,15 +16,20 @@ const api: GlitAPI = {
   },
   setup: {
     preview: (repoPath: string) => ipcRenderer.invoke('setup:preview', repoPath),
+    save: (repoPath: string, config: SetupConfig) => ipcRenderer.invoke('setup:save', repoPath, config),
   },
   clipboard: {
     copy: (text: string) => ipcRenderer.invoke('clipboard:copy', text),
+  },
+  dialog: {
+    pickFile: (repoPath: string) => ipcRenderer.invoke('dialog:pickFile', repoPath),
   },
   terminal: {
     open: (path: string, terminal?: string) => ipcRenderer.invoke('terminal:open', path, terminal),
   },
   repo: {
     detect: () => ipcRenderer.invoke('repo:detect'),
+    defaultBranch: (repoPath: string) => ipcRenderer.invoke('repo:defaultBranch', repoPath),
   },
   shell: {
     openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),

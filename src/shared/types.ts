@@ -74,15 +74,20 @@ export interface GlitAPI {
   }
   setup: {
     preview: (repoPath: string) => Promise<SetupConfig | null>
+    save: (repoPath: string, config: SetupConfig) => Promise<void>
   }
   clipboard: {
     copy: (text: string) => Promise<void>
+  }
+  dialog: {
+    pickFile: (repoPath: string) => Promise<string | null>
   }
   terminal: {
     open: (path: string, terminal?: string) => Promise<{ success: boolean; error?: string }>
   }
   repo: {
     detect: () => Promise<RepoInfo>
+    defaultBranch: (repoPath: string) => Promise<string>
   }
   shell: {
     openPath: (path: string) => Promise<string>

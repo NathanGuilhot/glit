@@ -16,7 +16,7 @@ import {
   Tooltip,
   Button,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress } from '../shared/types'
+import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress, SetupConfig } from '../shared/types'
 import WorktreeCard from './components/WorktreeCard'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
@@ -106,7 +106,7 @@ function AppContent() {
   const [filter, setFilter] = useState('')
   const [settings, setSettings] = useState<AppSettings>({
     preferredTerminal: 'Terminal',
-    defaultBaseBranch: 'main',
+    defaultBaseBranch: '',
     autoRefresh: true,
   })
 
@@ -115,6 +115,7 @@ function AppContent() {
   const [showCreate, setShowCreate] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
+  const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
 
   const filterRef = useRef<HTMLInputElement>(null)
 
@@ -128,12 +129,13 @@ function AppContent() {
         setLoading(false)
         return
       }
-      const [wts, cfg] = await Promise.all([
+      const [wts, cfg, detectedBranch] = await Promise.all([
         window.glit.worktree.list(info.path),
         window.glit.settings.get(),
+        window.glit.repo.defaultBranch(info.path),
       ])
       setWorktrees(wts)
-      setSettings(cfg)
+      setSettings({ ...cfg, defaultBaseBranch: cfg.defaultBaseBranch || detectedBranch })
     } catch (err) {
       toast({ title: 'Failed to load repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
@@ -166,6 +168,14 @@ function AppContent() {
     return unsub
   }, [])
 
+  const openSettings = useCallback(async () => {
+    if (repoInfo?.isRepo) {
+      const config = await window.glit.setup.preview(repoInfo.path)
+      setSetupConfig(config)
+    }
+    setShowSettings(true)
+  }, [repoInfo])
+
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -183,7 +193,7 @@ function AppContent() {
           if (!e.metaKey && !e.ctrlKey) setShowCreate(true)
           break
         case ',':
-          if (e.metaKey) setShowSettings(true)
+          if (e.metaKey) openSettings()
           break
         case '/':
           filterRef.current?.focus()
@@ -196,7 +206,7 @@ function AppContent() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [refresh])
+  }, [refresh, openSettings])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -333,7 +343,7 @@ function AppContent() {
                 icon={<SettingsIcon />}
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowSettings(true)}
+                onClick={openSettings}
               />
             </Tooltip>
           </HStack>
@@ -439,9 +449,11 @@ function AppContent() {
         />
       )}
 
-      {showSettings && (
+      {showSettings && repoInfo && (
         <SettingsModal
           settings={settings}
+          repoPath={repoInfo.path}
+          setupConfig={setupConfig}
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
         />

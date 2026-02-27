@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, BrowserWindow } from 'electron'
+import { ipcMain, clipboard, dialog, BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -35,7 +35,7 @@ function getRepoPath(): string {
 
 const defaultSettings: AppSettings = {
   preferredTerminal: 'Terminal',
-  defaultBaseBranch: 'main',
+  defaultBaseBranch: '',
   autoRefresh: true,
 }
 
@@ -153,6 +153,38 @@ async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   return branches
 }
 
+async function getDefaultBranch(repoPath: string): Promise<string> {
+  // Try to read the remote HEAD symref (e.g. refs/remotes/origin/HEAD -> origin/master)
+  try {
+    const out = await runGitCommand(repoPath, ['symbolic-ref', 'refs/remotes/origin/HEAD'])
+    const branch = out.trim().replace('refs/remotes/origin/', '')
+    if (branch) return branch
+  } catch {
+    // not set – fall through
+  }
+
+  // Fall back: look for 'main' or 'master' in local branches
+  try {
+    const out = await runGitCommand(repoPath, ['branch'])
+    const names = out.split('\n').map((l) => l.replace(/^\*\s*/, '').trim()).filter(Boolean)
+    if (names.includes('main')) return 'main'
+    if (names.includes('master')) return 'master'
+  } catch {
+    // fall through
+  }
+
+  // Last resort: current branch
+  try {
+    const out = await runGitCommand(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    const branch = out.trim()
+    if (branch && branch !== 'HEAD') return branch
+  } catch {
+    // fall through
+  }
+
+  return 'main'
+}
+
 async function sendProgress(getWindow: () => BrowserWindow | null, data: CreateProgress): Promise<void> {
   const win = getWindow()
   if (win && !win.isDestroyed()) {
@@ -218,13 +250,24 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     const safeName = branchName.replace(/[^a-zA-Z0-9._-]/g, '-')
     const worktreePath = customPath ?? path.join(repoPath, '..', `glit-worktrees`, safeName)
 
+    // Resolve the effective base branch, falling back to auto-detected default
+    let effectiveBase = baseBranch
+    if (createNewBranch && effectiveBase) {
+      try {
+        await runGitCommand(repoPath, ['rev-parse', '--verify', effectiveBase])
+      } catch {
+        log.warn(`Base branch "${effectiveBase}" not found, falling back to auto-detected default`)
+        effectiveBase = await getDefaultBranch(repoPath)
+      }
+    }
+
     try {
       await sendProgress(getWindow, { step: 'creating', message: 'Creating worktree...' })
 
       const args = ['worktree', 'add']
       if (createNewBranch) {
         args.push('-b', branchName, worktreePath)
-        if (baseBranch) args.push(baseBranch)
+        if (effectiveBase) args.push(effectiveBase)
       } else {
         args.push(worktreePath, branchName)
       }
@@ -302,6 +345,24 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     }
   })
 
+  ipcMain.handle('setup:save', async (_event, repoPath: string, config: SetupConfig) => {
+    const glitDir = path.join(repoPath, '.glit')
+    const configPath = path.join(glitDir, 'setup.yaml')
+    await fs.mkdir(glitDir, { recursive: true })
+    await fs.writeFile(configPath, yaml.dump(config), 'utf-8')
+  })
+
+  ipcMain.handle('dialog:pickFile', async (_event, repoPath: string) => {
+    const win = getWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      defaultPath: repoPath,
+      properties: ['openFile'],
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    return path.relative(repoPath, result.filePaths[0])
+  })
+
   ipcMain.handle('clipboard:copy', async (_event, text: string) => {
     clipboard.writeText(text)
   })
@@ -352,6 +413,11 @@ end tell'`
   ipcMain.handle('settings:set', async (_event, newSettings: Partial<AppSettings>) => {
     const current = store.get('settings', defaultSettings)
     store.set('settings', { ...current, ...newSettings })
+  })
+
+  ipcMain.handle('repo:defaultBranch', async (_event, repoPath: string) => {
+    log.info(`Detecting default branch for: ${repoPath}`)
+    return getDefaultBranch(repoPath)
   })
 
   ipcMain.handle('branch:list', async (_event, repoPath: string) => {
