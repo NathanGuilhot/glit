@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
   Box,
-  Flex,
-  Text,
-  Spinner,
+  VStack,
   useToast,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, SetupConfig } from '../shared/types'
@@ -19,6 +17,7 @@ import CreateWorktreeModal from './components/CreateWorktreeModal'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
 import ErrorBoundary from './components/ErrorBoundary'
+import { WorktreeCardSkeleton } from './components/WorktreeCard'
 
 function AppContent() {
   const { loading, repoInfo, settings, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
@@ -29,6 +28,7 @@ function AppContent() {
   const [showCreate, setShowCreate] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
+  const [cancellingCreate, setCancellingCreate] = useState(false)
   const [mergedBranches, setMergedBranches] = useState<string[]>([])
   const [cleanupLoading, setCleanupLoading] = useState(false)
 
@@ -36,6 +36,7 @@ function AppContent() {
 
   const handleCreate = useCallback(async (branchName: string, createNew: boolean, baseBranch: string) => {
     if (!repoInfo) return
+    setCancellingCreate(false)
     setCreateProgress({ step: 'creating', message: 'Starting...' })
     const result = await api.worktree.create({
       repoPath: repoInfo.path,
@@ -48,11 +49,20 @@ function AppContent() {
       setShowCreate(false)
       setCreateProgress(null)
       refresh()
-    } else {
+    } else if (result.error !== 'cancelled') {
       toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
       setCreateProgress(null)
+    } else {
+      setCreateProgress(null)
+      setShowCreate(false)
+      setCancellingCreate(false)
     }
   }, [api, repoInfo, setCreateProgress, refresh, toast])
+
+  const handleCancelCreate = useCallback(async () => {
+    setCancellingCreate(true)
+    await api.worktree.cancelCreate()
+  }, [api])
 
   const openSettings = useCallback(async () => {
     if (repoInfo?.isRepo) {
@@ -74,6 +84,9 @@ function AppContent() {
           break
         case 'c':
           if (!e.metaKey && !e.ctrlKey) setShowCreate(true)
+          break
+        case 'k':
+          if (e.metaKey) { e.preventDefault(); setShowCreate(true) }
           break
         case ',':
           if (e.metaKey) openSettings()
@@ -124,10 +137,20 @@ function AppContent() {
 
   if (loading) {
     return (
-      <Flex h="100vh" align="center" justify="center" direction="column" gap={4}>
-        <Spinner size="xl" color="brand.400" thickness="3px" />
-        <Text color="whiteAlpha.600">Loading repository...</Text>
-      </Flex>
+      <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
+        <Box h="28px" flexShrink={0} />
+        <Box px={5} pb={3} flexShrink={0}>
+          <Box h="20px" w="100px" bg="whiteAlpha.100" borderRadius="md" mb={2} />
+          <Box h="12px" w="180px" bg="whiteAlpha.50" borderRadius="md" />
+        </Box>
+        <Box flex={1} overflowY="auto" px={5} pb={5}>
+          <VStack spacing={2} align="stretch">
+            <WorktreeCardSkeleton />
+            <WorktreeCardSkeleton />
+            <WorktreeCardSkeleton />
+          </VStack>
+        </Box>
+      </Box>
     )
   }
 
@@ -175,7 +198,9 @@ function AppContent() {
           repoPath={repoInfo.path}
           settings={settings}
           progress={createProgress}
+          cancelling={cancellingCreate}
           onConfirm={handleCreate}
+          onCancel={handleCancelCreate}
           onClose={() => setShowCreate(false)}
         />
       )}

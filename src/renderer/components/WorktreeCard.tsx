@@ -12,6 +12,7 @@ import {
   MenuList,
   MenuItem,
   MenuDivider,
+  Skeleton,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
 import { CopyIcon, IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
@@ -83,7 +84,7 @@ function CardContent({
       <HStack spacing={[2, 3]} align="start">
         <VStack align="start" spacing={1} flex={1} minW={0}>
           <HStack spacing={2} flexWrap="wrap">
-            <Tooltip label={branchJustCopied ? 'Copied!' : 'Click to copy branch'} placement="bottom" openDelay={500}>
+            <Tooltip label={branchJustCopied ? 'Copied!' : 'Click to copy branch'} placement="bottom" openDelay={200}>
               <Badge
                 colorScheme={branchColor}
                 variant="subtle"
@@ -114,7 +115,7 @@ function CardContent({
               </Badge>
             )}
             {prStatus && (
-              <Tooltip label={`PR #${prStatus.number} — click to open`} placement="bottom" openDelay={500}>
+              <Tooltip label={`PR #${prStatus.number} — click to open`} placement="bottom" openDelay={200}>
                 <Badge
                   colorScheme={prStatus.state === 'OPEN' ? 'green' : prStatus.state === 'MERGED' ? 'purple' : 'gray'}
                   variant="subtle"
@@ -129,7 +130,7 @@ function CardContent({
             )}
           </HStack>
 
-          <Tooltip label="Click to copy path" placement="bottom" openDelay={500}>
+          <Tooltip label="Click to copy path" placement="bottom" openDelay={200}>
             <Text
               fontSize="11px"
               fontFamily="mono"
@@ -169,12 +170,12 @@ function CardContent({
                 <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
               )}
               {worktree.aheadCount > 0 && (
-                <Text fontSize="12px" color="blue.300" fontFamily="mono" fontWeight="600">
+                <Text fontSize="12px" color="whiteAlpha.600" fontFamily="mono" fontWeight="600">
                   ↑{worktree.aheadCount}
                 </Text>
               )}
               {worktree.behindCount > 0 && (
-                <Text fontSize="12px" color="yellow.400" fontFamily="mono" fontWeight="600">
+                <Text fontSize="12px" color="whiteAlpha.600" fontFamily="mono" fontWeight="600">
                   ↓{worktree.behindCount}
                 </Text>
               )}
@@ -182,7 +183,7 @@ function CardContent({
           </Box>
 
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">
-            <Tooltip label={`Open in ${preferredTerminal}`} placement="top">
+            <Tooltip label={`Open in ${preferredTerminal}`} placement="top" openDelay={200}>
               <IconButton
                 aria-label="Open in terminal"
                 icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />}
@@ -192,7 +193,7 @@ function CardContent({
                 onClick={() => onOpenTerminal(worktree.path)}
               />
             </Tooltip>
-            <Tooltip label={`Open in ${preferredIDE}`} placement="top">
+            <Tooltip label={`Open in ${preferredIDE}`} placement="top" openDelay={200}>
               <IconButton
                 aria-label="Open in IDE"
                 icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />}
@@ -202,7 +203,7 @@ function CardContent({
                 onClick={() => onOpenIDE(worktree.path)}
               />
             </Tooltip>
-            <Tooltip label="Copy path" placement="top">
+            <Tooltip label="Copy path" placement="top" openDelay={200}>
               <IconButton
                 aria-label="Copy path"
                 icon={<CopyIcon boxSize={4} color="whiteAlpha.800" />}
@@ -258,11 +259,31 @@ function CardContent({
 
 function getBranchColor(branch: string): string {
   if (branch === 'main' || branch === 'master') return 'green'
-  if (branch.startsWith('feature/') || branch.startsWith('feat/')) return 'blue'
-  if (branch.startsWith('fix/') || branch.startsWith('bugfix/') || branch.startsWith('hotfix/')) return 'red'
-  if (branch.startsWith('release/') || branch.startsWith('chore/')) return 'orange'
-  if (branch.startsWith('detached:')) return 'gray'
-  return 'purple'
+  return 'gray'
+}
+
+export function WorktreeCardSkeleton() {
+  return (
+    <Box
+      bg="whiteAlpha.50"
+      border="1px solid"
+      borderColor="whiteAlpha.100"
+      borderRadius="lg"
+      px={4}
+      py={3}
+    >
+      <HStack spacing={3} align="start">
+        <VStack align="start" spacing={2} flex={1}>
+          <Skeleton height="18px" width="120px" borderRadius="md" startColor="whiteAlpha.100" endColor="whiteAlpha.200" />
+          <Skeleton height="11px" width="220px" borderRadius="md" startColor="whiteAlpha.50" endColor="whiteAlpha.150" />
+          <Skeleton height="10px" width="80px" borderRadius="md" startColor="whiteAlpha.50" endColor="whiteAlpha.100" />
+        </VStack>
+        <HStack spacing={2} flexShrink={0} alignItems="center">
+          <Skeleton height="14px" width="50px" borderRadius="md" startColor="whiteAlpha.50" endColor="whiteAlpha.150" />
+        </HStack>
+      </HStack>
+    </Box>
+  )
 }
 
 export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeCardProps) {

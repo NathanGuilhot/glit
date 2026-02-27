@@ -19,6 +19,8 @@ import type {
 
 const execAsync = promisify(exec)
 
+let activeCreateController: AbortController | null = null
+
 const isDev = process.env.NODE_ENV !== 'production'
 
 function getRepoPath(): string {
@@ -52,10 +54,10 @@ const store = new Store<{ settings: AppSettings }>({
   defaults: { settings: defaultSettings },
 })
 
-async function runGitCommand(cwd: string, args: string[]): Promise<string> {
+async function runGitCommand(cwd: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> {
   const cmd = `git ${args.join(' ')}`
   log.debug(`Git: ${cmd} [${cwd}]`)
-  const { stdout, stderr } = await execAsync(cmd, { cwd })
+  const { stdout, stderr } = await execAsync(cmd, { cwd, signal: options?.signal })
   if (stderr) log.debug(`Git stderr: ${stderr}`)
   return stdout
 }
@@ -291,6 +293,10 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     const { repoPath, branchName, createNewBranch = false, baseBranch, worktreePath: customPath } = options
     log.info(`Creating worktree: ${branchName} in ${repoPath}, newBranch: ${createNewBranch}`)
 
+    const controller = new AbortController()
+    activeCreateController = controller
+    const { signal } = controller
+
     const safeName = branchName.replace(/[^a-zA-Z0-9._-]/g, '-')
     const worktreePath = customPath ?? path.join(repoPath, '..', `glit-worktrees`, safeName)
 
@@ -298,8 +304,12 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     let effectiveBase = baseBranch
     if (createNewBranch && effectiveBase) {
       try {
-        await runGitCommand(repoPath, ['rev-parse', '--verify', effectiveBase])
+        await runGitCommand(repoPath, ['rev-parse', '--verify', effectiveBase], { signal })
       } catch {
+        if (signal.aborted) {
+          activeCreateController = null
+          return { success: false, error: 'cancelled' }
+        }
         log.warn(`Base branch "${effectiveBase}" not found, falling back to auto-detected default`)
         effectiveBase = await getDefaultBranch(repoPath)
       }
@@ -315,7 +325,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       } else {
         args.push(worktreePath, branchName)
       }
-      await runGitCommand(repoPath, args)
+      await runGitCommand(repoPath, args, { signal })
       log.info(`Worktree created at: ${worktreePath}`)
 
       // Load and run setup
@@ -327,18 +337,21 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         if (config.packages?.length) {
           await sendProgress(getWindow, { step: 'packages', message: 'Installing packages...' })
           for (const pkgCmd of config.packages) {
+            if (signal.aborted) break
             try {
               await sendProgress(getWindow, { step: 'packages', message: 'Installing packages...', detail: pkgCmd })
-              await execAsync(pkgCmd, { cwd: worktreePath })
+              await execAsync(pkgCmd, { cwd: worktreePath, signal })
             } catch (e) {
+              if (signal.aborted) break
               log.warn(`Package command failed: ${pkgCmd}`, e)
             }
           }
         }
 
-        if (config.envFiles?.length) {
+        if (!signal.aborted && config.envFiles?.length) {
           await sendProgress(getWindow, { step: 'env', message: 'Copying env files...' })
           for (const envFile of config.envFiles) {
+            if (signal.aborted) break
             try {
               const srcPath = path.join(repoPath, envFile)
               const destPath = path.join(worktreePath, envFile)
@@ -350,31 +363,50 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
           }
         }
 
-        if (config.commands?.length) {
+        if (!signal.aborted && config.commands?.length) {
           await sendProgress(getWindow, { step: 'commands', message: 'Running setup commands...' })
           for (const cmd of config.commands) {
+            if (signal.aborted) break
             try {
               await sendProgress(getWindow, { step: 'commands', message: 'Running setup commands...', detail: cmd })
-              await execAsync(cmd, { cwd: worktreePath })
+              await execAsync(cmd, { cwd: worktreePath, signal })
             } catch (e) {
+              if (signal.aborted) break
               log.warn(`Setup command failed: ${cmd}`, e)
             }
           }
         }
       } catch {
-        log.info('No .glit/setup.yaml found, skipping setup')
+        if (!signal.aborted) log.info('No .glit/setup.yaml found, skipping setup')
+      }
+
+      if (signal.aborted) {
+        activeCreateController = null
+        return { success: false, error: 'cancelled' }
       }
 
       await sendProgress(getWindow, { step: 'done', message: 'Worktree ready!' })
+      activeCreateController = null
       return {
         success: true,
         worktree: { path: worktreePath, displayPath: shortenPathForDisplay(worktreePath), branch: branchName, isBare: false, isLocked: false },
       }
     } catch (error) {
+      activeCreateController = null
+      if (signal.aborted) {
+        return { success: false, error: 'cancelled' }
+      }
       log.error('Error creating worktree:', error)
       const msg = error instanceof Error ? error.message : String(error)
       await sendProgress(getWindow, { step: 'error', message: 'Failed to create worktree', detail: msg })
       return { success: false, error: msg }
+    }
+  })
+
+  ipcMain.handle('worktree:cancelCreate', async () => {
+    if (activeCreateController) {
+      log.info('Cancelling worktree creation')
+      activeCreateController.abort()
     }
   })
 

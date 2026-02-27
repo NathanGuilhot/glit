@@ -19,6 +19,8 @@ import {
   Divider,
   Badge,
   IconButton,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react'
 import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
@@ -60,6 +62,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
   const [packages, setPackages] = useState<string[]>(setupConfig?.packages ?? [])
   const [envFiles, setEnvFiles] = useState<string[]>(setupConfig?.envFiles ?? [])
   const [commands, setCommands] = useState<string[]>(setupConfig?.commands ?? [])
+  const [showDirtyWarning, setShowDirtyWarning] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
@@ -156,8 +159,16 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
     </VStack>
   )
 
+  const handleClose = () => {
+    if (isDirty) {
+      setShowDirtyWarning(true)
+    } else {
+      onClose()
+    }
+  }
+
   return (
-    <Modal isOpen onClose={onClose} size="md" isCentered scrollBehavior="inside">
+    <Modal isOpen onClose={handleClose} size="md" isCentered scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid" maxH="85vh">
         <ModalHeader pb={2}>
@@ -261,17 +272,31 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
         </ModalBody>
 
         <ModalFooter>
-          <HStack spacing={3}>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button
-              colorScheme="brand"
-              onClick={handleSave}
-              isLoading={saving}
-              isDisabled={!isDirty}
-            >
-              Save settings
-            </Button>
-          </HStack>
+          <VStack align="stretch" spacing={3} w="full">
+            {showDirtyWarning && (
+              <Alert status="warning" borderRadius="md" bg="orange.900" border="1px solid" borderColor="orange.700" py={2}>
+                <AlertIcon />
+                <HStack justify="space-between" flex={1} flexWrap="wrap" gap={2}>
+                  <Text fontSize="sm">You have unsaved changes.</Text>
+                  <HStack spacing={2}>
+                    <Button size="xs" variant="ghost" onClick={() => setShowDirtyWarning(false)}>Keep editing</Button>
+                    <Button size="xs" colorScheme="orange" variant="outline" onClick={onClose}>Discard & close</Button>
+                  </HStack>
+                </HStack>
+              </Alert>
+            )}
+            <HStack spacing={3} justify="flex-end">
+              <Button variant="ghost" onClick={handleClose}>Cancel</Button>
+              <Button
+                colorScheme="brand"
+                onClick={handleSave}
+                isLoading={saving}
+                isDisabled={!isDirty}
+              >
+                Save settings
+              </Button>
+            </HStack>
+          </VStack>
         </ModalFooter>
       </ModalContent>
     </Modal>

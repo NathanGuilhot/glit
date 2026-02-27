@@ -32,7 +32,9 @@ interface CreateWorktreeModalProps {
   repoPath: string
   settings: AppSettings
   progress: CreateProgress | null
+  cancelling?: boolean
   onConfirm: (branchName: string, createNew: boolean, baseBranch: string) => Promise<void>
+  onCancel?: () => void
   onClose: () => void
 }
 
@@ -234,7 +236,9 @@ export default function CreateWorktreeModal({
   repoPath,
   settings,
   progress,
+  cancelling = false,
   onConfirm,
+  onCancel,
   onClose,
 }: CreateWorktreeModalProps) {
   const api = useAPI()
@@ -259,11 +263,13 @@ export default function CreateWorktreeModal({
         api.setup.preview(repoPath).catch(() => null),
       ])
       setBranches(branchList)
+      const currentBranch = branchList.find((b) => b.isCurrent && !b.isRemote)
+      setBaseBranch(currentBranch?.name ?? settings.defaultBaseBranch)
       setSetupConfig(config)
       setLoadingBranches(false)
     }
     loadData()
-  }, [api, repoPath])
+  }, [api, repoPath, settings])
 
   const validate = (): string => {
     if (!branchName.trim()) return 'Branch name is required'
@@ -280,8 +286,16 @@ export default function CreateWorktreeModal({
     setSubmitting(false)
   }
 
+  const handleCancelClick = () => {
+    if (isWorking && onCancel) {
+      onCancel()
+    } else {
+      onClose()
+    }
+  }
+
   return (
-    <Modal isOpen onClose={isWorking ? () => {} : onClose} size="lg" isCentered>
+    <Modal isOpen onClose={handleCancelClick} size="lg" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>New Worktree</ModalHeader>
@@ -311,8 +325,9 @@ export default function CreateWorktreeModal({
           <HStack spacing={3}>
             <Button
               variant="ghost"
-              onClick={onClose}
-              isDisabled={isWorking}
+              onClick={handleCancelClick}
+              isLoading={cancelling}
+              loadingText="Cancelling…"
             >
               {isDone ? 'Close' : 'Cancel'}
             </Button>
@@ -320,9 +335,9 @@ export default function CreateWorktreeModal({
               <Button
                 colorScheme="brand"
                 onClick={handleSubmit}
-                isLoading={isWorking}
-                loadingText={progress?.message ?? 'Creating...'}
-                isDisabled={!branchName.trim()}
+                isLoading={isWorking && !cancelling}
+                loadingText={progress?.message ?? 'Creating worktree…'}
+                isDisabled={!branchName.trim() || cancelling}
               >
                 Create worktree
               </Button>

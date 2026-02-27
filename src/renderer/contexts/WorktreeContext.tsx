@@ -42,8 +42,13 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [filter, setFilter] = useState('')
+  const [filter, setFilterState] = useState(() => sessionStorage.getItem('glit:filter') ?? '')
   const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
+
+  const setFilter = useCallback((value: string) => {
+    setFilterState(value)
+    sessionStorage.setItem('glit:filter', value)
+  }, [])
   const [prStatuses, setPrStatuses] = useState<Record<string, PRStatus | null>>({})
 
   const loadRepo = useCallback(async () => {

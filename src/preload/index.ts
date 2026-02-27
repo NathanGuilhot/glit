@@ -6,6 +6,7 @@ const api: GlitAPI = {
     list: (repoPath: string) => ipcRenderer.invoke('worktree:list', repoPath),
     delete: (options: DeleteWorktreeOptions) => ipcRenderer.invoke('worktree:delete', options),
     create: (options: CreateWorktreeOptions) => ipcRenderer.invoke('worktree:create', options),
+    cancelCreate: () => ipcRenderer.invoke('worktree:cancelCreate'),
     getMergedBranches: (repoPath: string, baseBranch: string) =>
       ipcRenderer.invoke('worktree:getMergedBranches', repoPath, baseBranch),
   },
