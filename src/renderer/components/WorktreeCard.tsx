@@ -221,7 +221,7 @@ function getBranchColor(branch: string): string {
   return 'purple'
 }
 
-export default function WorktreeCard({ worktree }: WorktreeCardProps) {
+export default function WorktreeCard({ worktree, onDelete }: WorktreeCardProps) {
   const { settings } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
@@ -252,7 +252,7 @@ export default function WorktreeCard({ worktree }: WorktreeCardProps) {
       onOpenTerminal={handleOpenTerminal}
       onOpenIDE={handleOpenIDE}
       onOpenFinder={handleOpenFinder}
-      onDelete={() => {}}
+      onDelete={onDelete ? () => onDelete(worktree) : undefined}
     />
   )
 }
