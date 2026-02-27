@@ -7,11 +7,11 @@ interface HeaderProps {
   onOpenSettings: () => void
   onOpenCleanup: () => void
   cleanupMode?: boolean
-  cleanupLoading?: boolean
+  hasMergedBranches?: boolean
   onExitCleanup?: () => void
 }
 
-export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cleanupMode, cleanupLoading, onExitCleanup }: HeaderProps) {
+export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cleanupMode, hasMergedBranches, onExitCleanup }: HeaderProps) {
   const { repoInfo, worktrees, refreshing, refresh } = useWorktree()
 
   return (
@@ -33,19 +33,14 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cl
           )}
         </VStack>
         <HStack spacing={1}>
-          {cleanupMode ? (
+          {!cleanupMode && hasMergedBranches && (
+            <Button size="sm" variant="ghost" colorScheme="orange" onClick={onOpenCleanup}>
+              Clean up
+            </Button>
+          )}
+          {cleanupMode && (
             <Button size="sm" variant="ghost" colorScheme="orange" onClick={onExitCleanup}>
               Done
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="ghost"
-              colorScheme="orange"
-              onClick={onOpenCleanup}
-              isLoading={cleanupLoading}
-            >
-              Clean up
             </Button>
           )}
           <Tooltip label="New worktree (c)" placement="bottom">
