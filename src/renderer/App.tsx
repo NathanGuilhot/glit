@@ -1,156 +1,66 @@
-import React, { Component, type ReactNode, useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   Box,
-  VStack,
-  HStack,
+  Flex,
   Text,
-  Heading,
-  IconButton,
-  Input,
-  InputGroup,
-  InputLeftElement,
   Spinner,
   useToast,
-  Flex,
-  Badge,
-  Tooltip,
-  Button,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress, SetupConfig } from '../shared/types'
-import WorktreeCard from './components/WorktreeCard'
+import type { WorktreeWithDiff, SetupConfig } from '../shared/types'
+import { WorktreeProvider, useWorktree } from './contexts/WorktreeContext'
+import { AppActionsProvider, useAppActions } from './contexts/AppActionsContext'
+import { APIProvider, useAPI } from './api'
+import Header from './components/Header'
+import FilterBar from './components/FilterBar'
+import WorktreeList from './components/WorktreeList'
+import ShortcutHints from './components/ShortcutHints'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
-import { RefreshIcon, SearchIcon, SettingsIcon, PlusIcon } from './components/Icons'
-
-// ─── Error Boundary ────────────────────────────────────────────────────────────
-
-interface ErrorBoundaryProps {
-  children: ReactNode
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean
-  error: Error | null
-}
-
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props)
-    this.state = { hasError: false, error: null }
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
-  }
-
-  override componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info)
-  }
-
-  override render() {
-    if (this.state.hasError) {
-      return (
-        <Flex h="100vh" align="center" justify="center" direction="column" gap={4} p={8}>
-          <Text fontSize="2xl">Something went wrong</Text>
-          <Text color="red.400" fontFamily="mono" fontSize="sm">
-            {this.state.error?.message}
-          </Text>
-          <Button onClick={() => this.setState({ hasError: false, error: null })}>Try Again</Button>
-        </Flex>
-      )
-    }
-    return this.props.children
-  }
-}
-
-// ─── Main App ──────────────────────────────────────────────────────────────────
+import ErrorBoundary from './components/ErrorBoundary'
 
 function AppContent() {
-  const toast = useToast()
-  const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null)
-  const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [filter, setFilter] = useState('')
-  const [settings, setSettings] = useState<AppSettings>({
-    preferredTerminal: 'Terminal',
-    defaultBaseBranch: '',
-    autoRefresh: true,
-  })
-
-  // Modal states
+  const { loading, repoInfo, settings, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
+  const { handleDelete, handleSaveSettings } = useAppActions()
+  const api = useAPI()
+  const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeWithDiff | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
-  const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
 
-  const filterRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
 
-  // ── Data loading ──────────────────────────────────────────────────────────
-
-  const loadRepo = useCallback(async () => {
-    try {
-      const info = await window.glit.repo.detect()
-      setRepoInfo(info)
-      if (!info.isRepo) {
-        setLoading(false)
-        return
-      }
-      const [wts, cfg, detectedBranch] = await Promise.all([
-        window.glit.worktree.list(info.path),
-        window.glit.settings.get(),
-        window.glit.repo.defaultBranch(info.path),
-      ])
-      setWorktrees(wts)
-      setSettings({ ...cfg, defaultBaseBranch: cfg.defaultBaseBranch || detectedBranch })
-    } catch (err) {
-      toast({ title: 'Failed to load repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
-    } finally {
-      setLoading(false)
-    }
-  }, [toast])
-
-  const refresh = useCallback(async () => {
-    if (!repoInfo?.isRepo) return
-    setRefreshing(true)
-    try {
-      const wts = await window.glit.worktree.list(repoInfo.path)
-      setWorktrees(wts)
-    } catch (err) {
-      toast({ title: 'Failed to refresh', description: String(err), status: 'error', duration: 3000 })
-    } finally {
-      setRefreshing(false)
-    }
-  }, [repoInfo, toast])
-
-  useEffect(() => {
-    loadRepo()
-  }, [loadRepo])
-
-  // Subscribe to create:progress events
-  useEffect(() => {
-    const unsub = window.glit.on('create:progress', (data: unknown) => {
-      setCreateProgress(data as CreateProgress)
+  const handleCreate = useCallback(async (branchName: string, createNew: boolean, baseBranch: string) => {
+    if (!repoInfo) return
+    setCreateProgress({ step: 'creating', message: 'Starting...' })
+    const result = await api.worktree.create({
+      repoPath: repoInfo.path,
+      branchName,
+      createNewBranch: createNew,
+      baseBranch: baseBranch || undefined,
     })
-    return unsub
-  }, [])
+    if (result.success) {
+      toast({ title: 'Worktree created', description: result.worktree?.path, status: 'success', duration: 3000 })
+      setShowCreate(false)
+      setCreateProgress(null)
+      refresh()
+    } else {
+      toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      setCreateProgress(null)
+    }
+  }, [api, repoInfo, setCreateProgress, refresh, toast])
 
   const openSettings = useCallback(async () => {
     if (repoInfo?.isRepo) {
-      const config = await window.glit.setup.preview(repoInfo.path)
+      const config = await api.setup.preview(repoInfo.path)
       setSetupConfig(config)
     }
     setShowSettings(true)
-  }, [repoInfo])
-
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  }, [api, repoInfo])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Skip if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         if (e.key === 'Escape') e.target.blur()
         return
@@ -166,7 +76,7 @@ function AppContent() {
           if (e.metaKey) openSettings()
           break
         case '/':
-          filterRef.current?.focus()
+          (document.querySelector('input[placeholder*="Filter"]') as HTMLInputElement)?.focus()
           e.preventDefault()
           break
         case 'Escape':
@@ -176,84 +86,12 @@ function AppContent() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [refresh, openSettings])
+  }, [refresh, setFilter, openSettings])
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  const handleDelete = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
-    if (!repoInfo) return
-    const result = await window.glit.worktree.delete({
-      repoPath: repoInfo.path,
-      worktreePath: worktree.path,
-      force,
-      deleteFiles,
-    })
-    if (result.success) {
-      toast({ title: 'Worktree deleted', status: 'success', duration: 2000 })
-      setDeleteTarget(null)
-      refresh()
-    } else {
-      toast({ title: 'Delete failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
-    }
+  const handleDeleteConfirm = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
+    await handleDelete(worktree, force, deleteFiles)
+    setDeleteTarget(null)
   }
-
-  const handleCreate = async (branchName: string, createNew: boolean, baseBranch: string) => {
-    if (!repoInfo) return
-    setCreateProgress({ step: 'creating', message: 'Starting...' })
-    const result = await window.glit.worktree.create({
-      repoPath: repoInfo.path,
-      branchName,
-      createNewBranch: createNew,
-      baseBranch: baseBranch || undefined,
-    })
-    if (result.success) {
-      toast({ title: 'Worktree created', description: result.worktree?.path, status: 'success', duration: 3000 })
-      setShowCreate(false)
-      setCreateProgress(null)
-      refresh()
-    } else {
-      toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
-      setCreateProgress(null)
-    }
-  }
-
-  const handleCopyPath = async (worktreePath: string) => {
-    await window.glit.clipboard.copy(worktreePath)
-    toast({ title: 'Path copied', status: 'success', duration: 1500, position: 'bottom-right' })
-  }
-
-  const handleCopyBranch = async (branch: string) => {
-    await window.glit.clipboard.copy(branch)
-    toast({ title: 'Branch copied', status: 'success', duration: 1500, position: 'bottom-right' })
-  }
-
-  const handleOpenTerminal = async (worktreePath: string) => {
-    const result = await window.glit.terminal.open(worktreePath, settings.preferredTerminal)
-    if (!result.success) {
-      toast({ title: 'Failed to open terminal', description: result.error, status: 'error', duration: 4000 })
-    }
-  }
-
-  const handleOpenFinder = async (worktreePath: string) => {
-    await window.glit.shell.openPath(worktreePath)
-  }
-
-  const handleSaveSettings = async (newSettings: AppSettings) => {
-    await window.glit.settings.set(newSettings)
-    setSettings(newSettings)
-    toast({ title: 'Settings saved', status: 'success', duration: 1500 })
-    setShowSettings(false)
-  }
-
-  // ── Filter ────────────────────────────────────────────────────────────────
-
-  const filtered = worktrees.filter((wt) => {
-    if (!filter) return true
-    const q = filter.toLowerCase()
-    return wt.path.toLowerCase().includes(q) || wt.branch.toLowerCase().includes(q)
-  })
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -270,147 +108,22 @@ function AppContent() {
 
   return (
     <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
-      {/* Title bar drag region */}
       <Box h="28px" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} flexShrink={0} />
 
-      {/* Header */}
-      <Box px={5} pb={3} flexShrink={0}>
-        <HStack justify="space-between" align="center" flexWrap="wrap" gap={2}>
-          <VStack align="start" spacing={0} minW={0} flex={1}>
-            <Heading size="sm" fontWeight="700" letterSpacing="-0.02em">
-              Glit
-            </Heading>
-            {repoInfo && (
-              <HStack spacing={2}>
-                <Text fontSize="11px" color="whiteAlpha.500" fontFamily="mono" noOfLines={1}>
-                  {repoInfo.path}
-                </Text>
-                <Badge colorScheme="green" fontSize="9px" variant="subtle">
-                  {worktrees.length} worktree{worktrees.length !== 1 ? 's' : ''}
-                </Badge>
-              </HStack>
-            )}
-          </VStack>
-          <HStack spacing={1}>
-            <Tooltip label="New worktree (c)" placement="bottom">
-              <IconButton
-                aria-label="Create worktree"
-                icon={<PlusIcon />}
-                size="sm"
-                variant="ghost"
-                colorScheme="brand"
-                onClick={() => setShowCreate(true)}
-              />
-            </Tooltip>
-            <Tooltip label="Refresh (r)" placement="bottom">
-              <IconButton
-                aria-label="Refresh"
-                icon={refreshing ? <Spinner size="xs" /> : <RefreshIcon />}
-                size="sm"
-                variant="ghost"
-                onClick={refresh}
-                isDisabled={refreshing}
-              />
-            </Tooltip>
-            <Tooltip label="Settings (⌘,)" placement="bottom">
-              <IconButton
-                aria-label="Settings"
-                icon={<SettingsIcon />}
-                size="sm"
-                variant="ghost"
-                onClick={openSettings}
-              />
-            </Tooltip>
-          </HStack>
-        </HStack>
-      </Box>
+      <Header onOpenCreate={() => setShowCreate(true)} onOpenSettings={openSettings} />
 
-      {/* Search */}
-      <Box px={5} pb={3} flexShrink={0}>
-        <InputGroup size="sm">
-          <InputLeftElement pointerEvents="none" color="whiteAlpha.400">
-            <SearchIcon />
-          </InputLeftElement>
-          <Input
-            ref={filterRef}
-            placeholder="Filter by branch or path… (/)"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            bg="whiteAlpha.50"
-            border="1px solid"
-            borderColor="whiteAlpha.100"
-            _focus={{ borderColor: 'brand.400', bg: 'whiteAlpha.100' }}
-            _placeholder={{ color: 'whiteAlpha.300' }}
-            borderRadius="md"
-            fontFamily="mono"
-            fontSize="xs"
-          />
-        </InputGroup>
-      </Box>
+      <FilterBar />
 
-      {/* Worktree list */}
       <Box flex={1} overflowY="auto" px={5} pb={5}>
-        {filtered.length === 0 ? (
-          <Flex align="center" justify="center" h="200px" direction="column" gap={3}>
-            {filter ? (
-              <>
-                <Text color="whiteAlpha.400" fontSize="sm">No worktrees match &ldquo;{filter}&rdquo;</Text>
-                <Button size="xs" variant="ghost" onClick={() => setFilter('')}>Clear filter</Button>
-              </>
-            ) : (
-              <Text color="whiteAlpha.400" fontSize="sm">No worktrees found</Text>
-            )}
-          </Flex>
-        ) : (
-          <VStack spacing={2} align="stretch">
-            {filtered.map((wt) => (
-              <WorktreeCard
-                key={wt.path}
-                worktree={wt}
-                onCopyPath={handleCopyPath}
-                onCopyBranch={handleCopyBranch}
-                onOpenTerminal={handleOpenTerminal}
-                onOpenFinder={handleOpenFinder}
-                onDelete={(wt) => setDeleteTarget(wt)}
-                settings={settings}
-              />
-            ))}
-          </VStack>
-        )}
+        <WorktreeList onDelete={(wt) => setDeleteTarget(wt)} />
       </Box>
 
-      {/* Shortcut hint */}
-      <Box px={5} py={2} borderTop="1px solid" borderColor="whiteAlpha.50" flexShrink={0}>
-        <HStack spacing={4} justify="center" flexWrap="wrap" gap={[1, 2]}>
-          {[
-            ['c', 'create'],
-            ['r', 'refresh'],
-            ['/', 'filter'],
-            ['⌘,', 'settings'],
-          ].map(([key, label]) => (
-            <HStack key={key} spacing={1}>
-              <Text
-                fontSize="10px"
-                fontFamily="mono"
-                bg="whiteAlpha.100"
-                px={1.5}
-                py={0.5}
-                borderRadius="sm"
-                color="whiteAlpha.600"
-              >
-                {key}
-              </Text>
-              <Text fontSize="10px" color="whiteAlpha.400">{label}</Text>
-            </HStack>
-          ))}
-        </HStack>
-      </Box>
+      <ShortcutHints />
 
-      {/* Modals */}
       {deleteTarget && (
         <DeleteModal
           worktree={deleteTarget}
-          onConfirm={handleDelete}
+          onConfirm={handleDeleteConfirm}
           onClose={() => setDeleteTarget(null)}
         />
       )}
@@ -421,7 +134,7 @@ function AppContent() {
           settings={settings}
           progress={createProgress}
           onConfirm={handleCreate}
-          onClose={() => { setShowCreate(false); setCreateProgress(null) }}
+          onClose={() => setShowCreate(false)}
         />
       )}
 
@@ -441,7 +154,13 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppContent />
+      <APIProvider>
+        <WorktreeProvider>
+          <AppActionsProvider>
+            <AppContent />
+          </AppActionsProvider>
+        </WorktreeProvider>
+      </APIProvider>
     </ErrorBoundary>
   )
 }

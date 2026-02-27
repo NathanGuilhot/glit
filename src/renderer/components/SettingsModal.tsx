@@ -21,6 +21,7 @@ import {
   IconButton,
 } from '@chakra-ui/react'
 import type { AppSettings, SetupConfig } from '../../shared/types'
+import { useAPI } from '../api'
 import { CloseIcon } from './Icons'
 
 interface SettingsModalProps {
@@ -41,6 +42,7 @@ const TERMINALS = [
 ]
 
 export default function SettingsModal({ settings, repoPath, setupConfig, onSave, onClose }: SettingsModalProps) {
+  const api = useAPI()
   const [terminal, setTerminal] = useState(settings.preferredTerminal)
   const [baseBranch, setBaseBranch] = useState(settings.defaultBaseBranch)
   const [autoRefresh, setAutoRefresh] = useState(settings.autoRefresh)
@@ -57,13 +59,13 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
     const filteredEnvFiles = envFiles.filter(Boolean)
     const filteredCommands = commands.filter(Boolean)
     if (filteredPackages.length || filteredEnvFiles.length || filteredCommands.length) {
-      await window.glit.setup.save(repoPath, {
+      await api.setup.save(repoPath, {
         packages: filteredPackages.length ? filteredPackages : undefined,
         envFiles: filteredEnvFiles.length ? filteredEnvFiles : undefined,
         commands: filteredCommands.length ? filteredCommands : undefined,
       })
     } else if (setupConfig !== null) {
-      await window.glit.setup.save(repoPath, {})
+      await api.setup.save(repoPath, {})
     }
     setSaving(false)
   }
@@ -223,7 +225,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
 
               {renderListEditor('Packages', 'npm install', packages, setPackages)}
               {renderListEditor('Env files', '.env', envFiles, setEnvFiles,
-                () => window.glit.dialog.pickFile(repoPath)
+                () => api.dialog.pickFile(repoPath)
               )}
               {renderListEditor('Commands', 'echo hello', commands, setCommands)}
             </VStack>
