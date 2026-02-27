@@ -116,6 +116,11 @@ function CardContent({
               {shortPath}
             </Text>
           </Tooltip>
+          {worktree.lastActivity && (
+            <Text fontSize="10px" color="whiteAlpha.400">
+              {worktree.lastActivity}
+            </Text>
+          )}
         </VStack>
 
         <HStack spacing={3} flexShrink={0} align="center">
