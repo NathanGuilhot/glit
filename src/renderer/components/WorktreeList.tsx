@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  VStack, Flex, Text, Button, Box, HStack,
+  VStack, Flex, Text, Button, HStack,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
 } from '@chakra-ui/react'
 import { useWorktree } from '../contexts/WorktreeContext'
