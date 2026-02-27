@@ -6,6 +6,8 @@ const api: GlitAPI = {
     list: (repoPath: string) => ipcRenderer.invoke('worktree:list', repoPath),
     delete: (options: DeleteWorktreeOptions) => ipcRenderer.invoke('worktree:delete', options),
     create: (options: CreateWorktreeOptions) => ipcRenderer.invoke('worktree:create', options),
+    getMergedBranches: (repoPath: string, baseBranch: string) =>
+      ipcRenderer.invoke('worktree:getMergedBranches', repoPath, baseBranch),
   },
   branch: {
     list: (repoPath: string) => ipcRenderer.invoke('branch:list', repoPath),
@@ -34,8 +36,12 @@ const api: GlitAPI = {
     detect: () => ipcRenderer.invoke('repo:detect'),
     defaultBranch: (repoPath: string) => ipcRenderer.invoke('repo:defaultBranch', repoPath),
   },
+  pr: {
+    getStatus: (worktreePath: string) => ipcRenderer.invoke('pr:getStatus', worktreePath),
+  },
   shell: {
     openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
+    openUrl: (url: string) => ipcRenderer.invoke('shell:openUrl', url),
   },
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args)
