@@ -11,6 +11,8 @@ export interface DiffStats {
   fileCount: number
   insertionCount: number
   deletionCount: number
+  aheadCount: number
+  behindCount: number
 }
 
 export interface WorktreeWithDiff extends Worktree, DiffStats {}

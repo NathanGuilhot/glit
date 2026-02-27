@@ -127,6 +127,27 @@ async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: numbe
   }
 }
 
+async function getAheadBehind(
+  worktreePath: string,
+  branch: string,
+): Promise<{ aheadCount: number; behindCount: number }> {
+  try {
+    if (!branch || branch.startsWith('detached:')) {
+      return { aheadCount: 0, behindCount: 0 }
+    }
+    const out = await runGitCommand(worktreePath, [
+      'rev-list', '--count', '--left-right', '@{upstream}...HEAD',
+    ])
+    const [behind = '0', ahead = '0'] = out.trim().split('\t')
+    return {
+      aheadCount: parseInt(ahead, 10) || 0,
+      behindCount: parseInt(behind, 10) || 0,
+    }
+  } catch {
+    return { aheadCount: 0, behindCount: 0 }
+  }
+}
+
 async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = []
   let currentBranch = ''
@@ -222,8 +243,11 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     const result: WorktreeWithDiff[] = []
     await Promise.all(
       worktrees.map(async (wt) => {
-        const diff = await getWorktreeDiff(wt.path)
-        result.push({ ...wt, ...diff })
+        const [diff, remote] = await Promise.all([
+          getWorktreeDiff(wt.path),
+          getAheadBehind(wt.path, wt.branch),
+        ])
+        result.push({ ...wt, ...diff, ...remote })
       }),
     )
     // Sort: main worktree first, then by branch name

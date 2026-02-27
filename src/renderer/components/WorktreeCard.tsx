@@ -120,21 +120,33 @@ function CardContent({
 
         <HStack spacing={3} flexShrink={0} align="center">
           <Box display={["none", "flex"]} alignItems="center">
-            {hasDiff ? (
-              <HStack spacing={2}>
-                <Text fontSize="12px" color="green.400" fontFamily="mono" fontWeight="600">
-                  +{worktree.insertionCount}
+            <HStack spacing={2}>
+              {hasDiff ? (
+                <>
+                  <Text fontSize="12px" color="green.400" fontFamily="mono" fontWeight="600">
+                    +{worktree.insertionCount}
+                  </Text>
+                  <Text fontSize="12px" color="red.400" fontFamily="mono" fontWeight="600">
+                    -{worktree.deletionCount}
+                  </Text>
+                  <Text fontSize="11px" color="whiteAlpha.400">
+                    {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
+                  </Text>
+                </>
+              ) : (
+                <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
+              )}
+              {worktree.aheadCount > 0 && (
+                <Text fontSize="12px" color="blue.300" fontFamily="mono" fontWeight="600">
+                  ↑{worktree.aheadCount}
                 </Text>
-                <Text fontSize="12px" color="red.400" fontFamily="mono" fontWeight="600">
-                  -{worktree.deletionCount}
+              )}
+              {worktree.behindCount > 0 && (
+                <Text fontSize="12px" color="yellow.400" fontFamily="mono" fontWeight="600">
+                  ↓{worktree.behindCount}
                 </Text>
-                <Text fontSize="11px" color="whiteAlpha.400">
-                  {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
-                </Text>
-              </HStack>
-            ) : (
-              <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
-            )}
+              )}
+            </HStack>
           </Box>
 
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">
