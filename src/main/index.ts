@@ -52,6 +52,7 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     vibrancy: 'sidebar',
     backgroundColor: '#1a1a2e',
+    icon: path.join(__dirname, '../../build/icon.png'),
     show: false,
   })
 
@@ -82,6 +83,10 @@ app.whenReady().then(() => {
   setupIpcHandlers(() => mainWindow)
   createWindow()
   checkForUpdates()
+
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(path.join(__dirname, '../../build/icon.png'))
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
