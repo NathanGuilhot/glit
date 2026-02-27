@@ -15,7 +15,7 @@ export default function Header({ onOpenCreate, onOpenSettings }: HeaderProps) {
       <HStack justify="space-between" align="center" flexWrap="wrap" gap={2}>
         <VStack align="start" spacing={0} minW={0} flex={1}>
           <Heading size="sm" fontWeight="700" letterSpacing="-0.02em">
-            Glit
+            Glit ·.°
           </Heading>
           {repoInfo && (
             <HStack spacing={2}>

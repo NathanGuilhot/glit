@@ -1,4 +1,4 @@
-# Glit - git worktree manager
+# Glit ·.° git worktree manager
 
 Glit manages your worktree and allow you to quickly switch between them.
 
