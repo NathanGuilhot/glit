@@ -199,24 +199,6 @@ export default function WorktreeCard({
             />
             <MenuList bg="gray.800" borderColor="whiteAlpha.100" minW="180px" py={1}>
               <MenuItem
-                icon={<TerminalIcon />}
-                onClick={() => onOpenTerminal(worktree.path)}
-                bg="transparent"
-                _hover={{ bg: 'whiteAlpha.100' }}
-                fontSize="sm"
-              >
-                Open in {settings.preferredTerminal}
-              </MenuItem>
-              <MenuItem
-                icon={<CopyIcon />}
-                onClick={() => onCopyPath(worktree.path)}
-                bg="transparent"
-                _hover={{ bg: 'whiteAlpha.100' }}
-                fontSize="sm"
-              >
-                Copy path
-              </MenuItem>
-              <MenuItem
                 icon={<FolderIcon />}
                 onClick={() => onOpenFinder(worktree.path)}
                 bg="transparent"

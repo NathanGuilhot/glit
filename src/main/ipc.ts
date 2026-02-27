@@ -314,13 +314,21 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       let cmd = ''
 
       if (term === 'iTerm2' || term === 'iTerm') {
-        cmd = `osascript -e 'tell application "iTerm" to activate' -e 'tell application "iTerm"
-  tell current window
-    create tab with default profile
-    tell current session
+        cmd = `osascript -e 'tell application "iTerm"
+  activate
+  if (count of windows) = 0 then
+    create window with default profile
+    tell current session of current window
       write text "cd ${escapedPath}"
     end tell
-  end tell
+  else
+    tell current window
+      create tab with default profile
+      tell current session
+        write text "cd ${escapedPath}"
+      end tell
+    end tell
+  end if
 end tell'`
       } else if (term === 'Hyper') {
         cmd = `open -a Hyper ${JSON.stringify(worktreePath)}`
@@ -328,11 +336,18 @@ end tell'`
         cmd = `kitty --directory ${JSON.stringify(worktreePath)}`
       } else if (term === 'Alacritty') {
         cmd = `alacritty --working-directory ${JSON.stringify(worktreePath)}`
+      } else if (term === 'Warp') {
+        const encodedPath = encodeURIComponent(worktreePath)
+        cmd = `open "warp://action/new_tab?path=${encodedPath}"`
       } else {
         // Terminal.app and default
         cmd = `osascript -e 'tell application "Terminal"
   activate
-  do script "cd ${escapedPath}"
+  if (count of windows) = 0 then
+    do script "cd ${escapedPath}"
+  else
+    do script "cd ${escapedPath}" in front window
+  end if
 end tell'`
       }
 
