@@ -49,6 +49,13 @@ glit /path/to/repo
 
 The glit window will open for the current repo
 
+## How to release
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
 ## Stack
 - Electron
 - Strict Typescript
