@@ -252,6 +252,11 @@ function AppContent() {
     toast({ title: 'Path copied', status: 'success', duration: 1500, position: 'bottom-right' })
   }
 
+  const handleCopyBranch = async (branch: string) => {
+    await window.glit.clipboard.copy(branch)
+    toast({ title: 'Branch copied', status: 'success', duration: 1500, position: 'bottom-right' })
+  }
+
   const handleOpenTerminal = async (worktreePath: string) => {
     const result = await window.glit.terminal.open(worktreePath, settings.preferredTerminal)
     if (!result.success) {
@@ -393,6 +398,7 @@ function AppContent() {
                 key={wt.path}
                 worktree={wt}
                 onCopyPath={handleCopyPath}
+                onCopyBranch={handleCopyBranch}
                 onOpenTerminal={handleOpenTerminal}
                 onOpenFinder={handleOpenFinder}
                 onDelete={(wt) => setDeleteTarget(wt)}

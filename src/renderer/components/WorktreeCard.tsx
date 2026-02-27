@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Box,
   HStack,
@@ -14,50 +15,17 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, AppSettings } from '../../shared/types'
+import { CopyIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
 
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onCopyPath: (path: string) => void
+  onCopyBranch: (branch: string) => void
   onOpenTerminal: (path: string) => void
   onOpenFinder: (path: string) => void
   onDelete: (worktree: WorktreeWithDiff) => void
   settings: AppSettings
 }
-
-const CopyIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-  </svg>
-)
-
-const TerminalIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="4 17 10 11 4 5"></polyline>
-    <line x1="12" y1="19" x2="20" y2="19"></line>
-  </svg>
-)
-
-const TrashIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="3 6 5 6 21 6"></polyline>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-  </svg>
-)
-
-const FolderIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-  </svg>
-)
-
-const DotsIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5" r="1"></circle>
-    <circle cx="12" cy="12" r="1"></circle>
-    <circle cx="12" cy="19" r="1"></circle>
-  </svg>
-)
 
 function getBranchColor(branch: string): string {
   if (branch === 'main' || branch === 'master') return 'green'
@@ -81,11 +49,13 @@ function shortenPath(fullPath: string): string {
 export default function WorktreeCard({
   worktree,
   onCopyPath,
+  onCopyBranch,
   onOpenTerminal,
   onOpenFinder,
   onDelete,
   settings,
 }: WorktreeCardProps) {
+  const [branchJustCopied, setBranchJustCopied] = useState(false)
   const bg = useColorModeValue('white', 'whiteAlpha.50')
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100')
   const hoverBg = useColorModeValue('gray.50', 'whiteAlpha.100')
@@ -94,6 +64,13 @@ export default function WorktreeCard({
   const hasDiff = worktree.fileCount > 0
   const shortPath = shortenPath(worktree.path)
   const branchColor = getBranchColor(worktree.branch)
+  const branchDisplayText = worktree.branch || '(no branch)'
+
+  const handleCopyBranchClick = () => {
+    onCopyBranch(branchDisplayText)
+    setBranchJustCopied(true)
+    setTimeout(() => setBranchJustCopied(false), 1500)
+  }
 
   return (
     <Box
@@ -113,9 +90,21 @@ export default function WorktreeCard({
         <VStack align="start" spacing={1} flex={1} minW={0}>
           {/* Branch + badges row */}
           <HStack spacing={2} flexWrap="wrap">
-            <Badge colorScheme={branchColor} variant="subtle" fontSize="xs" px={2} py={0.5}>
-              {worktree.branch || '(no branch)'}
-            </Badge>
+            <Tooltip label={branchJustCopied ? 'Copied!' : 'Click to copy branch'} placement="bottom" openDelay={500}>
+              <Badge
+                colorScheme={branchColor}
+                variant="subtle"
+                fontSize="xs"
+                px={2}
+                py={0.5}
+                cursor="pointer"
+                _hover={{ opacity: 0.9 }}
+                onClick={handleCopyBranchClick}
+                transition="opacity 0.1s"
+              >
+                {branchJustCopied ? 'Copied!' : branchDisplayText}
+              </Badge>
+            </Tooltip>
             {isMain && (
               <Badge colorScheme="green" variant="outline" fontSize="9px">
                 main
@@ -168,7 +157,7 @@ export default function WorktreeCard({
             <Tooltip label={`Open in ${settings.preferredTerminal}`} placement="top">
               <IconButton
                 aria-label="Open in terminal"
-                icon={<TerminalIcon />}
+                icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />}
                 size="xs"
                 variant="ghost"
                 colorScheme="whiteAlpha"
@@ -178,7 +167,7 @@ export default function WorktreeCard({
             <Tooltip label="Copy path" placement="top">
               <IconButton
                 aria-label="Copy path"
-                icon={<CopyIcon />}
+                icon={<CopyIcon boxSize={4} color="whiteAlpha.800" />}
                 size="xs"
                 variant="ghost"
                 colorScheme="whiteAlpha"
@@ -192,14 +181,14 @@ export default function WorktreeCard({
             <MenuButton
               as={IconButton}
               aria-label="More actions"
-              icon={<DotsIcon />}
+              icon={<DotsIcon boxSize={4} color="whiteAlpha.800" />}
               size="xs"
               variant="ghost"
               colorScheme="whiteAlpha"
             />
             <MenuList bg="gray.800" borderColor="whiteAlpha.100" minW="180px" py={1}>
               <MenuItem
-                icon={<FolderIcon />}
+                icon={<FolderIcon boxSize={4} color="whiteAlpha.700" />}
                 onClick={() => onOpenFinder(worktree.path)}
                 bg="transparent"
                 _hover={{ bg: 'whiteAlpha.100' }}
@@ -211,7 +200,7 @@ export default function WorktreeCard({
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
                   <MenuItem
-                    icon={<TrashIcon />}
+                    icon={<TrashIcon boxSize={4} color="red.400" />}
                     onClick={() => onDelete(worktree)}
                     bg="transparent"
                     _hover={{ bg: 'red.900' }}
