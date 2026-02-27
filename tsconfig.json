@@ -15,5 +15,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "jsx": "react-jsx"
-  }
+  },
+  "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*"]
 }

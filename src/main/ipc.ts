@@ -107,8 +107,8 @@ async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: numbe
       const match = line.match(/^(\d+|-)\s+(\d+|-)\s+/)
       if (match) {
         fileCount++
-        insertionCount += match[1] === '-' ? 0 : parseInt(match[1] ?? '0', 10)
-        deletionCount += match[2] === '-' ? 0 : parseInt(match[2] ?? '0', 10)
+        insertionCount += match[1] === '-' ? 0 : parseInt(match[1]!, 10)
+        deletionCount += match[2] === '-' ? 0 : parseInt(match[2]!, 10)
       }
     }
 
@@ -368,7 +368,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
   })
 
   ipcMain.handle('terminal:open', async (_event, worktreePath: string, terminal?: string) => {
-    const term = terminal ?? (store.get('settings') as AppSettings).preferredTerminal ?? 'Terminal'
+    const term = terminal ?? store.get('settings').preferredTerminal ?? 'Terminal'
     log.info(`Opening terminal at: ${worktreePath}, terminal: ${term}`)
     try {
       const escapedPath = worktreePath.replace(/'/g, "'\\''")

@@ -57,3 +57,54 @@ export const DotsIcon = createIcon({
   ],
   defaultProps: { ...strokeDefaults },
 })
+
+export const RefreshIcon = createIcon({
+  displayName: 'RefreshIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <polyline key="poly1" points="23 4 23 10 17 10" />,
+    <polyline key="poly2" points="1 20 1 14 7 14" />,
+    <path key="path" d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const SearchIcon = createIcon({
+  displayName: 'SearchIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <circle key="circle" cx="11" cy="11" r="8" />,
+    <line key="line" x1="21" y1="21" x2="16.65" y2="16.65" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const SettingsIcon = createIcon({
+  displayName: 'SettingsIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <circle key="circle" cx="12" cy="12" r="3" />,
+    <path key="path" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const PlusIcon = createIcon({
+  displayName: 'PlusIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="v" x1="12" y1="5" x2="12" y2="19" />,
+    <line key="h" x1="5" y1="12" x2="19" y2="12" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const CloseIcon = createIcon({
+  displayName: 'CloseIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="line1" x1="18" y1="6" x2="6" y2="18" />,
+    <line key="line2" x1="6" y1="6" x2="18" y2="18" />,
+  ],
+  defaultProps: { ...strokeDefaults, strokeWidth: 2.5 },
+})

@@ -22,6 +22,7 @@ import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
+import { RefreshIcon, SearchIcon, SettingsIcon, PlusIcon } from './components/Icons'
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 
@@ -63,37 +64,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return this.props.children
   }
 }
-
-// ─── Icons ─────────────────────────────────────────────────────────────────────
-
-const RefreshIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 4 23 10 17 10"></polyline>
-    <polyline points="1 20 1 14 7 14"></polyline>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-  </svg>
-)
-
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"></circle>
-    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-  </svg>
-)
-
-const SettingsIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3"></circle>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-  </svg>
-)
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19"></line>
-    <line x1="5" y1="12" x2="19" y2="12"></line>
-  </svg>
-)
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
@@ -182,7 +152,7 @@ function AppContent() {
     const handler = (e: KeyboardEvent) => {
       // Skip if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        if (e.key === 'Escape') (e.target as HTMLInputElement).blur()
+        if (e.key === 'Escape') e.target.blur()
         return
       }
       switch (e.key) {
@@ -305,14 +275,14 @@ function AppContent() {
 
       {/* Header */}
       <Box px={5} pb={3} flexShrink={0}>
-        <HStack justify="space-between" align="center">
-          <VStack align="start" spacing={0}>
+        <HStack justify="space-between" align="center" flexWrap="wrap" gap={2}>
+          <VStack align="start" spacing={0} minW={0} flex={1}>
             <Heading size="sm" fontWeight="700" letterSpacing="-0.02em">
               Glit
             </Heading>
             {repoInfo && (
               <HStack spacing={2}>
-                <Text fontSize="11px" color="whiteAlpha.500" fontFamily="mono" noOfLines={1} maxW="400px">
+                <Text fontSize="11px" color="whiteAlpha.500" fontFamily="mono" noOfLines={1}>
                   {repoInfo.path}
                 </Text>
                 <Badge colorScheme="green" fontSize="9px" variant="subtle">
@@ -411,7 +381,7 @@ function AppContent() {
 
       {/* Shortcut hint */}
       <Box px={5} py={2} borderTop="1px solid" borderColor="whiteAlpha.50" flexShrink={0}>
-        <HStack spacing={4} justify="center">
+        <HStack spacing={4} justify="center" flexWrap="wrap" gap={[1, 2]}>
           {[
             ['c', 'create'],
             ['r', 'refresh'],

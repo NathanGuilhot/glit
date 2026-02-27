@@ -21,6 +21,7 @@ import {
   IconButton,
 } from '@chakra-ui/react'
 import type { AppSettings, SetupConfig } from '../../shared/types'
+import { CloseIcon } from './Icons'
 
 interface SettingsModalProps {
   settings: AppSettings
@@ -38,13 +39,6 @@ const TERMINALS = [
   { value: 'Alacritty', label: 'Alacritty' },
   { value: 'Warp', label: 'Warp' },
 ]
-
-const CloseIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-)
 
 export default function SettingsModal({ settings, repoPath, setupConfig, onSave, onClose }: SettingsModalProps) {
   const [terminal, setTerminal] = useState(settings.preferredTerminal)

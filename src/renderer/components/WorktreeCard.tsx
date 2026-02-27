@@ -12,7 +12,6 @@ import {
   MenuList,
   MenuItem,
   MenuDivider,
-  useColorModeValue,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, AppSettings } from '../../shared/types'
 import { CopyIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
@@ -37,11 +36,8 @@ function getBranchColor(branch: string): string {
 }
 
 function shortenPath(fullPath: string): string {
-  const home = '/Users/'
-  if (fullPath.startsWith(home)) {
-    const afterHome = fullPath.slice(home.length)
-    const slash = afterHome.indexOf('/')
-    return slash === -1 ? '~/' + afterHome : '~/' + afterHome.slice(slash + 1)
+  if (process.env.HOME && fullPath.startsWith(process.env.HOME)) {
+    return '~' + fullPath.slice(process.env.HOME.length)
   }
   return fullPath
 }
@@ -56,9 +52,9 @@ export default function WorktreeCard({
   settings,
 }: WorktreeCardProps) {
   const [branchJustCopied, setBranchJustCopied] = useState(false)
-  const bg = useColorModeValue('white', 'whiteAlpha.50')
-  const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100')
-  const hoverBg = useColorModeValue('gray.50', 'whiteAlpha.100')
+  const bg = 'whiteAlpha.50'
+  const borderColor = 'whiteAlpha.100'
+  const hoverBg = 'whiteAlpha.100'
 
   const isMain = worktree.branch === 'main' || worktree.branch === 'master'
   const hasDiff = worktree.fileCount > 0
@@ -85,7 +81,7 @@ export default function WorktreeCard({
       position="relative"
       role="group"
     >
-      <HStack spacing={3} align="start">
+      <HStack spacing={[2, 3]} align="start">
         {/* Main info */}
         <VStack align="start" spacing={1} flex={1} minW={0}>
           {/* Branch + badges row */}
@@ -136,21 +132,23 @@ export default function WorktreeCard({
 
         {/* Diff stats */}
         <HStack spacing={3} flexShrink={0} align="center">
-          {hasDiff ? (
-            <HStack spacing={2}>
-              <Text fontSize="12px" color="green.400" fontFamily="mono" fontWeight="600">
-                +{worktree.insertionCount}
-              </Text>
-              <Text fontSize="12px" color="red.400" fontFamily="mono" fontWeight="600">
-                -{worktree.deletionCount}
-              </Text>
-              <Text fontSize="11px" color="whiteAlpha.400">
-                {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
-              </Text>
-            </HStack>
-          ) : (
-            <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
-          )}
+          <Box display={["none", "flex"]} alignItems="center">
+            {hasDiff ? (
+              <HStack spacing={2}>
+                <Text fontSize="12px" color="green.400" fontFamily="mono" fontWeight="600">
+                  +{worktree.insertionCount}
+                </Text>
+                <Text fontSize="12px" color="red.400" fontFamily="mono" fontWeight="600">
+                  -{worktree.deletionCount}
+                </Text>
+                <Text fontSize="11px" color="whiteAlpha.400">
+                  {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
+                </Text>
+              </HStack>
+            ) : (
+              <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
+            )}
+          </Box>
 
           {/* Quick actions */}
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">

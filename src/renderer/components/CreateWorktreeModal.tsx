@@ -77,9 +77,6 @@ export default function CreateWorktreeModal({
   const validate = (): string => {
     if (!branchName.trim()) return 'Branch name is required'
     if (!/^[a-zA-Z0-9._/-]+$/.test(branchName)) return 'Invalid branch name characters'
-    if (!createNew && !branches.find((b) => b.name === branchName)) {
-      // Allow anyway — user may type branch name not in list
-    }
     return ''
   }
 
