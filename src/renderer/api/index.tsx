@@ -11,6 +11,7 @@ export type {
   RepoInfo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
+  PRStatus,
 } from '../../shared/types'
 
 export interface API {
@@ -47,8 +48,12 @@ export interface API {
     detect: () => ReturnType<GlitAPI['repo']['detect']>
     defaultBranch: (repoPath: string) => ReturnType<GlitAPI['repo']['defaultBranch']>
   }
+  pr: {
+    getStatus: (worktreePath: string) => ReturnType<GlitAPI['pr']['getStatus']>
+  }
   shell: {
     openPath: (path: string) => ReturnType<GlitAPI['shell']['openPath']>
+    openUrl: (url: string) => ReturnType<GlitAPI['shell']['openUrl']>
   }
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void
 }
@@ -88,8 +93,12 @@ export function createAPI(glit: GlitAPI): API {
       detect: glit.repo.detect,
       defaultBranch: glit.repo.defaultBranch,
     },
+    pr: {
+      getStatus: glit.pr.getStatus,
+    },
     shell: {
       openPath: glit.shell.openPath,
+      openUrl: glit.shell.openUrl,
     },
     on: glit.on,
   }

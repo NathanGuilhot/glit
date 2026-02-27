@@ -517,5 +517,20 @@ end tell'`
     }
   })
 
+  ipcMain.handle('pr:getStatus', async (_event, worktreePath: string) => {
+    try {
+      const { stdout } = await execAsync('gh pr view --json state,number,url', { cwd: worktreePath })
+      const data = JSON.parse(stdout)
+      return { number: data.number, state: data.state, url: data.url }
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('shell:openUrl', async (_event, url: string) => {
+    const { shell } = await import('electron')
+    await shell.openExternal(url)
+  })
+
   log.info('IPC handlers setup complete')
 }

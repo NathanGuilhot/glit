@@ -68,6 +68,12 @@ export interface DeleteWorktreeOptions {
   deleteFiles?: boolean
 }
 
+export interface PRStatus {
+  number: number
+  state: 'OPEN' | 'CLOSED' | 'MERGED'
+  url: string
+}
+
 export interface GlitAPI {
   worktree: {
     list: (repoPath: string) => Promise<WorktreeWithDiff[]>
@@ -102,8 +108,12 @@ export interface GlitAPI {
     detect: () => Promise<RepoInfo>
     defaultBranch: (repoPath: string) => Promise<string>
   }
+  pr: {
+    getStatus: (worktreePath: string) => Promise<PRStatus | null>
+  }
   shell: {
     openPath: (path: string) => Promise<string>
+    openUrl: (url: string) => Promise<void>
   }
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void
 }
