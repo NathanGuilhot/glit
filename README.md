@@ -2,6 +2,8 @@
 
 Glit manages your worktree and allow you to quickly switch between them.
 
+![screenshot](./assets/screenshot.png)
+
 ## Features
 - list all your worktree, with their branch and a solid overview of the diff
 - delete your unused wortree cleanly
