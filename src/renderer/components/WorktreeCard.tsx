@@ -13,9 +13,11 @@ import {
   MenuItem,
   MenuDivider,
   Skeleton,
+  Spinner,
+  useToast,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
-import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon } from './Icons'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
@@ -48,6 +50,9 @@ function CardContent({
   onRunSetup,
   onDelete,
   onChangeBranch,
+  onRebase,
+  rebaseBranch,
+  isRebasing,
 }: {
   worktree: WorktreeWithDiff
   branchColor: string
@@ -69,6 +74,9 @@ function CardContent({
   onRunSetup: () => void
   onDelete?: () => void
   onChangeBranch?: () => void
+  onRebase?: () => void
+  rebaseBranch?: string
+  isRebasing?: boolean
 }) {
   const bg = 'whiteAlpha.50'
   const borderColor = isMerged ? 'orange.500' : 'whiteAlpha.100'
@@ -244,6 +252,21 @@ function CardContent({
                   </MenuItem>
                 </>
               )}
+              {isRoot && onRebase && rebaseBranch && (
+                <>
+                  <MenuDivider borderColor="whiteAlpha.100" />
+                  <MenuItem
+                    icon={isRebasing ? <Spinner size="xs" /> : <RebaseIcon boxSize={4} color="whiteAlpha.700" />}
+                    onClick={onRebase}
+                    isDisabled={isRebasing}
+                    bg="transparent"
+                    _hover={{ bg: 'whiteAlpha.100' }}
+                    fontSize="sm"
+                  >
+                    Rebase onto {rebaseBranch}
+                  </MenuItem>
+                </>
+              )}
               <MenuItem
                 icon={<RefreshIcon boxSize={4} color="whiteAlpha.700" />}
                 onClick={onRunSetup}
@@ -306,10 +329,12 @@ export function WorktreeCardSkeleton() {
 }
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMerged }: WorktreeCardProps) {
-  const { settings, prStatuses, repoInfo } = useWorktree()
+  const { settings, prStatuses, repoInfo, detectedBaseBranch } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup } = useAppActions()
   const api = useAPI()
+  const toast = useToast()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
+  const [isRebasing, setIsRebasing] = useState(false)
 
   const isRoot = repoInfo?.path === worktree.path
   const isMain = isRoot
@@ -317,10 +342,39 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMer
   const branchColor = getBranchColor(worktree.branch)
   const branchDisplayText = worktree.branch || '(no branch)'
 
+  const canRebase =
+    isRoot &&
+    !!detectedBaseBranch &&
+    !worktree.isBare &&
+    !!worktree.branch &&
+    !worktree.branch.startsWith('detached:') &&
+    worktree.branch !== detectedBaseBranch
+
   const handleCopyBranchClick = () => {
     handleCopyBranch(branchDisplayText)
     setBranchJustCopied(true)
     setTimeout(() => setBranchJustCopied(false), 1500)
+  }
+
+  const handleRebase = async () => {
+    if (!repoInfo || !detectedBaseBranch) return
+    setIsRebasing(true)
+    try {
+      const result = await api.branch.rebaseOnto(repoInfo.path, detectedBaseBranch)
+      if (result.success) {
+        toast({ title: `Rebased onto ${detectedBaseBranch}`, status: 'success', duration: 3000 })
+      } else {
+        toast({
+          title: 'Rebase failed',
+          description: result.error,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      }
+    } finally {
+      setIsRebasing(false)
+    }
   }
 
   return (
@@ -345,6 +399,9 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMer
       onRunSetup={() => handleRunSetup(worktree)}
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
       onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
+      onRebase={canRebase ? handleRebase : undefined}
+      rebaseBranch={detectedBaseBranch ?? undefined}
+      isRebasing={isRebasing}
     />
   )
 }

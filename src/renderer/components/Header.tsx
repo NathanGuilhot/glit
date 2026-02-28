@@ -2,7 +2,6 @@ import { Box, HStack, VStack, Badge, IconButton, Tooltip, Spinner, Button, Menu,
 import { RefreshIcon, SettingsIcon, PlusIcon, ChevronDownIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAPI } from '../api'
-import RebaseButton from './RebaseButton'
 
 interface HeaderProps {
   onOpenCreate: () => void
@@ -86,7 +85,6 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cl
               Clean up
             </Button>
           )}
-          <RebaseButton />
           <Tooltip label="New worktree (c)" placement="bottom">
             <IconButton
               aria-label="Create worktree"
