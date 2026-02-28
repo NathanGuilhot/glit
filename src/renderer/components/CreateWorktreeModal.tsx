@@ -15,7 +15,6 @@ import {
   FormErrorMessage,
   Input,
   Switch,
-  Select,
   Alert,
   AlertIcon,
   Box,
@@ -27,6 +26,7 @@ import {
 } from '@chakra-ui/react'
 import type { SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
 import { useAPI } from '../api'
+import BranchSearchList from './BranchSearchList'
 
 interface CreateWorktreeModalProps {
   repoPath: string
@@ -122,26 +122,14 @@ function CreateWorktreeForm({
       {createNew && (
         <FormControl>
           <FormLabel fontSize="sm">Base branch</FormLabel>
-          {loadingBranches ? (
-            <HStack><Spinner size="xs" /><Text fontSize="sm" color="whiteAlpha.500">Loading branches...</Text></HStack>
-          ) : (
-            <Select
-              value={baseBranch}
-              onChange={(e) => setBaseBranch(e.target.value)}
-              bg="whiteAlpha.50"
-              borderColor="whiteAlpha.200"
-              fontSize="sm"
-              fontFamily="mono"
-            >
-              {branches
-                .filter((b) => !b.isRemote)
-                .map((b) => (
-                  <option key={b.name} value={b.name}>
-                    {b.name}{b.isCurrent ? ' (current)' : ''}
-                  </option>
-                ))}
-            </Select>
-          )}
+          <BranchSearchList
+            branches={branches.filter((b) => !b.isRemote)}
+            selected={baseBranch}
+            onSelect={setBaseBranch}
+            currentBranch={branches.find((b) => b.isCurrent && !b.isRemote)?.name}
+            isLoading={loadingBranches}
+            maxH="200px"
+          />
         </FormControl>
       )}
 
