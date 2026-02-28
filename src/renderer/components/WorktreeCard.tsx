@@ -106,7 +106,7 @@ function CardContent({
             </Tooltip>
             {isMain && (
               <Badge colorScheme="green" variant="outline" fontSize="9px">
-                main
+                root
               </Badge>
             )}
             {isMerged && (
@@ -300,8 +300,8 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMer
   const api = useAPI()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
 
-  const isMain = worktree.branch === 'main' || worktree.branch === 'master'
   const isRoot = repoInfo?.path === worktree.path
+  const isMain = isRoot
   const shortPath = worktree.displayPath ?? worktree.path
   const branchColor = getBranchColor(worktree.branch)
   const branchDisplayText = worktree.branch || '(no branch)'

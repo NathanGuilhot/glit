@@ -262,10 +262,13 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         result.push({ ...wt, ...diff, ...remote, lastActivity })
       }),
     )
-    // Sort: main worktree first, then by branch name
+    // Sort: root worktree last, then by branch name
+    const repoPathNormalized = path.normalize(repoPath)
     result.sort((a, b) => {
-      if (!a.isBare && b.isBare) return -1
-      if (a.isBare && !b.isBare) return 1
+      const aIsRoot = path.normalize(a.path) === repoPathNormalized
+      const bIsRoot = path.normalize(b.path) === repoPathNormalized
+      if (aIsRoot && !bIsRoot) return 1
+      if (!aIsRoot && bIsRoot) return -1
       return a.branch.localeCompare(b.branch)
     })
     return result
