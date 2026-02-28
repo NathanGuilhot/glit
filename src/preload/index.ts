@@ -16,6 +16,7 @@ const api: GlitAPI = {
     list: (repoPath: string) => ipcRenderer.invoke('branch:list', repoPath),
     checkout: (repoPath: string, branchName: string) => ipcRenderer.invoke('branch:checkout', repoPath, branchName),
     rebaseOnto: (repoPath: string, mainBranch: string) => ipcRenderer.invoke('branch:rebaseOnto', repoPath, mainBranch),
+    delete: (repoPath: string, branchName: string) => ipcRenderer.invoke('branch:delete', repoPath, branchName),
   },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),

@@ -176,18 +176,26 @@ async function getWorktreeLastActivity(worktreePath: string): Promise<string | u
   }
 }
 
+async function getLocalBranchNames(
+  repoPath: string,
+  options?: { mergedInto?: string },
+): Promise<string[]> {
+  const args: string[] = ['branch', '--format=%(refname:short)']
+  if (options?.mergedInto) args.push('--merged', options.mergedInto)
+  const output = await runGitCommand(repoPath, args)
+  return output.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
 async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = []
 
   try {
-    const localOutput = await runGitCommand(repoPath, ['branch', '--format=%(refname:short)'])
-    const currentBranch = (await runGitCommand(repoPath, ['branch', '--show-current'])).trim()
-
-    for (const line of localOutput.split('\n').filter(Boolean)) {
-      const name = line.trim()
-      if (name) {
-        branches.push({ name, isRemote: false, isCurrent: name === currentBranch })
-      }
+    const [localNames, currentBranch] = await Promise.all([
+      getLocalBranchNames(repoPath),
+      runGitCommand(repoPath, ['branch', '--show-current']).then((out) => out.trim()),
+    ])
+    for (const name of localNames) {
+      branches.push({ name, isRemote: false, isCurrent: name === currentBranch })
     }
   } catch {
     log.warn('Failed to get local branches')
@@ -220,8 +228,7 @@ async function getDefaultBranch(repoPath: string): Promise<string> {
 
   // Fall back: look for 'main' or 'master' in local branches
   try {
-    const out = await runGitCommand(repoPath, ['branch'])
-    const names = out.split('\n').map((l) => l.replace(/^\*\s*/, '').trim()).filter(Boolean)
+    const names = await getLocalBranchNames(repoPath)
     if (names.includes('main')) return 'main'
     if (names.includes('master')) return 'master'
   } catch {
@@ -611,6 +618,52 @@ end tell'`
       }
       const msg = error instanceof Error ? error.message : String(error)
       return { success: false, error: msg }
+    }
+  })
+
+  ipcMain.handle('branch:delete', async (_event, repoPath: string, branchName: string) => {
+    log.info(`Deleting branch: ${branchName} in ${repoPath}`)
+    await runGitCommand(repoPath, ['branch', '-d', branchName])
+  })
+
+  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
+    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
+    try {
+      const remoteRef = `origin/${baseBranch}`
+      let mergeRef = baseBranch
+      try {
+        await runGitCommand(repoPath, ['rev-parse', '--verify', remoteRef])
+        mergeRef = remoteRef
+      } catch {
+        // origin/baseBranch n'existe pas, on garde la branche locale
+      }
+      const [mergedNames, currentBranch, worktrees] = await Promise.all([
+        getLocalBranchNames(repoPath, { mergedInto: mergeRef }),
+        runGitCommand(repoPath, ['branch', '--show-current']).then((out) => out.trim()),
+        getWorktrees(repoPath),
+      ])
+      const worktreeBranches = new Set(worktrees.map((wt) => wt.branch).filter((b) => !b.startsWith('detached:')))
+      const exclude = new Set([baseBranch, currentBranch, ...worktreeBranches])
+      const branches = mergedNames.filter((name) => !exclude.has(name))
+      const mergeRefLabel = mergeRef === remoteRef ? remoteRef : `${baseBranch} (local)`
+      return { branches, mergeRefLabel }
+    } catch (error) {
+      log.warn('getMergedBranches failed:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
+    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
+    try {
+      const output = await runGitCommand(repoPath, ['branch', '--merged', baseBranch])
+      return output
+        .split('\n')
+        .map((l) => l.replace(/^\*\s*/, '').trim())
+        .filter((name) => name && name !== baseBranch)
+    } catch (error) {
+      log.warn('getMergedBranches failed:', error)
+      return []
     }
   })
 
