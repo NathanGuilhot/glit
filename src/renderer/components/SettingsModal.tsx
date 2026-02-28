@@ -22,17 +22,10 @@ import {
   Alert,
   AlertIcon,
 } from '@chakra-ui/react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
 import { CloseIcon } from './Icons'
-
-interface SettingsModalProps {
-  settings: AppSettings
-  repoPath: string
-  setupConfig: SetupConfig | null
-  onSave: (settings: AppSettings) => Promise<void>
-  onClose: () => void
-}
 
 const TERMINALS: { value: TerminalOption; label: string }[] = [
   { value: 'Terminal', label: 'Terminal.app' },
@@ -51,7 +44,13 @@ const IDES: { value: IDEOption; label: string }[] = [
   { value: 'Sublime',  label: 'Sublime Text' },
 ]
 
-export default function SettingsModal({ settings, repoPath, setupConfig, onSave, onClose }: SettingsModalProps) {
+const SettingsModal = NiceModal.create<{
+  settings: AppSettings
+  repoPath: string
+  setupConfig: SetupConfig | null
+  onSave: (settings: AppSettings) => Promise<void>
+}>(({ settings, repoPath, setupConfig, onSave }) => {
+  const modal = useModal()
   const api = useAPI()
   const [terminal, setTerminal] = useState<TerminalOption>(settings.preferredTerminal)
   const [ide, setIde] = useState<IDEOption>(settings.preferredIDE)
@@ -161,12 +160,12 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
     if (isDirty) {
       setShowDirtyWarning(true)
     } else {
-      onClose()
+      modal.hide()
     }
   }
 
   return (
-    <Modal isOpen onClose={handleClose} size="md" isCentered scrollBehavior="inside">
+    <Modal isOpen={modal.visible} onClose={handleClose} size="md" isCentered scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid" maxH="85vh">
         <ModalHeader pb={2}>
@@ -262,7 +261,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
                   <Text fontSize="sm">You have unsaved changes.</Text>
                   <HStack spacing={2}>
                     <Button size="xs" variant="ghost" onClick={() => setShowDirtyWarning(false)}>Keep editing</Button>
-                    <Button size="xs" colorScheme="orange" variant="outline" onClick={onClose}>Discard & close</Button>
+                    <Button size="xs" colorScheme="orange" variant="outline" onClick={modal.hide}>Discard & close</Button>
                   </HStack>
                 </HStack>
               </Alert>
@@ -283,4 +282,6 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default SettingsModal

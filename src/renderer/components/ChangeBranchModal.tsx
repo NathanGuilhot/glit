@@ -11,18 +11,16 @@ import {
   VStack,
   HStack,
 } from '@chakra-ui/react'
-import { useAPI } from '../api'
-import type { BranchInfo } from '../../shared/types'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useAPI, type BranchInfo } from '../api'
 import BranchSearchList from './BranchSearchList'
 
-interface ChangeBranchModalProps {
+const ChangeBranchModal = NiceModal.create<{
   repoPath: string
   currentBranch: string
   onSuccess: () => void
-  onClose: () => void
-}
-
-export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, onClose }: ChangeBranchModalProps) {
+}>(({ repoPath, currentBranch, onSuccess }) => {
+  const modal = useModal()
   const api = useAPI()
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null)
@@ -44,7 +42,7 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
     try {
       await api.branch.checkout(repoPath, selectedBranch)
       onSuccess()
-      onClose()
+      modal.hide()
     } catch (err) {
       setError(String(err))
     } finally {
@@ -53,7 +51,7 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
   }
 
   return (
-    <Modal isOpen onClose={onClose} size="md" isCentered scrollBehavior="inside">
+    <Modal isOpen={modal.visible} onClose={modal.hide} size="md" isCentered scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>
@@ -81,7 +79,7 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
 
         <ModalFooter>
           <HStack spacing={3}>
-            <Button variant="ghost" onClick={onClose} isDisabled={loading}>
+            <Button variant="ghost" onClick={modal.hide} isDisabled={loading}>
               Cancel
             </Button>
             <Button
@@ -98,4 +96,6 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default ChangeBranchModal

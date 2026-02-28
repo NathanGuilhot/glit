@@ -11,15 +11,9 @@ import {
   InputGroup,
   InputLeftElement,
 } from '@chakra-ui/react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import type { WorktreeWithDiff } from '../../shared/types'
-
-interface WorktreePaletteProps {
-  worktrees: WorktreeWithDiff[]
-  onOpenTerminal: (path: string) => Promise<void>
-  onOpenIDE: (path: string) => Promise<void>
-  onOpenCreate: (initialBranch: string) => void
-  onClose: () => void
-}
+import CreateWorktreeModal from './CreateWorktreeModal'
 
 function scoreWorktree(wt: WorktreeWithDiff, q: string): number {
   const branch = wt.branch.toLowerCase()
@@ -31,13 +25,14 @@ function scoreWorktree(wt: WorktreeWithDiff, q: string): number {
   return 0
 }
 
-export default function WorktreePalette({
-  worktrees,
-  onOpenTerminal,
-  onOpenIDE,
-  onOpenCreate,
-  onClose,
-}: WorktreePaletteProps) {
+const WorktreePalette = NiceModal.create<{
+  worktrees: WorktreeWithDiff[]
+  repoPath: string
+  detectedBaseBranch: string
+  onOpenTerminal: (path: string) => Promise<void>
+  onOpenIDE: (path: string) => Promise<void>
+}>(({ worktrees, repoPath, detectedBaseBranch, onOpenTerminal, onOpenIDE }) => {
+  const modal = useModal()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -62,6 +57,11 @@ export default function WorktreePalette({
     selectedEl?.scrollIntoView({ block: 'nearest' })
   }, [selectedIndex])
 
+  const handleOpenCreate = useCallback((initialBranch: string) => {
+    modal.hide()
+    NiceModal.show(CreateWorktreeModal, { repoPath, detectedBaseBranch, initialBranchName: initialBranch })
+  }, [modal, repoPath, detectedBaseBranch])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowDown':
@@ -75,8 +75,7 @@ export default function WorktreePalette({
       case 'Enter': {
         e.preventDefault()
         if (showCreate && selectedIndex === filteredWorktrees.length) {
-          onOpenCreate(query.trim())
-          onClose()
+          handleOpenCreate(query.trim())
         } else {
           const wt = filteredWorktrees[selectedIndex]
           if (wt) {
@@ -85,16 +84,16 @@ export default function WorktreePalette({
             } else {
               void onOpenTerminal(wt.path)
             }
-            onClose()
+            modal.hide()
           }
         }
         break
       }
     }
-  }, [query, selectedIndex, filteredWorktrees, showCreate, totalItems, onOpenTerminal, onOpenIDE, onOpenCreate, onClose])
+  }, [query, selectedIndex, filteredWorktrees, showCreate, totalItems, onOpenTerminal, onOpenIDE, handleOpenCreate, modal])
 
   return (
-    <Modal isOpen onClose={onClose} size="xl" isCentered>
+    <Modal isOpen={modal.visible} onClose={modal.hide} size="xl" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid" overflow="hidden">
         <ModalBody p={0}>
@@ -134,7 +133,7 @@ export default function WorktreePalette({
                   borderLeft="2px solid"
                   borderColor={isSelected ? 'brand.400' : 'transparent'}
                   cursor="pointer"
-                  onClick={() => { void onOpenTerminal(wt.path); onClose() }}
+                  onClick={() => { void onOpenTerminal(wt.path); modal.hide() }}
                   onMouseEnter={() => setSelectedIndex(i)}
                   _hover={{ bg: isSelected ? 'brand.900' : 'whiteAlpha.50' }}
                 >
@@ -178,7 +177,7 @@ export default function WorktreePalette({
                 borderLeft="2px solid"
                 borderColor={selectedIndex === filteredWorktrees.length ? 'brand.400' : 'transparent'}
                 cursor="pointer"
-                onClick={() => { onOpenCreate(query.trim()); onClose() }}
+                onClick={() => handleOpenCreate(query.trim())}
                 onMouseEnter={() => setSelectedIndex(filteredWorktrees.length)}
                 _hover={{ bg: selectedIndex === filteredWorktrees.length ? 'brand.900' : 'whiteAlpha.50' }}
               >
@@ -213,4 +212,6 @@ export default function WorktreePalette({
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default WorktreePalette

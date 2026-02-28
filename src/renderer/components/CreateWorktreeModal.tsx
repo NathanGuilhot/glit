@@ -23,21 +23,13 @@ import {
   Divider,
   Spinner,
   Progress,
+  useToast,
 } from '@chakra-ui/react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import type { SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
 import { useAPI } from '../api'
+import { useWorktree } from '../contexts/WorktreeContext'
 import BranchSearchList from './BranchSearchList'
-
-interface CreateWorktreeModalProps {
-  repoPath: string
-  detectedBaseBranch: string
-  progress: CreateProgress | null
-  cancelling?: boolean
-  initialBranchName?: string
-  onConfirm: (branchName: string, createNew: boolean, baseBranch: string) => Promise<void>
-  onCancel?: () => void
-  onClose: () => void
-}
 
 type ModalStep = 'form' | 'progress'
 
@@ -221,17 +213,16 @@ function CreateWorktreeProgress({ progress }: CreateWorktreeProgressProps) {
   )
 }
 
-export default function CreateWorktreeModal({
-  repoPath,
-  detectedBaseBranch,
-  progress,
-  cancelling = false,
-  initialBranchName = '',
-  onConfirm,
-  onCancel,
-  onClose,
-}: CreateWorktreeModalProps) {
+const CreateWorktreeModal = NiceModal.create<{
+  repoPath: string
+  detectedBaseBranch: string
+  initialBranchName?: string
+}>(({ repoPath, detectedBaseBranch, initialBranchName = '' }) => {
+  const modal = useModal()
   const api = useAPI()
+  const toast = useToast()
+  const { createProgress, setCreateProgress, refresh } = useWorktree()
+
   const [branchName, setBranchName] = useState(initialBranchName)
   const [createNew, setCreateNew] = useState(!!initialBranchName)
   const [baseBranch, setBaseBranch] = useState(detectedBaseBranch)
@@ -239,12 +230,13 @@ export default function CreateWorktreeModal({
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [loadingBranches, setLoadingBranches] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState('')
 
-  const currentStep: ModalStep = progress ? 'progress' : 'form'
-  const isWorking = submitting || (progress !== null && progress.step !== 'done' && progress.step !== 'error')
-  const isDone = progress?.step === 'done'
-  const isError = progress?.step === 'error'
+  const currentStep: ModalStep = createProgress ? 'progress' : 'form'
+  const isWorking = submitting || (createProgress !== null && createProgress.step !== 'done' && createProgress.step !== 'error')
+  const isDone = createProgress?.step === 'done'
+  const isError = createProgress?.step === 'error'
 
   useEffect(() => {
     const loadData = async () => {
@@ -272,27 +264,49 @@ export default function CreateWorktreeModal({
     if (err) { setError(err); return }
     setError('')
     setSubmitting(true)
-    await onConfirm(branchName.trim(), createNew, baseBranch)
+    setCancelling(false)
+    setCreateProgress({ step: 'creating', message: 'Starting...' })
+    const result = await api.worktree.create({
+      repoPath,
+      branchName: branchName.trim(),
+      createNewBranch: createNew,
+      baseBranch: baseBranch || undefined,
+    })
     setSubmitting(false)
+    if (result.success) {
+      toast({ title: 'Worktree created', description: result.worktree?.path, status: 'success', duration: 3000 })
+      setCreateProgress(null)
+      refresh()
+      modal.hide()
+    } else if (result.error !== 'cancelled') {
+      toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      setCreateProgress(null)
+    } else {
+      setCreateProgress(null)
+      setCancelling(false)
+      modal.hide()
+    }
   }
 
   const handleCancelClick = () => {
-    if (isWorking && onCancel) {
-      onCancel()
+    if (isWorking) {
+      setCancelling(true)
+      void api.worktree.cancelCreate()
     } else {
-      onClose()
+      setCreateProgress(null)
+      modal.hide()
     }
   }
 
   return (
-    <Modal isOpen onClose={handleCancelClick} size="lg" isCentered>
+    <Modal isOpen={modal.visible} onClose={handleCancelClick} size="lg" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>New Worktree</ModalHeader>
 
         <ModalBody>
-          {currentStep === 'progress' && progress ? (
-            <CreateWorktreeProgress progress={progress} />
+          {currentStep === 'progress' && createProgress ? (
+            <CreateWorktreeProgress progress={createProgress} />
           ) : (
             <CreateWorktreeForm
               branchName={branchName}
@@ -326,7 +340,7 @@ export default function CreateWorktreeModal({
                 colorScheme="brand"
                 onClick={handleSubmit}
                 isLoading={isWorking && !cancelling}
-                loadingText={progress?.message ?? 'Creating worktree…'}
+                loadingText={createProgress?.message ?? 'Creating worktree…'}
                 isDisabled={!branchName.trim() || cancelling}
               >
                 Create worktree
@@ -337,4 +351,6 @@ export default function CreateWorktreeModal({
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default CreateWorktreeModal
