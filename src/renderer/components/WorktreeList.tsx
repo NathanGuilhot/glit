@@ -9,13 +9,14 @@ import type { WorktreeWithDiff } from '../../shared/types'
 
 interface WorktreeListProps {
   onDelete: (worktree: WorktreeWithDiff) => void
+  onChangeBranch: (worktree: WorktreeWithDiff) => void
   cleanupMode?: boolean
   mergedBranches?: string[]
   onExitCleanup?: () => void
   onBatchDelete?: (worktrees: WorktreeWithDiff[]) => void
 }
 
-export default function WorktreeList({ onDelete, cleanupMode, mergedBranches, onBatchDelete }: WorktreeListProps) {
+export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, mergedBranches, onBatchDelete }: WorktreeListProps) {
   const { worktrees, filter, setFilter } = useWorktree()
   const [showBatchConfirm, setShowBatchConfirm] = useState(false)
 
@@ -56,6 +57,7 @@ export default function WorktreeList({ onDelete, cleanupMode, mergedBranches, on
           key={wt.path}
           worktree={wt}
           onDelete={onDelete}
+          onChangeBranch={onChangeBranch}
           isMerged={cleanupMode && mergedBranches?.includes(wt.branch)}
         />
       ))}
