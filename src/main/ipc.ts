@@ -595,6 +595,25 @@ end tell'`
     await runGitCommand(repoPath, ['checkout', '--ignore-other-worktrees', branchName])
   })
 
+  ipcMain.handle('branch:rebaseOnto', async (_event, repoPath: string, mainBranch: string) => {
+    log.info(`Rebasing ${repoPath} onto ${mainBranch}`)
+    try {
+      const currentBranch = (await runGitCommand(repoPath, ['branch', '--show-current'])).trim()
+      if (!currentBranch) return { success: false, error: 'Not on a branch (detached HEAD)' }
+      await runGitCommand(repoPath, ['rebase', mainBranch])
+      return { success: true, branch: currentBranch }
+    } catch (error) {
+      try {
+        await runGitCommand(repoPath, ['rebase', '--abort'])
+        log.info('Rebase aborted after conflict')
+      } catch (abortError) {
+        log.warn('Failed to abort rebase:', abortError)
+      }
+      const msg = error instanceof Error ? error.message : String(error)
+      return { success: false, error: msg }
+    }
+  })
+
   ipcMain.handle('pr:getStatus', async (_event, worktreePath: string) => {
     try {
       const { stdout } = await execAsync('gh pr view --json state,number,url', { cwd: worktreePath })
