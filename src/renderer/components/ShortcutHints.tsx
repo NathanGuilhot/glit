@@ -2,6 +2,7 @@ import { Box, HStack, Text } from '@chakra-ui/react'
 
 export default function ShortcutHints() {
   const shortcuts = [
+    ['⌘K', 'palette'],
     ['c', 'create'],
     ['r', 'refresh'],
     ['/', 'filter'],

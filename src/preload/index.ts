@@ -25,6 +25,7 @@ const api: GlitAPI = {
   },
   dialog: {
     pickFile: (repoPath: string) => ipcRenderer.invoke('dialog:pickFile', repoPath),
+    pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
   },
   terminal: {
     open: (path: string, terminal?: string) => ipcRenderer.invoke('terminal:open', path, terminal),
@@ -35,6 +36,8 @@ const api: GlitAPI = {
   repo: {
     detect: () => ipcRenderer.invoke('repo:detect'),
     defaultBranch: (repoPath: string) => ipcRenderer.invoke('repo:defaultBranch', repoPath),
+    switch: (repoPath: string) => ipcRenderer.invoke('repo:switch', repoPath),
+    listRecent: () => ipcRenderer.invoke('repo:listRecent'),
   },
   pr: {
     getStatus: (worktreePath: string) => ipcRenderer.invoke('pr:getStatus', worktreePath),

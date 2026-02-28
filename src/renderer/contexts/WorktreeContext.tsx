@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
-import type { WorktreeWithDiff, RepoInfo, AppSettings, CreateProgress, PRStatus } from '../../shared/types'
+import type { WorktreeWithDiff, RepoInfo, RecentRepo, AppSettings, CreateProgress, PRStatus } from '../../shared/types'
 import { type API, defaultAPI } from '../api'
 
 interface WorktreeContextValue {
@@ -11,9 +11,12 @@ interface WorktreeContextValue {
   detectedBaseBranch: string
   loading: boolean
   refreshing: boolean
+  switching: boolean
   filter: string
   setFilter: (filter: string) => void
   refresh: () => Promise<void>
+  recentRepos: RecentRepo[]
+  switchRepo: (path: string) => Promise<void>
   createProgress: CreateProgress | null
   setCreateProgress: (progress: CreateProgress | null) => void
 }
@@ -43,6 +46,8 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const [detectedBaseBranch, setDetectedBaseBranch] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const [recentRepos, setRecentRepos] = useState<RecentRepo[]>([])
   const [filter, setFilterState] = useState(() => sessionStorage.getItem('glit:filter') ?? '')
   const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
 
@@ -60,14 +65,16 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
         setLoading(false)
         return
       }
-      const [wts, cfg, detectedBranch] = await Promise.all([
+      const [wts, cfg, detectedBranch, recent] = await Promise.all([
         api.worktree.list(info.path),
         api.settings.get(),
         api.repo.defaultBranch(info.path),
+        api.repo.listRecent(),
       ])
       setWorktrees(wts)
       setSettings(cfg)
       setDetectedBaseBranch(detectedBranch)
+      setRecentRepos(recent)
       Promise.all(wts.map(async (wt) => {
         const status = await api.pr.getStatus(wt.path)
         return [wt.path, status] as const
@@ -107,6 +114,40 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     return unsub
   }, [api])
 
+  const switchRepo = useCallback(async (newPath: string) => {
+    if (newPath === repoInfo?.path) return
+    setSwitching(true)
+    try {
+      const info = await api.repo.switch(newPath)
+      if (!info.isRepo) {
+        toast({ title: 'Not a git repository', description: newPath, status: 'error', duration: 4000, isClosable: true })
+        return
+      }
+      setRepoInfo(info)
+      setWorktrees([])
+      setFilter('')
+      setPrStatuses({})
+      const [wts, cfg, detectedBranch, recent] = await Promise.all([
+        api.worktree.list(info.path),
+        api.settings.get(),
+        api.repo.defaultBranch(info.path),
+        api.repo.listRecent(),
+      ])
+      setWorktrees(wts)
+      setSettings(cfg)
+      setDetectedBaseBranch(detectedBranch)
+      setRecentRepos(recent)
+      Promise.all(wts.map(async (wt) => {
+        const status = await api.pr.getStatus(wt.path)
+        return [wt.path, status] as const
+      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
+    } catch (err) {
+      toast({ title: 'Failed to switch repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
+    } finally {
+      setSwitching(false)
+    }
+  }, [api, repoInfo, toast, setFilter])
+
   const filtered = worktrees.filter((wt) => {
     if (!filter) return true
     const q = filter.toLowerCase()
@@ -121,9 +162,12 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     detectedBaseBranch,
     loading,
     refreshing,
+    switching,
     filter,
     setFilter,
     refresh,
+    recentRepos,
+    switchRepo,
     createProgress,
     setCreateProgress,
   }

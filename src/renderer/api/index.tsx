@@ -9,6 +9,7 @@ export type {
   CreateProgress,
   AppSettings,
   RepoInfo,
+  RecentRepo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
   PRStatus,
@@ -38,6 +39,7 @@ export interface API {
   }
   dialog: {
     pickFile: (repoPath: string) => ReturnType<GlitAPI['dialog']['pickFile']>
+    pickFolder: () => ReturnType<GlitAPI['dialog']['pickFolder']>
   }
   terminal: {
     open: (path: string, terminal?: string) => ReturnType<GlitAPI['terminal']['open']>
@@ -48,6 +50,8 @@ export interface API {
   repo: {
     detect: () => ReturnType<GlitAPI['repo']['detect']>
     defaultBranch: (repoPath: string) => ReturnType<GlitAPI['repo']['defaultBranch']>
+    switch: (repoPath: string) => ReturnType<GlitAPI['repo']['switch']>
+    listRecent: () => ReturnType<GlitAPI['repo']['listRecent']>
   }
   pr: {
     getStatus: (worktreePath: string) => ReturnType<GlitAPI['pr']['getStatus']>
@@ -84,6 +88,7 @@ export function createAPI(glit: GlitAPI): API {
     },
     dialog: {
       pickFile: glit.dialog.pickFile,
+      pickFolder: glit.dialog.pickFolder,
     },
     terminal: {
       open: glit.terminal.open,
@@ -94,6 +99,8 @@ export function createAPI(glit: GlitAPI): API {
     repo: {
       detect: glit.repo.detect,
       defaultBranch: glit.repo.defaultBranch,
+      switch: glit.repo.switch,
+      listRecent: glit.repo.listRecent,
     },
     pr: {
       getStatus: glit.pr.getStatus,

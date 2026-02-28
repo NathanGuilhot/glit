@@ -12,6 +12,8 @@ import type {
   BranchInfo,
   SetupConfig,
   AppSettings,
+  RepoInfo,
+  RecentRepo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
   CreateProgress,
@@ -20,10 +22,12 @@ import type {
 const execAsync = promisify(exec)
 
 let activeCreateController: AbortController | null = null
+let activeRepoPath: string | null = null
 
 const isDev = process.env.NODE_ENV !== 'production'
 
 function getRepoPath(): string {
+  if (activeRepoPath !== null) return activeRepoPath
   // CLI sets GLIT_REPO_PATH env var
   if (process.env['GLIT_REPO_PATH']) {
     return process.env['GLIT_REPO_PATH']
@@ -49,9 +53,22 @@ const defaultSettings: AppSettings = {
   autoRefresh: true,
 }
 
-const store = new Store<{ settings: AppSettings }>({
-  defaults: { settings: defaultSettings },
+const store = new Store<{ settings: AppSettings; recentRepos: RecentRepo[] }>({
+  defaults: { settings: defaultSettings, recentRepos: [] },
 })
+
+function addToRecentRepos(info: RepoInfo): void {
+  if (!info.isRepo || !info.path || !info.name) return
+  const existing = store.get('recentRepos', [])
+  const filtered = existing.filter((r) => r.path !== info.path)
+  const entry: RecentRepo = {
+    path: info.path,
+    name: info.name,
+    displayPath: info.displayPath ?? shortenPathForDisplay(info.path),
+    lastUsedAt: new Date().toISOString(),
+  }
+  store.set('recentRepos', [entry, ...filtered].slice(0, 10))
+}
 
 async function runGitCommand(cwd: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> {
   const safeArgs = args.map(arg => /[^\w/-]/.test(arg) ? `'${arg.replace(/'/g, "'\\''")}'` : arg)
@@ -239,10 +256,30 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     try {
       await runGitCommand(cwd, ['rev-parse', '--git-dir'])
       const name = path.basename(cwd)
-      return { isRepo: true, path: cwd, displayPath, name }
+      const info: RepoInfo = { isRepo: true, path: cwd, displayPath, name }
+      addToRecentRepos(info)
+      return info
     } catch {
       return { isRepo: false, path: cwd, displayPath }
     }
+  })
+
+  ipcMain.handle('repo:switch', async (_event, repoPath: string) => {
+    const displayPath = shortenPathForDisplay(repoPath)
+    try {
+      await runGitCommand(repoPath, ['rev-parse', '--git-dir'])
+      const name = path.basename(repoPath)
+      const info: RepoInfo = { isRepo: true, path: repoPath, displayPath, name }
+      activeRepoPath = repoPath
+      addToRecentRepos(info)
+      return info
+    } catch {
+      return { isRepo: false, path: repoPath, displayPath }
+    }
+  })
+
+  ipcMain.handle('repo:listRecent', async () => {
+    return store.get('recentRepos', [])
   })
 
   ipcMain.handle('worktree:list', async (_event, repoPath: string) => {
@@ -437,6 +474,16 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     })
     if (result.canceled || !result.filePaths[0]) return null
     return path.relative(repoPath, result.filePaths[0])
+  })
+
+  ipcMain.handle('dialog:pickFolder', async () => {
+    const win = getWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    return result.filePaths[0]
   })
 
   ipcMain.handle('clipboard:copy', async (_event, text: string) => {

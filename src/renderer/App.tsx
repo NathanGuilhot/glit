@@ -15,6 +15,7 @@ import ShortcutHints from './components/ShortcutHints'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
 import ChangeBranchModal from './components/ChangeBranchModal'
+import WorktreePalette from './components/WorktreePalette'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -22,12 +23,14 @@ import { WorktreeCardSkeleton } from './components/WorktreeCard'
 
 function AppContent() {
   const { loading, repoInfo, settings, detectedBaseBranch, createProgress, setFilter, refresh, setCreateProgress, worktrees, prStatuses } = useWorktree()
-  const { handleDelete, handleBatchDelete, handleSaveSettings } = useAppActions()
+  const { handleDelete, handleBatchDelete, handleSaveSettings, handleOpenTerminal, handleOpenIDE } = useAppActions()
   const api = useAPI()
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeWithDiff | null>(null)
   const [changeBranchTarget, setChangeBranchTarget] = useState<WorktreeWithDiff | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [showPalette, setShowPalette] = useState(false)
+  const [paletteInitialBranch, setPaletteInitialBranch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
   const [cancellingCreate, setCancellingCreate] = useState(false)
@@ -67,6 +70,12 @@ function AppContent() {
     await api.worktree.cancelCreate()
   }, [api])
 
+  const handleOpenCreateFromPalette = useCallback((initialBranch: string) => {
+    setPaletteInitialBranch(initialBranch)
+    setShowPalette(false)
+    setShowCreate(true)
+  }, [])
+
   const openSettings = useCallback(async () => {
     if (repoInfo?.isRepo) {
       const config = await api.setup.preview(repoInfo.path)
@@ -89,7 +98,7 @@ function AppContent() {
           if (!e.metaKey && !e.ctrlKey) setShowCreate(true)
           break
         case 'k':
-          if (e.metaKey) { e.preventDefault(); setShowCreate(true) }
+          if (e.metaKey) { e.preventDefault(); setShowPalette(true) }
           break
         case ',':
           if (e.metaKey) openSettings()
@@ -222,15 +231,26 @@ function AppContent() {
         />
       )}
 
+      {showPalette && repoInfo && (
+        <WorktreePalette
+          worktrees={worktrees}
+          onOpenTerminal={handleOpenTerminal}
+          onOpenIDE={handleOpenIDE}
+          onOpenCreate={handleOpenCreateFromPalette}
+          onClose={() => setShowPalette(false)}
+        />
+      )}
+
       {showCreate && repoInfo && (
         <CreateWorktreeModal
           repoPath={repoInfo.path}
           detectedBaseBranch={detectedBaseBranch}
           progress={createProgress}
           cancelling={cancellingCreate}
+          initialBranchName={paletteInitialBranch}
           onConfirm={handleCreate}
           onCancel={handleCancelCreate}
-          onClose={() => setShowCreate(false)}
+          onClose={() => { setShowCreate(false); setPaletteInitialBranch('') }}
         />
       )}
 
