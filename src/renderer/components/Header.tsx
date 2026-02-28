@@ -1,4 +1,5 @@
 import { Box, HStack, VStack, Badge, IconButton, Tooltip, Spinner, Button, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Text } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import { RefreshIcon, SettingsIcon, PlusIcon, ChevronDownIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAPI } from '../api'
@@ -13,6 +14,7 @@ interface HeaderProps {
 export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, hasCleanupItems }: HeaderProps) {
   const { repoInfo, worktrees, refreshing, refresh, recentRepos, switchRepo, switching } = useWorktree()
   const api = useAPI()
+  const { t } = useTranslation()
 
   return (
     <Box px={5} pb={3} flexShrink={0}>
@@ -39,7 +41,7 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
                 </MenuButton>
                 <MenuList>
                   {recentRepos.length === 0 ? (
-                    <MenuItem isDisabled fontSize="sm">No recent repos</MenuItem>
+                    <MenuItem isDisabled fontSize="sm">{t('header.noRecentRepos')}</MenuItem>
                   ) : (
                     recentRepos.map((repo) => {
                       const isCurrent = repo.path === repoInfo.path
@@ -52,7 +54,7 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
                           <VStack align="start" spacing={0}>
                             <HStack spacing={2}>
                               <Text fontWeight={isCurrent ? 'bold' : 'normal'} fontSize="sm">{repo.name}</Text>
-                              {isCurrent && <Badge colorScheme="green" fontSize="9px" variant="subtle">current</Badge>}
+                              {isCurrent && <Badge colorScheme="green" fontSize="9px" variant="subtle">{t('header.current')}</Badge>}
                             </HStack>
                             <Text fontSize="10px" fontFamily="mono" color="whiteAlpha.500">{repo.displayPath}</Text>
                           </VStack>
@@ -68,12 +70,12 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
                       if (picked) await switchRepo(picked)
                     }}
                   >
-                    Open other repo…
+                    {t('header.openOtherRepo')}
                   </MenuItem>
                 </MenuList>
               </Menu>
               <Badge colorScheme="green" fontSize="9px" variant="subtle">
-                {worktrees.length} worktree{worktrees.length !== 1 ? 's' : ''}
+                {t('header.worktreeCount', { count: worktrees.length })}
               </Badge>
             </HStack>
           )}
@@ -81,12 +83,12 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
         <HStack spacing={1}>
           {hasCleanupItems && (
             <Button size="sm" variant="ghost" colorScheme="orange" onClick={onOpenCleanup}>
-              Clean up
+              {t('header.cleanUp')}
             </Button>
           )}
-          <Tooltip label="New worktree (c)" placement="bottom">
+          <Tooltip label={t('header.tooltips.newWorktree')} placement="bottom">
             <IconButton
-              aria-label="Create worktree"
+              aria-label={t('header.ariaLabels.createWorktree')}
               icon={<PlusIcon />}
               size="sm"
               variant="ghost"
@@ -94,9 +96,9 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
               onClick={onOpenCreate}
             />
           </Tooltip>
-          <Tooltip label="Refresh (r)" placement="bottom">
+          <Tooltip label={t('header.tooltips.refresh')} placement="bottom">
             <IconButton
-              aria-label="Refresh"
+              aria-label={t('header.ariaLabels.refresh')}
               icon={refreshing ? <Spinner size="xs" /> : <RefreshIcon />}
               size="sm"
               variant="ghost"
@@ -104,9 +106,9 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, ha
               isDisabled={refreshing}
             />
           </Tooltip>
-          <Tooltip label="Settings (⌘,)" placement="bottom">
+          <Tooltip label={t('header.tooltips.settings')} placement="bottom">
             <IconButton
-              aria-label="Settings"
+              aria-label={t('header.ariaLabels.settings')}
               icon={<SettingsIcon />}
               size="sm"
               variant="ghost"

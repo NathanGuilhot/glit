@@ -85,7 +85,7 @@ function AppContent() {
           if (e.metaKey) openSettings()
           break
         case '/':
-          (document.querySelector('input[placeholder*="Filter"]') as HTMLInputElement)?.focus()
+          (document.querySelector('input[data-filter-input]') as HTMLInputElement)?.focus()
           e.preventDefault()
           break
         case 'Escape':

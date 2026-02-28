@@ -1,5 +1,6 @@
 import { createContext, useContext, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff, AppSettings } from '../../shared/types'
 import { useWorktree } from './WorktreeContext'
 import { type API, defaultAPI } from '../api'
@@ -32,6 +33,7 @@ interface AppActionsProviderProps {
 
 export function AppActionsProvider({ children, api = defaultAPI }: AppActionsProviderProps) {
   const toast = useToast()
+  const { t } = useTranslation()
   const { repoInfo, refresh, settings } = useWorktree()
 
   const handleDelete = useCallback(async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
@@ -43,10 +45,10 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
       deleteFiles,
     })
     if (result.success) {
-      toast({ title: 'Worktree deleted', status: 'success', duration: 2000 })
+      toast({ title: t('actions.toast.worktreeDeleted'), status: 'success', duration: 2000 })
       refresh()
     } else {
-      toast({ title: 'Delete failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('actions.toast.deleteFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
   }, [api, repoInfo, refresh, toast])
 
@@ -73,25 +75,25 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
 
   const handleCopyPath = useCallback(async (worktreePath: string) => {
     await api.clipboard.copy(worktreePath)
-    toast({ title: 'Path copied', status: 'success', duration: 1500, position: 'bottom-right' })
+    toast({ title: t('actions.toast.pathCopied'), status: 'success', duration: 1500, position: 'bottom-right' })
   }, [api, toast])
 
   const handleCopyBranch = useCallback(async (branch: string) => {
     await api.clipboard.copy(branch)
-    toast({ title: 'Branch copied', status: 'success', duration: 1500, position: 'bottom-right' })
+    toast({ title: t('actions.toast.branchCopied'), status: 'success', duration: 1500, position: 'bottom-right' })
   }, [api, toast])
 
   const handleOpenTerminal = useCallback(async (worktreePath: string) => {
     const result = await api.terminal.open(worktreePath, settings.preferredTerminal)
     if (!result.success) {
-      toast({ title: 'Failed to open terminal', description: result.error, status: 'error', duration: 4000 })
+      toast({ title: t('actions.toast.failedToOpenTerminal'), description: result.error, status: 'error', duration: 4000 })
     }
   }, [api, settings.preferredTerminal, toast])
 
   const handleOpenIDE = useCallback(async (worktreePath: string) => {
     const result = await api.ide.open(worktreePath, settings.preferredIDE)
     if (!result.success) {
-      toast({ title: 'Failed to open IDE', description: result.error, status: 'error', duration: 4000 })
+      toast({ title: t('actions.toast.failedToOpenIDE'), description: result.error, status: 'error', duration: 4000 })
     }
   }, [api, settings.preferredIDE, toast])
 
@@ -101,30 +103,30 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
 
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     await api.settings.set(newSettings)
-    toast({ title: 'Settings saved', status: 'success', duration: 1500 })
+    toast({ title: t('actions.toast.settingsSaved'), status: 'success', duration: 1500 })
   }, [api, toast])
 
   const handleRunSetup = useCallback(async (worktree: WorktreeWithDiff) => {
     if (!repoInfo) return
-    const id = toast({ title: 'Running setup…', status: 'loading', duration: null, isClosable: false })
+    const id = toast({ title: t('actions.toast.runningSetup'), status: 'loading', duration: null, isClosable: false })
     const result = await api.worktree.runSetup({ repoPath: repoInfo.path, worktreePath: worktree.path })
     toast.close(id)
     if (result.success) {
-      toast({ title: 'Setup complete', status: 'success', duration: 3000 })
+      toast({ title: t('actions.toast.setupComplete'), status: 'success', duration: 3000 })
     } else {
-      toast({ title: 'Setup failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('actions.toast.setupFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
   }, [api, repoInfo, toast])
 
   const handleSyncWorktree = useCallback(async (worktree: WorktreeWithDiff) => {
-    const id = toast({ title: 'Syncing working tree…', status: 'loading', duration: null, isClosable: false })
+    const id = toast({ title: t('actions.toast.syncing'), status: 'loading', duration: null, isClosable: false })
     const result = await api.worktree.sync(worktree.path)
     toast.close(id)
     if (result.success) {
-      toast({ title: 'Working tree synced', status: 'success', duration: 3000 })
+      toast({ title: t('actions.toast.synced'), status: 'success', duration: 3000 })
       refresh()
     } else {
-      toast({ title: 'Sync failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('actions.toast.syncFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
   }, [api, toast, refresh])
 

@@ -1,0 +1,308 @@
+{
+  "app": {
+    "title": "Glit ·.°"
+  },
+  "worktree": {
+    "toast": {
+      "failedToLoad": "Failed to load repository",
+      "failedToRefresh": "Failed to refresh",
+      "notAGitRepo": "Not a git repository",
+      "failedToSwitch": "Failed to switch repository"
+    }
+  },
+  "actions": {
+    "toast": {
+      "worktreeDeleted": "Worktree deleted",
+      "deleteFailed": "Delete failed",
+      "pathCopied": "Path copied",
+      "branchCopied": "Branch copied",
+      "failedToOpenTerminal": "Failed to open terminal",
+      "failedToOpenIDE": "Failed to open IDE",
+      "settingsSaved": "Settings saved",
+      "runningSetup": "Running setup…",
+      "setupComplete": "Setup complete",
+      "setupFailed": "Setup failed",
+      "syncing": "Syncing working tree…",
+      "synced": "Working tree synced",
+      "syncFailed": "Sync failed"
+    }
+  },
+  "header": {
+    "noRecentRepos": "No recent repos",
+    "openOtherRepo": "Open other repo…",
+    "current": "current",
+    "worktreeCount_one": "{{count}} worktree",
+    "worktreeCount_other": "{{count}} worktrees",
+    "cleanUp": "Clean up",
+    "tooltips": {
+      "newWorktree": "New worktree (c)",
+      "refresh": "Refresh (r)",
+      "settings": "Settings (⌘,)"
+    },
+    "ariaLabels": {
+      "createWorktree": "Create worktree",
+      "refresh": "Refresh",
+      "settings": "Settings"
+    }
+  },
+  "filterBar": {
+    "placeholder": "Filter by branch or path… (/)"
+  },
+  "worktreeCard": {
+    "tooltips": {
+      "copied": "Copied!",
+      "clickToCopyBranch": "Click to copy branch",
+      "clickToCopyPath": "Click to copy path",
+      "openInTerminal": "Open in {{terminal}}",
+      "openInIDE": "Open in {{ide}}",
+      "openPR": "PR #{{number}} — click to open",
+      "processRunning": "Process running",
+      "openLocalhost": "Open http://localhost:{{port}}",
+      "viewLogs": "View logs",
+      "stopProcess": "Stop process",
+      "runDevCommand": "Run dev command"
+    },
+    "badges": {
+      "root": "root",
+      "locked": "locked",
+      "stale": "stale",
+      "running": "running"
+    },
+    "prState": {
+      "open": "● Open",
+      "merged": "✓ Merged",
+      "closed": "⊘ Closed"
+    },
+    "ariaLabels": {
+      "openInTerminal": "Open in terminal",
+      "openInIDE": "Open in IDE",
+      "moreActions": "More actions",
+      "viewLogs": "View logs",
+      "stopProcess": "Stop process",
+      "runDevCommand": "Run dev command"
+    },
+    "menu": {
+      "openInFinder": "Open in Finder",
+      "changeBranch": "Change branch",
+      "rebaseOnto": "Rebase onto {{branch}}",
+      "runSetup": "Run setup",
+      "configureRunCommand": "Configure run command…",
+      "syncWorkingTree": "Sync working tree",
+      "deleteWorktree": "Delete worktree"
+    },
+    "clean": "clean",
+    "noBranch": "(no branch)",
+    "fileCount_one": "{{count}} file",
+    "fileCount_other": "{{count}} files",
+    "toast": {
+      "rebased": "Rebased onto {{branch}}",
+      "rebaseConflicts": "Conflicts — resolve in your IDE",
+      "rebaseConflictsDescription": "Conflicts in {{branch}}. Run `git rebase --abort` to cancel.",
+      "rebaseFailed": "Rebase failed"
+    }
+  },
+  "worktreeList": {
+    "noMatch": "No worktrees match \"{{filter}}\"",
+    "clearFilter": "Clear filter",
+    "createFirstWorktree": "Create your first worktree (c)"
+  },
+  "palette": {
+    "placeholder": "Filter or type branch name…",
+    "createNew": "+ Create new worktree \"{{branch}}\"",
+    "hints": {
+      "navigate": "navigate",
+      "terminal": "terminal",
+      "ide": "IDE",
+      "close": "close"
+    }
+  },
+  "changeBranch": {
+    "title": "Change Branch",
+    "subtitle": "Select a branch to checkout in the root repository",
+    "current": "(current)",
+    "cancel": "Cancel",
+    "checkout": "Checkout",
+    "checkingOut": "Checking out..."
+  },
+  "createWorktree": {
+    "title": "New Worktree",
+    "fields": {
+      "branchName": "Branch name",
+      "createNewBranch": "Create new branch",
+      "baseBranch": "Base branch"
+    },
+    "placeholders": {
+      "newBranch": "feature/my-feature",
+      "existingBranch": "existing-branch"
+    },
+    "validation": {
+      "required": "Branch name is required",
+      "invalidChars": "Invalid branch name characters"
+    },
+    "setupScript": "Setup script",
+    "badges": {
+      "setupYaml": ".glit/setup.yaml",
+      "packages": "packages",
+      "envFiles": "env files",
+      "cmd": "cmd"
+    },
+    "progress": {
+      "success": "Worktree created successfully!"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "create": "Create worktree",
+      "cancelling": "Cancelling…",
+      "creating": "Creating worktree…"
+    },
+    "current": "(current)",
+    "toast": {
+      "created": "Worktree created",
+      "createFailed": "Create failed"
+    }
+  },
+  "deleteWorktree": {
+    "title": "Delete Worktree",
+    "uncommittedChanges": "Uncommitted changes",
+    "diffSummary_one": "+{{insertions}} -{{deletions}} across {{count}} file",
+    "diffSummary_other": "+{{insertions}} -{{deletions}} across {{count}} files",
+    "forceDelete": "Force delete (discard uncommitted changes)",
+    "deleteFiles": "Also delete directory files",
+    "deleteFilesPermanent": "Permanently removes all files from disk",
+    "warningBase": "This action will unregister the worktree from git",
+    "warningAndDeleteFiles": " and delete all files",
+    "warningKeepFiles": " The directory will remain on disk.",
+    "cancel": "Cancel",
+    "delete": "Delete worktree",
+    "deleting": "Deleting..."
+  },
+  "settings": {
+    "title": "Settings",
+    "shortcut": "⌘,",
+    "preferredTerminal": {
+      "label": "Preferred terminal",
+      "helper": "Used when opening worktrees in terminal"
+    },
+    "preferredIDE": {
+      "label": "Preferred IDE",
+      "helper": "Used when opening worktrees in an editor"
+    },
+    "autoRefresh": {
+      "label": "Auto-refresh",
+      "helper": "Refresh worktree list automatically"
+    },
+    "setupScript": {
+      "label": "Setup script",
+      "badge": ".glit/setup.yaml",
+      "helper": "Runs automatically when a new worktree is created"
+    },
+    "lists": {
+      "packages": "Packages",
+      "envFiles": "Env files",
+      "commands": "Commands"
+    },
+    "placeholders": {
+      "npmInstall": "npm install",
+      "envFile": ".env",
+      "command": "echo hello"
+    },
+    "browse": "Browse…",
+    "add": "+ Add",
+    "ariaLabels": {
+      "remove": "Remove",
+      "clearCommand": "Clear command"
+    },
+    "runCommands": {
+      "title": "Run Commands",
+      "helper": "Dev command to run per worktree. Changes save immediately.",
+      "placeholder": "e.g. bun run dev"
+    },
+    "terminals": {
+      "Terminal": "Terminal.app",
+      "iTerm2": "iTerm2",
+      "Hyper": "Hyper",
+      "Kitty": "Kitty",
+      "Alacritty": "Alacritty",
+      "Warp": "Warp"
+    },
+    "ides": {
+      "VSCode": "Visual Studio Code",
+      "Cursor": "Cursor",
+      "Zed": "Zed",
+      "WebStorm": "WebStorm",
+      "Sublime": "Sublime Text"
+    },
+    "dirtyWarning": {
+      "message": "You have unsaved changes.",
+      "keepEditing": "Keep editing",
+      "discardAndClose": "Discard & close"
+    },
+    "cancel": "Cancel",
+    "save": "Save settings"
+  },
+  "cleanup": {
+    "title": "Clean up",
+    "worktreesWithMergedPRs": "Worktrees with merged PRs:",
+    "branchesMergedInto": "Branches merged into {{ref}}:",
+    "all": "All",
+    "none": "None",
+    "cancel": "Cancel",
+    "confirm": {
+      "removeWorktrees_one": "Remove {{count}} worktree",
+      "removeWorktrees_other": "Remove {{count}} worktrees",
+      "deleteBranches_one": "Delete {{count}} branch",
+      "deleteBranches_other": "Delete {{count}} branches",
+      "cleanUp": "Clean up",
+      "and": " and "
+    },
+    "toast": {
+      "cleanedUp": "Cleaned up: {{items}}",
+      "partial": "Partial: {{items}}",
+      "worktrees_one": "{{count}} worktree",
+      "worktrees_other": "{{count}} worktrees",
+      "worktreesPartial": "{{deleted}}/{{total}} worktrees",
+      "branches_one": "{{count}} branch",
+      "branches_other": "{{count}} branches",
+      "branchesPartial": "{{deleted}}/{{total}} branches"
+    }
+  },
+  "processLog": {
+    "title": "Logs",
+    "noOutput": "No output yet…"
+  },
+  "runCommand": {
+    "title": "Run command",
+    "detecting": "Detecting…",
+    "availableScripts": "Available scripts",
+    "note": "Command is remembered for this worktree. You can change it later via the ⚙ icon.",
+    "placeholder": "e.g. bun run dev",
+    "cancel": "Cancel",
+    "run": "Run"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "tryAgain": "Try Again"
+  },
+  "notGitRepo": {
+    "title": "Not a git repository",
+    "subtitle": "Glit needs to be run from inside a git repository",
+    "currentPath": "Current path",
+    "howToUse": "How to use Glit",
+    "hints": {
+      "navigate": "Navigate to a git repo",
+      "navigateCmd": "cd /path/to/your/repo",
+      "launch": "Launch Glit",
+      "launchCmd": "glit"
+    },
+    "directRun": "Or run <1>glit /path/to/repo</1> directly",
+    "noWorktrees": "No worktrees to manage"
+  },
+  "shortcutHints": {
+    "palette": "palette",
+    "create": "create",
+    "refresh": "refresh",
+    "filter": "filter",
+    "settings": "settings"
+  }
+}

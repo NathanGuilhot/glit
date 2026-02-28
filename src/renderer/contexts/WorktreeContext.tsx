@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff, RepoInfo, RecentRepo, AppSettings, CreateProgress, PRStatus, RunningProcess } from '../../shared/types'
 import { type API, defaultAPI } from '../api'
 
@@ -37,6 +38,7 @@ interface WorktreeProviderProps {
 
 export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProviderProps) {
   const toast = useToast()
+  const { t } = useTranslation()
   const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null)
   const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
   const [settings, setSettings] = useState<AppSettings>({
@@ -86,7 +88,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setRecentRepos(recent)
       updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to load repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('worktree.toast.failedToLoad'), description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
       setLoading(false)
     }
@@ -100,7 +102,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setWorktrees(wts)
       updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to refresh', description: String(err), status: 'error', duration: 3000 })
+      toast({ title: t('worktree.toast.failedToRefresh'), description: String(err), status: 'error', duration: 3000 })
     } finally {
       setRefreshing(false)
     }
@@ -153,7 +155,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     try {
       const info = await api.repo.switch(newPath)
       if (!info.isRepo) {
-        toast({ title: 'Not a git repository', description: newPath, status: 'error', duration: 4000, isClosable: true })
+        toast({ title: t('worktree.toast.notAGitRepo'), description: newPath, status: 'error', duration: 4000, isClosable: true })
         return
       }
       setRepoInfo(info)
@@ -173,7 +175,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setRecentRepos(recent)
       updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to switch repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('worktree.toast.failedToSwitch'), description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
       setSwitching(false)
     }

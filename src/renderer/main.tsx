@@ -1,3 +1,5 @@
+import './i18n/index'
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ChakraProvider, extendTheme, type ThemeConfig } from '@chakra-ui/react'
