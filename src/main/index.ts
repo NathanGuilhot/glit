@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import log from 'electron-log'
