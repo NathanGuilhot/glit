@@ -118,6 +118,17 @@ export const ChevronDownIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const RebaseIcon = createIcon({
+  displayName: 'RebaseIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="bar" x1="4" y1="4" x2="20" y2="4" />,
+    <line key="stem" x1="12" y1="20" x2="12" y2="8" />,
+    <polyline key="arrow" points="7 9 12 4 17 9" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const CloseIcon = createIcon({
   displayName: 'CloseIcon',
   viewBox: '0 0 24 24',
