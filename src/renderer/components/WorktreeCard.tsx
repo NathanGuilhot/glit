@@ -24,16 +24,13 @@ import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
 import { ProcessLogDrawer } from './ProcessLogDrawer'
 import { RunCommandModal } from './RunCommandModal'
+import { TooltipIconButton } from './TooltipIconButton'
+import { getBranchColor } from '../utils'
 
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onDelete?: (worktree: WorktreeWithDiff) => void
   onChangeBranch?: (worktree: WorktreeWithDiff) => void
-}
-
-function getBranchColor(branch: string): string {
-  if (branch === 'main' || branch === 'master') return 'green'
-  return 'gray'
 }
 
 export function WorktreeCardSkeleton() {
@@ -274,59 +271,14 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">
             {runningProcess ? (
               <>
-                <Tooltip label="View logs" placement="top" openDelay={200}>
-                  <IconButton
-                    aria-label="View logs"
-                    icon={<LogsIcon boxSize={4} color="whiteAlpha.800" />}
-                    size="xs"
-                    variant="ghost"
-                    colorScheme="whiteAlpha"
-                    onClick={handleOpenLogs}
-                  />
-                </Tooltip>
-                <Tooltip label="Stop process" placement="top" openDelay={200}>
-                  <IconButton
-                    aria-label="Stop process"
-                    icon={<StopIcon boxSize={3.5} color="red.400" />}
-                    size="xs"
-                    variant="ghost"
-                    colorScheme="whiteAlpha"
-                    onClick={handleStop}
-                  />
-                </Tooltip>
+                <TooltipIconButton label="View logs" icon={<LogsIcon boxSize={4} color="whiteAlpha.800" />} onClick={handleOpenLogs} />
+                <TooltipIconButton label="Stop process" icon={<StopIcon boxSize={3.5} color="red.400" />} onClick={handleStop} />
               </>
             ) : (
-              <Tooltip label="Run dev command" placement="top" openDelay={200}>
-                <IconButton
-                  aria-label="Run dev command"
-                  icon={<PlayIcon boxSize={3.5} color="whiteAlpha.800" />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="whiteAlpha"
-                  onClick={() => void handleRun()}
-                />
-              </Tooltip>
+              <TooltipIconButton label="Run dev command" icon={<PlayIcon boxSize={3.5} color="whiteAlpha.800" />} onClick={() => void handleRun()} />
             )}
-            <Tooltip label={`Open in ${settings.preferredTerminal}`} placement="top" openDelay={200}>
-              <IconButton
-                aria-label="Open in terminal"
-                icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />}
-                size="xs"
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                onClick={() => handleOpenTerminal(worktree.path)}
-              />
-            </Tooltip>
-            <Tooltip label={`Open in ${settings.preferredIDE}`} placement="top" openDelay={200}>
-              <IconButton
-                aria-label="Open in IDE"
-                icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />}
-                size="xs"
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                onClick={() => handleOpenIDE(worktree.path)}
-              />
-            </Tooltip>
+            <TooltipIconButton label={`Open in ${settings.preferredTerminal}`} icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenTerminal(worktree.path)} />
+            <TooltipIconButton label={`Open in ${settings.preferredIDE}`} icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenIDE(worktree.path)} />
           </HStack>
 
           <Menu>

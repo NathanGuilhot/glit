@@ -27,6 +27,7 @@ import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../
 import { useAPI } from '../api'
 import type { WorktreeWithDiff } from '../api'
 import { CloseIcon } from './Icons'
+import { getBranchColor } from '../utils'
 
 const TERMINALS: { value: TerminalOption; label: string }[] = [
   { value: 'Terminal', label: 'Terminal.app' },
@@ -233,8 +234,6 @@ const SettingsModal = NiceModal.create<{
 
             <Divider borderColor="whiteAlpha.100" />
 
-            <Divider borderColor="whiteAlpha.100" />
-
             <FormControl>
               <HStack justify="space-between" align="start">
                 <VStack align="start" spacing={0}>
@@ -279,7 +278,7 @@ const SettingsModal = NiceModal.create<{
               {worktrees.map((wt) => (
                 <HStack key={wt.path} spacing={2} align="center">
                   <Badge
-                    colorScheme={wt.branch === 'main' || wt.branch === 'master' ? 'green' : 'gray'}
+                    colorScheme={getBranchColor(wt.branch)}
                     variant="subtle"
                     fontSize="xs"
                     flexShrink={0}
