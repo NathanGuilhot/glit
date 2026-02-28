@@ -28,6 +28,7 @@ export interface API {
     list: (repoPath: string) => ReturnType<GlitAPI['branch']['list']>
     checkout: (repoPath: string, branchName: string) => ReturnType<GlitAPI['branch']['checkout']>
     rebaseOnto: (repoPath: string, mainBranch: string) => ReturnType<GlitAPI['branch']['rebaseOnto']>
+    delete: (repoPath: string, branchName: string) => ReturnType<GlitAPI['branch']['delete']>
   }
   settings: {
     get: () => ReturnType<GlitAPI['settings']['get']>
@@ -80,6 +81,7 @@ export function createAPI(glit: GlitAPI): API {
       list: glit.branch.list,
       checkout: glit.branch.checkout,
       rebaseOnto: glit.branch.rebaseOnto,
+      delete: glit.branch.delete,
     },
     settings: {
       get: glit.settings.get,

@@ -15,6 +15,7 @@ import ShortcutHints from './components/ShortcutHints'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
 import ChangeBranchModal from './components/ChangeBranchModal'
+import CleanBranchesModal from './components/CleanBranchesModal'
 import WorktreePalette from './components/WorktreePalette'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
@@ -33,6 +34,7 @@ function AppContent() {
   const [paletteInitialBranch, setPaletteInitialBranch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
+  const [showCleanBranches, setShowCleanBranches] = useState(false)
   const [cancellingCreate, setCancellingCreate] = useState(false)
 
   const worktreesWithMergedPR = worktrees.filter((wt) => prStatuses[wt.path]?.state === 'MERGED')
@@ -196,6 +198,7 @@ function AppContent() {
         onOpenCreate={() => setShowCreate(true)}
         onOpenSettings={openSettings}
         onOpenCleanup={handleEnterCleanup}
+        onOpenCleanBranches={() => setShowCleanBranches(true)}
         cleanupMode={cleanupMode}
         hasMergedPRWorktrees={hasMergedPRWorktrees}
       />
@@ -261,6 +264,14 @@ function AppContent() {
           setupConfig={setupConfig}
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showCleanBranches && repoInfo && (
+        <CleanBranchesModal
+          repoPath={repoInfo.path}
+          baseBranch={detectedBaseBranch}
+          onClose={() => setShowCleanBranches(false)}
         />
       )}
     </Box>
