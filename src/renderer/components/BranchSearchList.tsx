@@ -11,6 +11,7 @@ import {
   Box,
   Spinner,
 } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import { SearchIcon } from './Icons'
 import type { BranchInfo } from '../../shared/types'
 
@@ -33,6 +34,8 @@ export default function BranchSearchList({
   maxH = '240px',
   isLoading = false,
 }: BranchSearchListProps) {
+  const { t } = useTranslation()
+
   const [rawQuery, setRawQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
@@ -82,7 +85,7 @@ export default function BranchSearchList({
       >
         {filtered.length === 0 ? (
           <Text fontSize="sm" color="whiteAlpha.400" px={3} py={2}>
-            No branches match "{debouncedQuery}"
+            {t('branchSearchList.noMatch', { query: debouncedQuery })}
           </Text>
         ) : (
           <List>
@@ -112,7 +115,7 @@ export default function BranchSearchList({
                   <HStack justify="space-between">
                     <Text fontSize="sm">{branch.name}</Text>
                     {isCurrent && (
-                      <Text fontSize="xs" color="green.400">(current)</Text>
+                      <Text fontSize="xs" color="green.400">{t('branchSearchList.current')}</Text>
                     )}
                   </HStack>
                 </ListItem>

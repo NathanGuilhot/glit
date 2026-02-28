@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff, RepoInfo, RecentRepo, AppSettings, CreateProgress, PRStatus, RunningProcess } from '../../shared/types'
 import { type API, defaultAPI } from '../api'
 
@@ -37,6 +38,7 @@ interface WorktreeProviderProps {
 
 export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProviderProps) {
   const toast = useToast()
+  const { t } = useTranslation()
   const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null)
   const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
   const [settings, setSettings] = useState<AppSettings>({
@@ -59,6 +61,13 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   }, [])
   const [prStatuses, setPrStatuses] = useState<Record<string, PRStatus | null>>({})
 
+  const updatePrStatuses = useCallback((wts: WorktreeWithDiff[]) => {
+    Promise.all(wts.map(async (wt) => {
+      const status = await api.pr.getStatus(wt.path)
+      return [wt.path, status] as const
+    })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
+  }, [api])
+
   const loadRepo = useCallback(async () => {
     try {
       const info = await api.repo.detect()
@@ -77,16 +86,13 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setSettings(cfg)
       setDetectedBaseBranch(detectedBranch)
       setRecentRepos(recent)
-      Promise.all(wts.map(async (wt) => {
-        const status = await api.pr.getStatus(wt.path)
-        return [wt.path, status] as const
-      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
+      updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to load repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('worktree.toast.failedToLoad'), description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
       setLoading(false)
     }
-  }, [api, toast])
+  }, [api, toast, t, updatePrStatuses])
 
   const refresh = useCallback(async () => {
     if (!repoInfo?.isRepo) return
@@ -94,16 +100,13 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     try {
       const wts = await api.worktree.list(repoInfo.path)
       setWorktrees(wts)
-      Promise.all(wts.map(async (wt) => {
-        const status = await api.pr.getStatus(wt.path)
-        return [wt.path, status] as const
-      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
+      updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to refresh', description: String(err), status: 'error', duration: 3000 })
+      toast({ title: t('worktree.toast.failedToRefresh'), description: String(err), status: 'error', duration: 3000 })
     } finally {
       setRefreshing(false)
     }
-  }, [api, repoInfo, toast])
+  }, [api, repoInfo, toast, t, updatePrStatuses])
 
   useEffect(() => {
     loadRepo()
@@ -152,7 +155,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     try {
       const info = await api.repo.switch(newPath)
       if (!info.isRepo) {
-        toast({ title: 'Not a git repository', description: newPath, status: 'error', duration: 4000, isClosable: true })
+        toast({ title: t('worktree.toast.notAGitRepo'), description: newPath, status: 'error', duration: 4000, isClosable: true })
         return
       }
       setRepoInfo(info)
@@ -170,16 +173,13 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setSettings(cfg)
       setDetectedBaseBranch(detectedBranch)
       setRecentRepos(recent)
-      Promise.all(wts.map(async (wt) => {
-        const status = await api.pr.getStatus(wt.path)
-        return [wt.path, status] as const
-      })).then((entries) => setPrStatuses(Object.fromEntries(entries)))
+      updatePrStatuses(wts)
     } catch (err) {
-      toast({ title: 'Failed to switch repository', description: String(err), status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('worktree.toast.failedToSwitch'), description: String(err), status: 'error', duration: 5000, isClosable: true })
     } finally {
       setSwitching(false)
     }
-  }, [api, repoInfo, toast, setFilter])
+  }, [api, repoInfo, toast, setFilter, t, updatePrStatuses])
 
   const filtered = worktrees.filter((wt) => {
     if (!filter) return true

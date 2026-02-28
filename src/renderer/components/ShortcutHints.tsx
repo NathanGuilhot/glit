@@ -1,12 +1,15 @@
 import { Box, HStack, Text } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 
 export default function ShortcutHints() {
+  const { t } = useTranslation()
+
   const shortcuts = [
-    ['⌘K', 'palette'],
-    ['c', 'create'],
-    ['r', 'refresh'],
-    ['/', 'filter'],
-    ['⌘,', 'settings'],
+    ['⌘K', t('shortcutHints.palette')],
+    ['c', t('shortcutHints.create')],
+    ['r', t('shortcutHints.refresh')],
+    ['/', t('shortcutHints.filter')],
+    ['⌘,', t('shortcutHints.settings')],
   ]
 
   return (

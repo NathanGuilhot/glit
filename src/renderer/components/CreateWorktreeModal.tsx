@@ -26,6 +26,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
 import { useAPI } from '../api'
 import { useWorktree } from '../contexts/WorktreeContext'
@@ -68,6 +69,8 @@ function CreateWorktreeForm({
   setError,
   onSubmit,
 }: CreateWorktreeFormProps) {
+  const { t } = useTranslation()
+
   const hasSetup = setupConfig && (
     (setupConfig.packages?.length ?? 0) > 0 ||
     (setupConfig.envFiles?.length ?? 0) > 0 ||
@@ -77,11 +80,11 @@ function CreateWorktreeForm({
   return (
     <VStack spacing={4}>
       <FormControl isInvalid={!!error}>
-        <FormLabel fontSize="sm">Branch name</FormLabel>
+        <FormLabel fontSize="sm">{t('createWorktree.fields.branchName')}</FormLabel>
         <Input
           value={branchName}
           onChange={(e) => { setBranchName(e.target.value); setError('') }}
-          placeholder={createNew ? 'feature/my-feature' : 'existing-branch'}
+          placeholder={createNew ? t('createWorktree.placeholders.newBranch') : t('createWorktree.placeholders.existingBranch')}
           onKeyDown={(e) => { if (e.key === 'Enter') onSubmit() }}
           autoFocus
           fontFamily="mono"
@@ -102,7 +105,7 @@ function CreateWorktreeForm({
 
       <FormControl>
         <HStack justify="space-between">
-          <FormLabel fontSize="sm" mb={0}>Create new branch</FormLabel>
+          <FormLabel fontSize="sm" mb={0}>{t('createWorktree.fields.createNewBranch')}</FormLabel>
           <Switch
             isChecked={createNew}
             onChange={(e) => setCreateNew(e.target.checked)}
@@ -113,7 +116,7 @@ function CreateWorktreeForm({
 
       {createNew && (
         <FormControl>
-          <FormLabel fontSize="sm">Base branch</FormLabel>
+          <FormLabel fontSize="sm">{t('createWorktree.fields.baseBranch')}</FormLabel>
           <BranchSearchList
             branches={branches.filter((b) => !b.isRemote)}
             selected={baseBranch}
@@ -130,13 +133,13 @@ function CreateWorktreeForm({
           <Divider borderColor="whiteAlpha.100" />
           <Box w="full">
             <HStack mb={2}>
-              <Text fontSize="sm" fontWeight="600">Setup script</Text>
-              <Badge colorScheme="blue" variant="subtle" fontSize="xs">.glit/setup.yaml</Badge>
+              <Text fontSize="sm" fontWeight="600">{t('createWorktree.setupScript')}</Text>
+              <Badge colorScheme="blue" variant="subtle" fontSize="xs">{t('createWorktree.badges.setupYaml')}</Badge>
             </HStack>
             <VStack align="start" spacing={1}>
               {(setupConfig?.packages ?? []).length > 0 && (
                 <HStack>
-                  <Badge colorScheme="green" variant="outline" fontSize="9px">packages</Badge>
+                  <Badge colorScheme="green" variant="outline" fontSize="9px">{t('createWorktree.badges.packages')}</Badge>
                   <Code fontSize="xs" bg="transparent" color="whiteAlpha.600">
                     {setupConfig?.packages?.join(', ')}
                   </Code>
@@ -144,7 +147,7 @@ function CreateWorktreeForm({
               )}
               {(setupConfig?.envFiles ?? []).length > 0 && (
                 <HStack>
-                  <Badge colorScheme="yellow" variant="outline" fontSize="9px">env files</Badge>
+                  <Badge colorScheme="yellow" variant="outline" fontSize="9px">{t('createWorktree.badges.envFiles')}</Badge>
                   <Code fontSize="xs" bg="transparent" color="whiteAlpha.600">
                     {setupConfig?.envFiles?.join(', ')}
                   </Code>
@@ -152,7 +155,7 @@ function CreateWorktreeForm({
               )}
               {(setupConfig?.commands ?? []).map((cmd: string, i: number) => (
                 <HStack key={i}>
-                  <Badge colorScheme="purple" variant="outline" fontSize="9px">cmd</Badge>
+                  <Badge colorScheme="purple" variant="outline" fontSize="9px">{t('createWorktree.badges.cmd')}</Badge>
                   <Code fontSize="xs" bg="transparent" color="whiteAlpha.600" noOfLines={1}>
                     {cmd}
                   </Code>
@@ -171,6 +174,7 @@ interface CreateWorktreeProgressProps {
 }
 
 function CreateWorktreeProgress({ progress }: CreateWorktreeProgressProps) {
+  const { t } = useTranslation()
   const isDone = progress.step === 'done'
   const isError = progress.step === 'error'
   const isWorking = !isDone && !isError
@@ -206,7 +210,7 @@ function CreateWorktreeProgress({ progress }: CreateWorktreeProgressProps) {
       {isDone && (
         <Alert status="success" borderRadius="md" bg="green.900" border="1px solid" borderColor="green.700">
           <AlertIcon />
-          Worktree created successfully!
+          {t('createWorktree.progress.success')}
         </Alert>
       )}
     </VStack>
@@ -221,6 +225,7 @@ const CreateWorktreeModal = NiceModal.create<{
   const modal = useModal()
   const api = useAPI()
   const toast = useToast()
+  const { t } = useTranslation()
   const { createProgress, setCreateProgress, refresh } = useWorktree()
 
   const [branchName, setBranchName] = useState(initialBranchName)
@@ -254,8 +259,8 @@ const CreateWorktreeModal = NiceModal.create<{
   }, [api, repoPath, detectedBaseBranch])
 
   const validate = (): string => {
-    if (!branchName.trim()) return 'Branch name is required'
-    if (!/^[a-zA-Z0-9._/-]+$/.test(branchName)) return 'Invalid branch name characters'
+    if (!branchName.trim()) return t('createWorktree.validation.required')
+    if (!/^[a-zA-Z0-9._/-]+$/.test(branchName)) return t('createWorktree.validation.invalidChars')
     return ''
   }
 
@@ -274,12 +279,12 @@ const CreateWorktreeModal = NiceModal.create<{
     })
     setSubmitting(false)
     if (result.success) {
-      toast({ title: 'Worktree created', description: result.worktree?.path, status: 'success', duration: 3000 })
+      toast({ title: t('createWorktree.toast.created'), description: result.worktree?.path, status: 'success', duration: 3000 })
       setCreateProgress(null)
       refresh()
       modal.hide()
     } else if (result.error !== 'cancelled') {
-      toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+      toast({ title: t('createWorktree.toast.createFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
       setCreateProgress(null)
     } else {
       setCreateProgress(null)
@@ -302,7 +307,7 @@ const CreateWorktreeModal = NiceModal.create<{
     <Modal isOpen={modal.visible} onClose={handleCancelClick} size="lg" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
-        <ModalHeader pb={2}>New Worktree</ModalHeader>
+        <ModalHeader pb={2}>{t('createWorktree.title')}</ModalHeader>
 
         <ModalBody>
           {currentStep === 'progress' && createProgress ? (
@@ -331,19 +336,19 @@ const CreateWorktreeModal = NiceModal.create<{
               variant="ghost"
               onClick={handleCancelClick}
               isLoading={cancelling}
-              loadingText="Cancelling…"
+              loadingText={t('createWorktree.buttons.cancelling')}
             >
-              {isDone ? 'Close' : 'Cancel'}
+              {isDone ? t('createWorktree.buttons.close') : t('createWorktree.buttons.cancel')}
             </Button>
             {!isDone && !isError && (
               <Button
                 colorScheme="brand"
                 onClick={handleSubmit}
                 isLoading={isWorking && !cancelling}
-                loadingText={createProgress?.message ?? 'Creating worktree…'}
+                loadingText={createProgress?.message ?? t('createWorktree.buttons.creating')}
                 isDisabled={!branchName.trim() || cancelling}
               >
-                Create worktree
+                {t('createWorktree.buttons.create')}
               </Button>
             )}
           </HStack>

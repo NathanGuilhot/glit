@@ -17,7 +17,6 @@ import type {
   RecentRepo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
-  CreateProgress,
   RunningProcess,
   ProcessLog,
   DevCommandInfo,
@@ -28,7 +27,6 @@ const execAsync = promisify(exec)
 let activeCreateController: AbortController | null = null
 let activeRepoPath: string | null = null
 
-// Process runner state
 const runningProcesses = new Map<string, { proc: ChildProcess; info: RunningProcess }>()
 const processLogs = new Map<string, ProcessLog[]>()
 const MAX_LOG_LINES = 500
@@ -43,11 +41,9 @@ const isDev = process.env.NODE_ENV !== 'production'
 
 function getRepoPath(): string {
   if (activeRepoPath !== null) return activeRepoPath
-  // CLI sets GLIT_REPO_PATH env var
   if (process.env['GLIT_REPO_PATH']) {
     return process.env['GLIT_REPO_PATH']
   }
-  // Check argv for path argument
   const args = process.argv.slice(isDev ? 2 : 1)
   const repoArg = args.find((a) => a && !a.startsWith('-') && !a.endsWith('.js'))
   if (repoArg) return repoArg
@@ -293,11 +289,17 @@ function appendProcessLog(worktreePath: string, line: string, isError: boolean):
   processLogs.set(worktreePath, logs)
 }
 
-async function sendProgress(getWindow: () => BrowserWindow | null, data: CreateProgress): Promise<void> {
-  const win = getWindow()
-  if (win && !win.isDestroyed()) {
-    win.webContents.send('create:progress', data)
-  }
+function pipeLines(stream: NodeJS.ReadableStream | null | undefined, isError: boolean, onLine: (line: string, isError: boolean) => void): void {
+  let buf = ''
+  stream?.on('data', (data: Buffer) => {
+    buf += data.toString()
+    let nl: number
+    while ((nl = buf.indexOf('\n')) !== -1) {
+      const line = buf.slice(0, nl).replace(/\r$/, '')
+      buf = buf.slice(nl + 1)
+      if (line) onLine(line, isError)
+    }
+  })
 }
 
 async function runSetupSteps(repoPath: string, worktreePath: string): Promise<void> {
@@ -330,8 +332,6 @@ async function runSetupSteps(repoPath: string, worktreePath: string): Promise<vo
 }
 
 export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
-  log.info('Setting up IPC handlers...')
-
   ipcMain.handle('repo:detect', async () => {
     const cwd = getRepoPath()
     const displayPath = shortenPathForDisplay(cwd)
@@ -378,7 +378,6 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         result.push({ ...wt, ...diff, ...remote, lastActivity })
       }),
     )
-    // Sort: root worktree last, then by branch name
     const repoPathNormalized = path.normalize(repoPath)
     result.sort((a, b) => {
       const aIsRoot = path.normalize(a.path) === repoPathNormalized
@@ -435,7 +434,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     }
 
     try {
-      await sendProgress(getWindow, { step: 'creating', message: 'Creating worktree...' })
+      sendWindowEvent(getWindow, 'create:progress', { step: 'creating', message: 'Creating worktree...' })
 
       const args = ['worktree', 'add']
       if (createNewBranch) {
@@ -450,7 +449,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       // Load and run setup
       if (!signal.aborted) {
         try {
-          await sendProgress(getWindow, { step: 'packages', message: 'Running setup...' })
+          sendWindowEvent(getWindow, 'create:progress', { step: 'packages', message: 'Running setup...' })
           await runSetupSteps(repoPath, worktreePath)
         } catch (e) {
           if (!signal.aborted) {
@@ -468,7 +467,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         return { success: false, error: 'cancelled' }
       }
 
-      await sendProgress(getWindow, { step: 'done', message: 'Worktree ready!' })
+      sendWindowEvent(getWindow, 'create:progress', { step: 'done', message: 'Worktree ready!' })
       activeCreateController = null
       return {
         success: true,
@@ -481,7 +480,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       }
       log.error('Error creating worktree:', error)
       const msg = error instanceof Error ? error.message : String(error)
-      await sendProgress(getWindow, { step: 'error', message: 'Failed to create worktree', detail: msg })
+      sendWindowEvent(getWindow, 'create:progress', { step: 'error', message: 'Failed to create worktree', detail: msg })
       return { success: false, error: msg }
     }
   })
@@ -692,7 +691,7 @@ end tell'`
         await runGitCommand(repoPath, ['rev-parse', '--verify', remoteRef])
         mergeRef = remoteRef
       } catch {
-        // origin/baseBranch n'existe pas, on garde la branche locale
+        // fall through
       }
       const [mergedNames, currentBranch, worktrees] = await Promise.all([
         getLocalBranchNames(repoPath, { mergedInto: mergeRef }),
@@ -738,7 +737,6 @@ end tell'`
       else if (files.includes('yarn.lock')) pkgManager = 'yarn'
     } catch { /* ignore */ }
 
-    // setup.yaml dev key takes priority
     try {
       const setupPath = path.join(worktreePath, '.glit', 'setup.yaml')
       const content = await fs.readFile(setupPath, 'utf-8')
@@ -746,7 +744,7 @@ end tell'`
       if (config.dev) {
         return { command: config.dev, pkgManager, scripts: [] }
       }
-    } catch { /* no setup.yaml */ }
+    } catch { /* ignore */ }
 
     let scripts: string[] = []
     try {
@@ -754,14 +752,13 @@ end tell'`
       const pkgContent = await fs.readFile(pkgPath, 'utf-8')
       const pkg = JSON.parse(pkgContent) as { scripts?: Record<string, string> }
       scripts = Object.keys(pkg.scripts ?? {})
-    } catch { /* no package.json */ }
+    } catch { /* ignore */ }
 
     const defaultScript = scripts.includes('dev') ? 'dev' : scripts.includes('start') ? 'start' : null
     const command = defaultScript ? `${pkgManager} run ${defaultScript}` : null
     return { command, pkgManager, scripts }
   })
 
-  // Saved dev commands per worktree
   ipcMain.handle('process:getSavedCommand', async (_event, worktreePath: string): Promise<string | null> => {
     const devCommands = store.get('devCommands', {})
     return devCommands[worktreePath] ?? null
@@ -776,7 +773,6 @@ end tell'`
     return store.get('devCommands', {})
   })
 
-  // Process runner
   ipcMain.handle('process:start', async (_event, worktreePath: string, command: string) => {
     const existing = runningProcesses.get(worktreePath)
     if (existing) {
@@ -802,27 +798,8 @@ end tell'`
       }
     }
 
-    let stdoutBuf = ''
-    proc.stdout?.on('data', (data: Buffer) => {
-      stdoutBuf += data.toString()
-      let nl: number
-      while ((nl = stdoutBuf.indexOf('\n')) !== -1) {
-        const line = stdoutBuf.slice(0, nl).replace(/\r$/, '')
-        stdoutBuf = stdoutBuf.slice(nl + 1)
-        if (line) handleLine(line, false)
-      }
-    })
-
-    let stderrBuf = ''
-    proc.stderr?.on('data', (data: Buffer) => {
-      stderrBuf += data.toString()
-      let nl: number
-      while ((nl = stderrBuf.indexOf('\n')) !== -1) {
-        const line = stderrBuf.slice(0, nl).replace(/\r$/, '')
-        stderrBuf = stderrBuf.slice(nl + 1)
-        if (line) handleLine(line, true)
-      }
-    })
+    pipeLines(proc.stdout, false, handleLine)
+    pipeLines(proc.stderr, true, handleLine)
 
     proc.on('close', (code) => {
       log.info(`Process closed: ${worktreePath}, code: ${code}`)
@@ -859,6 +836,4 @@ end tell'`
   ipcMain.handle('process:getLogs', async (_event, worktreePath: string): Promise<ProcessLog[]> => {
     return processLogs.get(worktreePath) ?? []
   })
-
-  log.info('IPC handlers setup complete')
 }

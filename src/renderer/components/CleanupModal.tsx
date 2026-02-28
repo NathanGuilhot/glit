@@ -15,6 +15,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff, PRStatus } from '../../shared/types'
 import { useAPI } from '../api'
 import { useAppActions } from '../contexts/AppActionsContext'
@@ -33,6 +34,7 @@ const CleanupModal = NiceModal.create<{
   const { handleBatchDelete } = useAppActions()
   const { refresh } = useWorktree()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [selectedWorktrees, setSelectedWorktrees] = useState<Set<string>>(
     () => new Set(mergedPRWorktrees.map((wt) => wt.path))
@@ -82,18 +84,22 @@ const CleanupModal = NiceModal.create<{
     await refresh()
     const parts: string[] = []
     if (wtDeleted + wtFailed > 0) {
-      parts.push(wtFailed === 0 ? `${wtDeleted} worktree${wtDeleted !== 1 ? 's' : ''}` : `${wtDeleted}/${wtDeleted + wtFailed} worktrees`)
+      parts.push(wtFailed === 0
+        ? t('cleanup.toast.worktrees', { count: wtDeleted })
+        : t('cleanup.toast.worktreesPartial', { deleted: wtDeleted, total: wtDeleted + wtFailed }))
     }
     if (branchDeleted + branchFailed > 0) {
-      parts.push(branchFailed === 0 ? `${branchDeleted} branch${branchDeleted !== 1 ? 'es' : ''}` : `${branchDeleted}/${branchDeleted + branchFailed} branches`)
+      parts.push(branchFailed === 0
+        ? t('cleanup.toast.branches', { count: branchDeleted })
+        : t('cleanup.toast.branchesPartial', { deleted: branchDeleted, total: branchDeleted + branchFailed }))
     }
     if (wtFailed === 0 && branchFailed === 0 && parts.length > 0) {
-      toast({ title: `Cleaned up: ${parts.join(', ')}`, status: 'success', duration: 3000 })
+      toast({ title: t('cleanup.toast.cleanedUp', { items: parts.join(', ') }), status: 'success', duration: 3000 })
     } else if (parts.length > 0) {
-      toast({ title: `Partial: ${parts.join(', ')}`, status: 'warning', duration: 4000 })
+      toast({ title: t('cleanup.toast.partial', { items: parts.join(', ') }), status: 'warning', duration: 4000 })
     }
     modal.hide()
-  }, [api, repoPath, selectedWorktrees, selectedBranches, mergedPRWorktrees, handleBatchDelete, refresh, toast, modal])
+  }, [api, repoPath, selectedWorktrees, selectedBranches, mergedPRWorktrees, handleBatchDelete, refresh, toast, modal, t])
 
   const allWorktreesSelected = mergedPRWorktrees.length > 0 && selectedWorktrees.size === mergedPRWorktrees.length
   const noWorktreesSelected = selectedWorktrees.size === 0
@@ -106,22 +112,22 @@ const CleanupModal = NiceModal.create<{
 
   const confirmLabel = (() => {
     const parts: string[] = []
-    if (selectedWorktrees.size > 0) parts.push(`Remove ${selectedWorktrees.size} worktree${selectedWorktrees.size !== 1 ? 's' : ''}`)
-    if (selectedBranches.size > 0) parts.push(`Delete ${selectedBranches.size} branch${selectedBranches.size !== 1 ? 'es' : ''}`)
-    return parts.length > 0 ? parts.join(' and ') : 'Clean up'
+    if (selectedWorktrees.size > 0) parts.push(t('cleanup.confirm.removeWorktrees', { count: selectedWorktrees.size }))
+    if (selectedBranches.size > 0) parts.push(t('cleanup.confirm.deleteBranches', { count: selectedBranches.size }))
+    return parts.length > 0 ? parts.join(t('cleanup.confirm.and')) : t('cleanup.confirm.cleanUp')
   })()
 
   return (
     <Modal isOpen={modal.visible} onClose={modal.hide} size="sm" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
-        <ModalHeader pb={2} fontSize="md">Clean up</ModalHeader>
+        <ModalHeader pb={2} fontSize="md">{t('cleanup.title')}</ModalHeader>
         <ModalBody>
           <VStack align="stretch" spacing={4}>
             {hasWorktrees && (
               <VStack align="stretch" spacing={2}>
                 <Text fontSize="xs" color="whiteAlpha.500">
-                  Worktrees with merged PRs:
+                  {t('cleanup.worktreesWithMergedPRs')}
                 </Text>
                 <HStack spacing={2}>
                   <Button
@@ -130,7 +136,7 @@ const CleanupModal = NiceModal.create<{
                     onClick={() => setSelectedWorktrees(new Set(mergedPRWorktrees.map((wt) => wt.path)))}
                     isDisabled={allWorktreesSelected}
                   >
-                    All
+                    {t('cleanup.all')}
                   </Button>
                   <Button
                     size="xs"
@@ -138,7 +144,7 @@ const CleanupModal = NiceModal.create<{
                     onClick={() => setSelectedWorktrees(new Set())}
                     isDisabled={noWorktreesSelected}
                   >
-                    None
+                    {t('cleanup.none')}
                   </Button>
                 </HStack>
                 <VStack align="stretch" spacing={1} maxH="120px" overflowY="auto">
@@ -165,7 +171,7 @@ const CleanupModal = NiceModal.create<{
             {hasBranches && (
               <VStack align="stretch" spacing={2}>
                 <Text fontSize="xs" color="whiteAlpha.500">
-                  Branches merged into <Text as="span" fontFamily="mono">{mergeRefLabel}</Text>:
+                  {t('cleanup.branchesMergedInto', { ref: mergeRefLabel })}
                 </Text>
                 <HStack spacing={2}>
                   <Button
@@ -174,7 +180,7 @@ const CleanupModal = NiceModal.create<{
                     onClick={() => setSelectedBranches(new Set(mergedBranches))}
                     isDisabled={allBranchesSelected}
                   >
-                    All
+                    {t('cleanup.all')}
                   </Button>
                   <Button
                     size="xs"
@@ -182,7 +188,7 @@ const CleanupModal = NiceModal.create<{
                     onClick={() => setSelectedBranches(new Set())}
                     isDisabled={noBranchesSelected}
                   >
-                    None
+                    {t('cleanup.none')}
                   </Button>
                 </HStack>
                 <VStack align="stretch" spacing={1} maxH="120px" overflowY="auto">
@@ -206,7 +212,7 @@ const CleanupModal = NiceModal.create<{
         <ModalFooter>
           <HStack spacing={3}>
             <Button variant="ghost" onClick={modal.hide} isDisabled={deleting}>
-              Cancel
+              {t('cleanup.cancel')}
             </Button>
             {canConfirm && (
               <Button

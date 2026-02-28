@@ -23,27 +23,12 @@ import {
   AlertIcon,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
 import type { WorktreeWithDiff } from '../api'
 import { CloseIcon } from './Icons'
-
-const TERMINALS: { value: TerminalOption; label: string }[] = [
-  { value: 'Terminal', label: 'Terminal.app' },
-  { value: 'iTerm2', label: 'iTerm2' },
-  { value: 'Hyper', label: 'Hyper' },
-  { value: 'Kitty', label: 'Kitty' },
-  { value: 'Alacritty', label: 'Alacritty' },
-  { value: 'Warp', label: 'Warp' },
-]
-
-const IDES: { value: IDEOption; label: string }[] = [
-  { value: 'VSCode',    label: 'Visual Studio Code' },
-  { value: 'Cursor',   label: 'Cursor' },
-  { value: 'Zed',      label: 'Zed' },
-  { value: 'WebStorm', label: 'WebStorm' },
-  { value: 'Sublime',  label: 'Sublime Text' },
-]
+import { getBranchColor } from '../utils'
 
 const SettingsModal = NiceModal.create<{
   settings: AppSettings
@@ -53,6 +38,25 @@ const SettingsModal = NiceModal.create<{
 }>(({ settings, repoPath, setupConfig, onSave }) => {
   const modal = useModal()
   const api = useAPI()
+  const { t } = useTranslation()
+
+  const TERMINALS: { value: TerminalOption; label: string }[] = [
+    { value: 'Terminal', label: t('settings.terminals.Terminal') },
+    { value: 'iTerm2', label: t('settings.terminals.iTerm2') },
+    { value: 'Hyper', label: t('settings.terminals.Hyper') },
+    { value: 'Kitty', label: t('settings.terminals.Kitty') },
+    { value: 'Alacritty', label: t('settings.terminals.Alacritty') },
+    { value: 'Warp', label: t('settings.terminals.Warp') },
+  ]
+
+  const IDES: { value: IDEOption; label: string }[] = [
+    { value: 'VSCode', label: t('settings.ides.VSCode') },
+    { value: 'Cursor', label: t('settings.ides.Cursor') },
+    { value: 'Zed', label: t('settings.ides.Zed') },
+    { value: 'WebStorm', label: t('settings.ides.WebStorm') },
+    { value: 'Sublime', label: t('settings.ides.Sublime') },
+  ]
+
   const [terminal, setTerminal] = useState<TerminalOption>(settings.preferredTerminal)
   const [ide, setIde] = useState<IDEOption>(settings.preferredIDE)
   const [autoRefresh, setAutoRefresh] = useState(settings.autoRefresh)
@@ -74,7 +78,7 @@ const SettingsModal = NiceModal.create<{
       setWorktrees(wts)
       setDevCommands(cmds)
     })
-  }, [repoPath])
+  }, [api, repoPath])
 
   const handleSave = async () => {
     setSaving(true)
@@ -151,11 +155,11 @@ const SettingsModal = NiceModal.create<{
                 if (picked !== null) updateItem(setter, i, picked)
               }}
             >
-              Browse…
+              {t('settings.browse')}
             </Button>
           )}
           <IconButton
-            aria-label="Remove"
+            aria-label={t('settings.ariaLabels.remove')}
             icon={<CloseIcon />}
             size="sm"
             variant="ghost"
@@ -165,7 +169,7 @@ const SettingsModal = NiceModal.create<{
         </HStack>
       ))}
       <Button size="xs" variant="ghost" onClick={() => addItem(setter)} alignSelf="flex-start" color="whiteAlpha.500" _hover={{ color: 'whiteAlpha.800' }}>
-        + Add
+        {t('settings.add')}
       </Button>
     </VStack>
   )
@@ -188,15 +192,15 @@ const SettingsModal = NiceModal.create<{
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid" maxH="85vh">
         <ModalHeader pb={2}>
           <HStack spacing={2}>
-            <Text>Settings</Text>
-            <Badge colorScheme="gray" variant="subtle" fontSize="xs">⌘,</Badge>
+            <Text>{t('settings.title')}</Text>
+            <Badge colorScheme="gray" variant="subtle" fontSize="xs">{t('settings.shortcut')}</Badge>
           </HStack>
         </ModalHeader>
 
         <ModalBody overflowY="auto">
           <VStack spacing={5} align="stretch">
             <FormControl>
-              <FormLabel fontSize="sm">Preferred terminal</FormLabel>
+              <FormLabel fontSize="sm">{t('settings.preferredTerminal.label')}</FormLabel>
               <Select
                 value={terminal}
                 onChange={(e) => setTerminal(e.target.value as TerminalOption)}
@@ -204,17 +208,17 @@ const SettingsModal = NiceModal.create<{
                 borderColor="whiteAlpha.200"
                 fontSize="sm"
               >
-                {TERMINALS.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {TERMINALS.map((term) => (
+                  <option key={term.value} value={term.value}>{term.label}</option>
                 ))}
               </Select>
               <FormHelperText fontSize="xs" color="whiteAlpha.500">
-                Used when opening worktrees in terminal
+                {t('settings.preferredTerminal.helper')}
               </FormHelperText>
             </FormControl>
 
             <FormControl>
-              <FormLabel fontSize="sm">Preferred IDE</FormLabel>
+              <FormLabel fontSize="sm">{t('settings.preferredIDE.label')}</FormLabel>
               <Select
                 value={ide}
                 onChange={(e) => setIde(e.target.value as IDEOption)}
@@ -222,24 +226,22 @@ const SettingsModal = NiceModal.create<{
                 borderColor="whiteAlpha.200"
                 fontSize="sm"
               >
-                {IDES.map((i) => (
-                  <option key={i.value} value={i.value}>{i.label}</option>
+                {IDES.map((ideOpt) => (
+                  <option key={ideOpt.value} value={ideOpt.value}>{ideOpt.label}</option>
                 ))}
               </Select>
               <FormHelperText fontSize="xs" color="whiteAlpha.500">
-                Used when opening worktrees in an editor
+                {t('settings.preferredIDE.helper')}
               </FormHelperText>
             </FormControl>
-
-            <Divider borderColor="whiteAlpha.100" />
 
             <Divider borderColor="whiteAlpha.100" />
 
             <FormControl>
               <HStack justify="space-between" align="start">
                 <VStack align="start" spacing={0}>
-                  <FormLabel fontSize="sm" mb={0}>Auto-refresh</FormLabel>
-                  <Text fontSize="xs" color="whiteAlpha.500">Refresh worktree list automatically</Text>
+                  <FormLabel fontSize="sm" mb={0}>{t('settings.autoRefresh.label')}</FormLabel>
+                  <Text fontSize="xs" color="whiteAlpha.500">{t('settings.autoRefresh.helper')}</Text>
                 </VStack>
                 <Switch
                   isChecked={autoRefresh}
@@ -254,32 +256,32 @@ const SettingsModal = NiceModal.create<{
 
             <VStack align="stretch" spacing={3}>
               <HStack spacing={2}>
-                <Text fontSize="sm" fontWeight="semibold">Setup script</Text>
-                <Badge colorScheme="gray" variant="subtle" fontSize="xs" fontFamily="mono">.glit/setup.yaml</Badge>
+                <Text fontSize="sm" fontWeight="semibold">{t('settings.setupScript.label')}</Text>
+                <Badge colorScheme="gray" variant="subtle" fontSize="xs" fontFamily="mono">{t('settings.setupScript.badge')}</Badge>
               </HStack>
               <Text fontSize="xs" color="whiteAlpha.500">
-                Runs automatically when a new worktree is created
+                {t('settings.setupScript.helper')}
               </Text>
 
-              {renderListEditor('Packages', 'npm install', packages, setPackages)}
-              {renderListEditor('Env files', '.env', envFiles, setEnvFiles,
+              {renderListEditor(t('settings.lists.packages'), t('settings.placeholders.npmInstall'), packages, setPackages)}
+              {renderListEditor(t('settings.lists.envFiles'), t('settings.placeholders.envFile'), envFiles, setEnvFiles,
                 () => api.dialog.pickFile(repoPath)
               )}
-              {renderListEditor('Commands', 'echo hello', commands, setCommands)}
+              {renderListEditor(t('settings.lists.commands'), t('settings.placeholders.command'), commands, setCommands)}
             </VStack>
 
             <Divider borderColor="whiteAlpha.100" />
 
             <VStack align="stretch" spacing={3}>
               <VStack align="stretch" spacing={0}>
-                <Text fontSize="sm" fontWeight="semibold">Run Commands</Text>
-                <Text fontSize="xs" color="whiteAlpha.500">Dev command to run per worktree. Changes save immediately.</Text>
+                <Text fontSize="sm" fontWeight="semibold">{t('settings.runCommands.title')}</Text>
+                <Text fontSize="xs" color="whiteAlpha.500">{t('settings.runCommands.helper')}</Text>
               </VStack>
 
               {worktrees.map((wt) => (
                 <HStack key={wt.path} spacing={2} align="center">
                   <Badge
-                    colorScheme={wt.branch === 'main' || wt.branch === 'master' ? 'green' : 'gray'}
+                    colorScheme={getBranchColor(wt.branch)}
                     variant="subtle"
                     fontSize="xs"
                     flexShrink={0}
@@ -290,7 +292,7 @@ const SettingsModal = NiceModal.create<{
                     value={devCommands[wt.path] ?? ''}
                     onChange={(e) => setDevCommands((prev) => ({ ...prev, [wt.path]: e.target.value }))}
                     onBlur={(e) => handleCommandBlur(wt.path, e.target.value)}
-                    placeholder="e.g. bun run dev"
+                    placeholder={t('settings.runCommands.placeholder')}
                     fontFamily="mono"
                     fontSize="xs"
                     size="sm"
@@ -298,7 +300,7 @@ const SettingsModal = NiceModal.create<{
                     borderColor="whiteAlpha.200"
                   />
                   <IconButton
-                    aria-label="Clear command"
+                    aria-label={t('settings.ariaLabels.clearCommand')}
                     icon={<CloseIcon />}
                     size="sm"
                     variant="ghost"
@@ -321,23 +323,23 @@ const SettingsModal = NiceModal.create<{
               <Alert status="warning" borderRadius="md" bg="orange.900" border="1px solid" borderColor="orange.700" py={2}>
                 <AlertIcon />
                 <HStack justify="space-between" flex={1} flexWrap="wrap" gap={2}>
-                  <Text fontSize="sm">You have unsaved changes.</Text>
+                  <Text fontSize="sm">{t('settings.dirtyWarning.message')}</Text>
                   <HStack spacing={2}>
-                    <Button size="xs" variant="ghost" onClick={() => setShowDirtyWarning(false)}>Keep editing</Button>
-                    <Button size="xs" colorScheme="orange" variant="outline" onClick={modal.hide}>Discard & close</Button>
+                    <Button size="xs" variant="ghost" onClick={() => setShowDirtyWarning(false)}>{t('settings.dirtyWarning.keepEditing')}</Button>
+                    <Button size="xs" colorScheme="orange" variant="outline" onClick={modal.hide}>{t('settings.dirtyWarning.discardAndClose')}</Button>
                   </HStack>
                 </HStack>
               </Alert>
             )}
             <HStack spacing={3} justify="flex-end">
-              <Button variant="ghost" onClick={handleClose}>Cancel</Button>
+              <Button variant="ghost" onClick={handleClose}>{t('settings.cancel')}</Button>
               <Button
                 colorScheme="brand"
                 onClick={handleSave}
                 isLoading={saving}
                 isDisabled={!isDirty}
               >
-                Save settings
+                {t('settings.save')}
               </Button>
             </HStack>
           </VStack>

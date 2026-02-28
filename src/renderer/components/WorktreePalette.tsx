@@ -12,6 +12,7 @@ import {
   InputLeftElement,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
 import CreateWorktreeModal from './CreateWorktreeModal'
 
@@ -33,6 +34,7 @@ const WorktreePalette = NiceModal.create<{
   onOpenIDE: (path: string) => Promise<void>
 }>(({ worktrees, repoPath, detectedBaseBranch, onOpenTerminal, onOpenIDE }) => {
   const modal = useModal()
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -105,7 +107,7 @@ const WorktreePalette = NiceModal.create<{
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0) }}
               onKeyDown={handleKeyDown}
-              placeholder="Filter or type branch name…"
+              placeholder={t('palette.placeholder')}
               autoFocus
               variant="unstyled"
               pl={9}
@@ -160,7 +162,7 @@ const WorktreePalette = NiceModal.create<{
                         <Text fontSize="xs" color="orange.400" fontFamily="mono">↓{wt.behindCount}</Text>
                       )}
                       {wt.fileCount > 0 && (
-                        <Text fontSize="xs" color="whiteAlpha.500" fontFamily="mono">+{wt.fileCount} files</Text>
+                        <Text fontSize="xs" color="whiteAlpha.500" fontFamily="mono">+{t('palette.fileCount', { count: wt.fileCount })}</Text>
                       )}
                     </HStack>
                   </HStack>
@@ -182,7 +184,7 @@ const WorktreePalette = NiceModal.create<{
                 _hover={{ bg: selectedIndex === filteredWorktrees.length ? 'brand.900' : 'whiteAlpha.50' }}
               >
                 <Text fontSize="sm" color={selectedIndex === filteredWorktrees.length ? 'white' : 'whiteAlpha.600'}>
-                  + Create new worktree "{query.trim()}"
+                  {t('palette.createNew', { branch: query.trim() })}
                 </Text>
               </Box>
             )}
@@ -190,7 +192,12 @@ const WorktreePalette = NiceModal.create<{
 
           <Box px={4} py={2} borderTop="1px solid" borderColor="whiteAlpha.50">
             <HStack spacing={4} justify="center">
-              {[['↑↓', 'navigate'], ['↵', 'terminal'], ['⌘↵', 'IDE'], ['esc', 'close']].map(([key, label]) => (
+              {[
+                ['↑↓', t('palette.hints.navigate')],
+                [t('palette.hints.openInTerminal'), t('palette.hints.terminal')],
+                [t('palette.hints.openInIDE'), t('palette.hints.ide')],
+                [t('palette.hints.escape'), t('palette.hints.close')],
+              ].map(([key, label]) => (
                 <HStack key={key} spacing={1}>
                   <Text
                     fontSize="10px"
