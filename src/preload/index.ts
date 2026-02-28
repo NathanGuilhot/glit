@@ -12,6 +12,7 @@ const api: GlitAPI = {
   },
   branch: {
     list: (repoPath: string) => ipcRenderer.invoke('branch:list', repoPath),
+    checkout: (repoPath: string, branchName: string) => ipcRenderer.invoke('branch:checkout', repoPath, branchName),
   },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),

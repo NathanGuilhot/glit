@@ -14,6 +14,7 @@ import WorktreeList from './components/WorktreeList'
 import ShortcutHints from './components/ShortcutHints'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
+import ChangeBranchModal from './components/ChangeBranchModal'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -25,6 +26,7 @@ function AppContent() {
   const api = useAPI()
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeWithDiff | null>(null)
+  const [changeBranchTarget, setChangeBranchTarget] = useState<WorktreeWithDiff | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
@@ -207,6 +209,7 @@ function AppContent() {
       <Box flex={1} overflowY="auto" px={5} pb={5}>
         <WorktreeList
           onDelete={(wt) => setDeleteTarget(wt)}
+          onChangeBranch={(wt) => setChangeBranchTarget(wt)}
           cleanupMode={cleanupMode}
           mergedBranches={mergedBranches}
           onExitCleanup={handleExitCleanup}
@@ -221,6 +224,15 @@ function AppContent() {
           worktree={deleteTarget}
           onConfirm={handleDeleteConfirm}
           onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {changeBranchTarget && repoInfo && (
+        <ChangeBranchModal
+          repoPath={repoInfo.path}
+          currentBranch={changeBranchTarget.branch}
+          onSuccess={refresh}
+          onClose={() => setChangeBranchTarget(null)}
         />
       )}
 

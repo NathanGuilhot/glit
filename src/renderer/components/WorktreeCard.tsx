@@ -23,6 +23,7 @@ import { useAPI } from '../api'
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onDelete?: (worktree: WorktreeWithDiff) => void
+  onChangeBranch?: (worktree: WorktreeWithDiff) => void
   isMerged?: boolean
 }
 
@@ -33,6 +34,7 @@ function CardContent({
   branchJustCopied,
   isMain,
   isMerged,
+  isRoot,
   prStatus,
   shortPath,
   preferredTerminal,
@@ -44,12 +46,14 @@ function CardContent({
   onOpenFinder,
   onOpenUrl,
   onDelete,
+  onChangeBranch,
 }: {
   worktree: WorktreeWithDiff
   branchColor: string
   branchDisplayText: string
   branchJustCopied: boolean
   isMain: boolean
+  isRoot: boolean
   isMerged?: boolean
   prStatus?: PRStatus | null
   shortPath: string
@@ -62,6 +66,7 @@ function CardContent({
   onOpenFinder: (path: string) => void
   onOpenUrl: (url: string) => void
   onDelete?: () => void
+  onChangeBranch?: () => void
 }) {
   const bg = 'whiteAlpha.50'
   const borderColor = isMerged ? 'orange.500' : 'whiteAlpha.100'
@@ -224,6 +229,19 @@ function CardContent({
               >
                 Open in Finder
               </MenuItem>
+              {isRoot && onChangeBranch && (
+                <>
+                  <MenuDivider borderColor="whiteAlpha.100" />
+                  <MenuItem
+                    onClick={() => onChangeBranch()}
+                    bg="transparent"
+                    _hover={{ bg: 'whiteAlpha.100' }}
+                    fontSize="sm"
+                  >
+                    Change branch
+                  </MenuItem>
+                </>
+              )}
               {!isMain && onDelete && (
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
@@ -276,13 +294,14 @@ export function WorktreeCardSkeleton() {
   )
 }
 
-export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeCardProps) {
-  const { settings, prStatuses } = useWorktree()
+export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMerged }: WorktreeCardProps) {
+  const { settings, prStatuses, repoInfo } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
   const api = useAPI()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
 
   const isMain = worktree.branch === 'main' || worktree.branch === 'master'
+  const isRoot = repoInfo?.path === worktree.path
   const shortPath = worktree.displayPath ?? worktree.path
   const branchColor = getBranchColor(worktree.branch)
   const branchDisplayText = worktree.branch || '(no branch)'
@@ -300,6 +319,7 @@ export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeC
       branchDisplayText={branchDisplayText}
       branchJustCopied={branchJustCopied}
       isMain={isMain}
+      isRoot={isRoot}
       isMerged={isMerged}
       prStatus={prStatuses[worktree.path]}
       shortPath={shortPath}
@@ -312,6 +332,7 @@ export default function WorktreeCard({ worktree, onDelete, isMerged }: WorktreeC
       onOpenFinder={handleOpenFinder}
       onOpenUrl={api.shell.openUrl}
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
+      onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
     />
   )
 }

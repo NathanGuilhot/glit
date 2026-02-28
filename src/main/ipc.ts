@@ -535,6 +535,11 @@ end tell'`
     return getBranches(repoPath)
   })
 
+  ipcMain.handle('branch:checkout', async (_event, repoPath: string, branchName: string) => {
+    log.info(`Checking out branch: ${branchName} in ${repoPath}`)
+    await runGitCommand(repoPath, ['checkout', '--ignore-other-worktrees', branchName])
+  })
+
   ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
     log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
     try {

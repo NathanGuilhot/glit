@@ -84,6 +84,7 @@ export interface GlitAPI {
   }
   branch: {
     list: (repoPath: string) => Promise<BranchInfo[]>
+    checkout: (repoPath: string, branchName: string) => Promise<void>
   }
   settings: {
     get: () => Promise<AppSettings>
