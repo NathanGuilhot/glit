@@ -30,23 +30,6 @@ import type { WorktreeWithDiff } from '../api'
 import { CloseIcon } from './Icons'
 import { getBranchColor } from '../utils'
 
-const TERMINALS: { value: TerminalOption; label: string }[] = [
-  { value: 'Terminal', label: 'Terminal.app' },
-  { value: 'iTerm2', label: 'iTerm2' },
-  { value: 'Hyper', label: 'Hyper' },
-  { value: 'Kitty', label: 'Kitty' },
-  { value: 'Alacritty', label: 'Alacritty' },
-  { value: 'Warp', label: 'Warp' },
-]
-
-const IDES: { value: IDEOption; label: string }[] = [
-  { value: 'VSCode',    label: 'Visual Studio Code' },
-  { value: 'Cursor',   label: 'Cursor' },
-  { value: 'Zed',      label: 'Zed' },
-  { value: 'WebStorm', label: 'WebStorm' },
-  { value: 'Sublime',  label: 'Sublime Text' },
-]
-
 const SettingsModal = NiceModal.create<{
   settings: AppSettings
   repoPath: string
