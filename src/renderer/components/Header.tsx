@@ -1,4 +1,4 @@
-import { Box, HStack, VStack, Heading, Text, Badge, IconButton, Tooltip, Spinner, Button } from '@chakra-ui/react'
+import { Box, HStack, Text, Badge, IconButton, Tooltip, Spinner, Button } from '@chakra-ui/react'
 import { RefreshIcon, SettingsIcon, PlusIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 
@@ -17,21 +17,18 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cl
   return (
     <Box px={5} pb={3} flexShrink={0}>
       <HStack justify="space-between" align="center" flexWrap="wrap" gap={2}>
-        <VStack align="start" spacing={0} minW={0} flex={1}>
-          <Heading size="sm" fontWeight="700" letterSpacing="-0.02em">
-            Glit ·.°
-          </Heading>
+        <HStack spacing={2} minW={0} flex={1}>
           {repoInfo && (
-            <HStack spacing={2}>
+            <>
               <Text fontSize="11px" color="whiteAlpha.500" fontFamily="mono" noOfLines={1}>
                 {repoInfo.displayPath ?? repoInfo.path}
               </Text>
               <Badge colorScheme="green" fontSize="9px" variant="subtle">
                 {worktrees.length} worktree{worktrees.length !== 1 ? 's' : ''}
               </Badge>
-            </HStack>
+            </>
           )}
-        </VStack>
+        </HStack>
         <HStack spacing={1}>
           {!cleanupMode && hasMergedBranches && (
             <Button size="sm" variant="ghost" colorScheme="orange" onClick={onOpenCleanup}>

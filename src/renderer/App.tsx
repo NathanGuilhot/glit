@@ -147,7 +147,11 @@ function AppContent() {
   if (loading) {
     return (
       <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
-        <Box h="28px" flexShrink={0} />
+        <Box h="28px" flexShrink={0} display="flex" alignItems="flex-end" pl="96px" pb="6px">
+          <Box as="span" fontSize="sm" fontWeight="700" letterSpacing="-0.02em" style={{ pointerEvents: 'none' } as React.CSSProperties}>
+            Glit ·.°
+          </Box>
+        </Box>
         <Box px={5} pb={3} flexShrink={0}>
           <Box h="20px" w="100px" bg="whiteAlpha.100" borderRadius="md" mb={2} />
           <Box h="12px" w="180px" bg="whiteAlpha.50" borderRadius="md" />
@@ -169,7 +173,25 @@ function AppContent() {
 
   return (
     <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
-      <Box h="28px" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} flexShrink={0} />
+      <Box
+        h="38px"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        flexShrink={0}
+        display="flex"
+        alignItems="flex-end"
+        pl="96px"
+        pb="6px"
+      >
+        <Box
+          as="span"
+          fontSize="sm"
+          fontWeight="700"
+          letterSpacing="-0.02em"
+          style={{ pointerEvents: 'none' } as React.CSSProperties}
+        >
+          Glit ·.°
+        </Box>
+      </Box>
 
       <Header
         onOpenCreate={() => setShowCreate(true)}
