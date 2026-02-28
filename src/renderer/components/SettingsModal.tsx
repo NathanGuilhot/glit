@@ -74,7 +74,7 @@ const SettingsModal = NiceModal.create<{
       setWorktrees(wts)
       setDevCommands(cmds)
     })
-  }, [repoPath])
+  }, [api, repoPath])
 
   const handleSave = async () => {
     setSaving(true)

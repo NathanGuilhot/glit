@@ -4,7 +4,6 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import NiceModal from '@ebay/nice-modal-react'
-import type { WorktreeWithDiff } from '../shared/types'
 import { WorktreeProvider, useWorktree } from './contexts/WorktreeContext'
 import { AppActionsProvider, useAppActions } from './contexts/AppActionsContext'
 import { APIProvider, useAPI } from './api'
@@ -98,10 +97,6 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handler)
   }, [refresh, setFilter, openSettings, repoInfo, detectedBaseBranch, worktrees, handleOpenTerminal, handleOpenIDE])
 
-  const handleDeleteConfirm = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
-    await handleDelete(worktree, force, deleteFiles)
-  }
-
   const openCleanup = useCallback(() => {
     if (!repoInfo) return
     NiceModal.show(CleanupModal, {
@@ -174,7 +169,7 @@ function AppContent() {
 
       <Box flex={1} overflowY="auto" px={5} pb={5}>
         <WorktreeList
-          onDelete={(wt) => NiceModal.show(DeleteModal, { worktree: wt, onConfirm: handleDeleteConfirm })}
+          onDelete={(wt) => NiceModal.show(DeleteModal, { worktree: wt, onConfirm: handleDelete })}
           onChangeBranch={(wt) => repoInfo && NiceModal.show(ChangeBranchModal, {
             repoPath: repoInfo.path,
             currentBranch: wt.branch,

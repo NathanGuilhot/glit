@@ -27,25 +27,22 @@ export const ProcessLogDrawer = NiceModal.create<ProcessLogDrawerProps>(({ workt
   const [logs, setLogs] = useState<ProcessLog[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Load existing logs on open
   useEffect(() => {
     api.process.getLogs(worktreePath).then(setLogs).catch(() => {})
   }, [api, worktreePath])
 
-  // Subscribe to live output
   useEffect(() => {
     const unsub = api.on('process:output', (data: unknown) => {
       const event = data as { worktreePath: string; line: string; isError: boolean }
       if (event.worktreePath !== worktreePath) return
       setLogs((prev) => {
         const next = [...prev, { line: event.line, isError: event.isError, ts: Date.now() }]
-        return next.length > 500 ? next.slice(next.length - 500) : next
+        return next.slice(-500)
       })
     })
     return unsub
   }, [api, worktreePath])
 
-  // Auto-scroll to bottom on new lines
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs])
