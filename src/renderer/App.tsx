@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import {
   Box,
   VStack,
-  useToast,
 } from '@chakra-ui/react'
 import NiceModal from '@ebay/nice-modal-react'
 import type { WorktreeWithDiff } from '../shared/types'
@@ -16,7 +15,7 @@ import ShortcutHints from './components/ShortcutHints'
 import DeleteModal from './components/DeleteModal'
 import CreateWorktreeModal from './components/CreateWorktreeModal'
 import ChangeBranchModal from './components/ChangeBranchModal'
-import CleanBranchesModal from './components/CleanBranchesModal'
+import CleanupModal from './components/CleanupModal'
 import WorktreePalette from './components/WorktreePalette'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
@@ -26,14 +25,24 @@ import { ModalRegistry } from './components/ModalRegistry'
 
 function AppContent() {
   const { loading, repoInfo, settings, detectedBaseBranch, setFilter, refresh, worktrees, prStatuses } = useWorktree()
-  const { handleDelete, handleBatchDelete, handleSaveSettings, handleOpenTerminal, handleOpenIDE } = useAppActions()
+  const { handleDelete, handleSaveSettings, handleOpenTerminal, handleOpenIDE } = useAppActions()
   const api = useAPI()
-  const [cleanupMode, setCleanupMode] = useState(false)
+  const [mergedBranches, setMergedBranches] = useState<string[]>([])
+  const [mergeRefLabel, setMergeRefLabel] = useState('')
 
   const worktreesWithMergedPR = worktrees.filter((wt) => prStatuses[wt.path]?.state === 'MERGED')
   const hasMergedPRWorktrees = worktreesWithMergedPR.length > 0
+  const hasCleanupItems = hasMergedPRWorktrees || mergedBranches.length > 0
 
-  const toast = useToast()
+  useEffect(() => {
+    if (!repoInfo?.isRepo || !detectedBaseBranch) return
+    api.worktree
+      .getMergedBranches(repoInfo.path, detectedBaseBranch)
+      .then((result) => {
+        setMergedBranches(result.branches)
+        setMergeRefLabel(result.mergeRefLabel)
+      })
+  }, [api, repoInfo?.path, repoInfo?.isRepo, detectedBaseBranch, worktrees])
 
   const openSettings = useCallback(async () => {
     if (!repoInfo) return
@@ -81,39 +90,29 @@ function AppContent() {
           e.preventDefault()
           break
         case 'Escape':
-          if (cleanupMode) setCleanupMode(false)
-          else setFilter('')
+          setFilter('')
           break
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [refresh, setFilter, openSettings, cleanupMode, repoInfo, detectedBaseBranch, worktrees, handleOpenTerminal, handleOpenIDE])
+  }, [refresh, setFilter, openSettings, repoInfo, detectedBaseBranch, worktrees, handleOpenTerminal, handleOpenIDE])
 
   const handleDeleteConfirm = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
     await handleDelete(worktree, force, deleteFiles)
   }
 
-  const handleEnterCleanup = useCallback(() => {
-    setCleanupMode(true)
-    const count = worktreesWithMergedPR.length
-    toast({
-      title: `${count} worktree${count !== 1 ? 's' : ''} with merged PR`,
-      status: 'info',
-      duration: 3000,
+  const openCleanup = useCallback(() => {
+    if (!repoInfo) return
+    NiceModal.show(CleanupModal, {
+      repoPath: repoInfo.path,
+      baseBranch: detectedBaseBranch,
+      mergeRefLabel: mergeRefLabel || detectedBaseBranch,
+      mergedPRWorktrees: worktreesWithMergedPR,
+      mergedBranches,
+      prStatuses,
     })
-  }, [worktreesWithMergedPR.length, toast])
-
-  const handleBatchDeleteConfirm = useCallback(async (worktreesToDelete: WorktreeWithDiff[]) => {
-    const { deleted, failed } = await handleBatchDelete(worktreesToDelete)
-    if (failed === 0) {
-      toast({ title: `Deleted ${deleted} worktree${deleted !== 1 ? 's' : ''}`, status: 'success', duration: 3000 })
-    } else {
-      toast({ title: `Deleted ${deleted}, failed ${failed}`, status: 'warning', duration: 4000 })
-    }
-    setCleanupMode(false)
-    await refresh()
-  }, [handleBatchDelete, toast, refresh])
+  }, [repoInfo, detectedBaseBranch, mergeRefLabel, worktreesWithMergedPR, mergedBranches, prStatuses])
 
   if (loading) {
     return (
@@ -167,10 +166,8 @@ function AppContent() {
       <Header
         onOpenCreate={() => repoInfo && NiceModal.show(CreateWorktreeModal, { repoPath: repoInfo.path, detectedBaseBranch })}
         onOpenSettings={openSettings}
-        onOpenCleanup={handleEnterCleanup}
-        onOpenCleanBranches={() => repoInfo && NiceModal.show(CleanBranchesModal, { repoPath: repoInfo.path, baseBranch: detectedBaseBranch })}
-        cleanupMode={cleanupMode}
-        hasMergedPRWorktrees={hasMergedPRWorktrees}
+        onOpenCleanup={openCleanup}
+        hasCleanupItems={hasCleanupItems}
       />
 
       <FilterBar />
@@ -183,9 +180,6 @@ function AppContent() {
             currentBranch: wt.branch,
             onSuccess: refresh,
           })}
-          cleanupMode={cleanupMode}
-          worktreesWithMergedPR={worktreesWithMergedPR}
-          onBatchDelete={handleBatchDeleteConfirm}
         />
       </Box>
 

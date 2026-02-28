@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import {
-  VStack, Flex, Text, Button, HStack,
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
+  VStack, Flex, Text, Button,
 } from '@chakra-ui/react'
 import { useWorktree } from '../contexts/WorktreeContext'
 import WorktreeCard from './WorktreeCard'
@@ -10,16 +8,10 @@ import type { WorktreeWithDiff } from '../../shared/types'
 interface WorktreeListProps {
   onDelete: (worktree: WorktreeWithDiff) => void
   onChangeBranch: (worktree: WorktreeWithDiff) => void
-  cleanupMode?: boolean
-  worktreesWithMergedPR?: WorktreeWithDiff[]
-  onBatchDelete?: (worktrees: WorktreeWithDiff[]) => void
 }
 
-export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, worktreesWithMergedPR, onBatchDelete }: WorktreeListProps) {
+export default function WorktreeList({ onDelete, onChangeBranch }: WorktreeListProps) {
   const { worktrees, filter, setFilter } = useWorktree()
-  const [showBatchConfirm, setShowBatchConfirm] = useState(false)
-
-  const mergedWorktrees = cleanupMode && worktreesWithMergedPR ? worktreesWithMergedPR : []
 
   if (worktrees.length === 0) {
     return (
@@ -38,54 +30,14 @@ export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, wo
 
   return (
     <VStack spacing={2} align="stretch">
-      {cleanupMode && mergedWorktrees.length > 0 && onBatchDelete && (
-        <Button
-          size="xs"
-          colorScheme="orange"
-          variant="solid"
-          alignSelf="flex-end"
-          onClick={() => setShowBatchConfirm(true)}
-        >
-          Delete all ({mergedWorktrees.length})
-        </Button>
-      )}
       {worktrees.map((wt) => (
         <WorktreeCard
           key={wt.path}
           worktree={wt}
           onDelete={onDelete}
           onChangeBranch={onChangeBranch}
-          isMerged={cleanupMode && worktreesWithMergedPR?.some((w) => w.path === wt.path)}
         />
       ))}
-
-      {showBatchConfirm && (
-        <Modal isOpen onClose={() => setShowBatchConfirm(false)} size="sm" isCentered>
-          <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
-          <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
-            <ModalHeader pb={2} fontSize="md">Remove merged PR worktrees?</ModalHeader>
-            <ModalBody>
-              <Text fontSize="sm" color="whiteAlpha.700">
-                This will remove {mergedWorktrees.length} worktree{mergedWorktrees.length !== 1 ? 's' : ''} whose PRs are merged. This cannot be undone.
-              </Text>
-            </ModalBody>
-            <ModalFooter>
-              <HStack spacing={3}>
-                <Button variant="ghost" onClick={() => setShowBatchConfirm(false)}>Cancel</Button>
-                <Button
-                  colorScheme="orange"
-                  onClick={() => {
-                    setShowBatchConfirm(false)
-                    onBatchDelete?.(mergedWorktrees)
-                  }}
-                >
-                  Remove {mergedWorktrees.length} worktree{mergedWorktrees.length !== 1 ? 's' : ''}
-                </Button>
-              </HStack>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      )}
     </VStack>
   )
 }

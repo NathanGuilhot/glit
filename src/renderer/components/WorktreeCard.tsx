@@ -26,7 +26,6 @@ interface WorktreeCardProps {
   worktree: WorktreeWithDiff
   onDelete?: (worktree: WorktreeWithDiff) => void
   onChangeBranch?: (worktree: WorktreeWithDiff) => void
-  isMerged?: boolean
 }
 
 function CardContent({
@@ -35,7 +34,6 @@ function CardContent({
   branchDisplayText,
   branchJustCopied,
   isMain,
-  isMerged,
   isRoot,
   prStatus,
   shortPath,
@@ -60,7 +58,6 @@ function CardContent({
   branchJustCopied: boolean
   isMain: boolean
   isRoot: boolean
-  isMerged?: boolean
   prStatus?: PRStatus | null
   shortPath: string
   preferredTerminal: TerminalOption
@@ -79,7 +76,7 @@ function CardContent({
   isRebasing?: boolean
 }) {
   const bg = 'whiteAlpha.50'
-  const borderColor = isMerged ? 'orange.500' : 'whiteAlpha.100'
+  const borderColor = 'whiteAlpha.100'
   const hoverBg = 'whiteAlpha.100'
   const hasDiff = worktree.fileCount > 0
 
@@ -117,11 +114,6 @@ function CardContent({
             {isMain && (
               <Badge colorScheme="green" variant="outline" fontSize="9px">
                 root
-              </Badge>
-            )}
-            {isMerged && (
-              <Badge colorScheme="orange" variant="subtle" fontSize="9px">
-                merged
               </Badge>
             )}
             {worktree.isLocked && (
@@ -328,7 +320,7 @@ export function WorktreeCardSkeleton() {
   )
 }
 
-export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMerged }: WorktreeCardProps) {
+export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: WorktreeCardProps) {
   const { settings, prStatuses, repoInfo, detectedBaseBranch } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup } = useAppActions()
   const api = useAPI()
@@ -385,7 +377,6 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMer
       branchJustCopied={branchJustCopied}
       isMain={isMain}
       isRoot={isRoot}
-      isMerged={isMerged}
       prStatus={prStatuses[worktree.path]}
       shortPath={shortPath}
       preferredTerminal={settings.preferredTerminal}
