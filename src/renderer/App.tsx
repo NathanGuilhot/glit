@@ -4,6 +4,7 @@ import {
   VStack,
 } from '@chakra-ui/react'
 import NiceModal from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import { WorktreeProvider, useWorktree } from './contexts/WorktreeContext'
 import { AppActionsProvider, useAppActions } from './contexts/AppActionsContext'
 import { APIProvider, useAPI } from './api'
@@ -26,6 +27,7 @@ function AppContent() {
   const { loading, repoInfo, settings, detectedBaseBranch, setFilter, refresh, worktrees, prStatuses } = useWorktree()
   const { handleDelete, handleSaveSettings, handleOpenTerminal, handleOpenIDE } = useAppActions()
   const api = useAPI()
+  const { t } = useTranslation()
   const [mergedBranches, setMergedBranches] = useState<string[]>([])
   const [mergeRefLabel, setMergeRefLabel] = useState('')
 
@@ -114,7 +116,7 @@ function AppContent() {
       <Box h="100vh" display="flex" flexDirection="column" bg="gray.900" overflow="hidden">
         <Box h="28px" flexShrink={0} display="flex" alignItems="flex-end" pl="96px" pb="6px">
           <Box as="span" fontSize="sm" fontWeight="700" letterSpacing="-0.02em" style={{ pointerEvents: 'none' } as React.CSSProperties}>
-            Glit ·.°
+            {t('app.title')}
           </Box>
         </Box>
         <Box px={5} pb={3} flexShrink={0}>
