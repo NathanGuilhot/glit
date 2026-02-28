@@ -17,15 +17,14 @@ import {
   Code,
   Box,
 } from '@chakra-ui/react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import type { WorktreeWithDiff } from '../../shared/types'
 
-interface DeleteModalProps {
+const DeleteModal = NiceModal.create<{
   worktree: WorktreeWithDiff
   onConfirm: (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => Promise<void>
-  onClose: () => void
-}
-
-export default function DeleteModal({ worktree, onConfirm, onClose }: DeleteModalProps) {
+}>(({ worktree, onConfirm }) => {
+  const modal = useModal()
   const [force, setForce] = useState(false)
   const [deleteFiles, setDeleteFiles] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,10 +35,11 @@ export default function DeleteModal({ worktree, onConfirm, onClose }: DeleteModa
     setLoading(true)
     await onConfirm(worktree, force || hasDiff, deleteFiles)
     setLoading(false)
+    modal.hide()
   }
 
   return (
-    <Modal isOpen onClose={onClose} size="md" isCentered>
+    <Modal isOpen={modal.visible} onClose={modal.hide} size="md" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>
@@ -107,7 +107,7 @@ export default function DeleteModal({ worktree, onConfirm, onClose }: DeleteModa
 
         <ModalFooter>
           <HStack spacing={3}>
-            <Button variant="ghost" onClick={onClose} isDisabled={loading}>
+            <Button variant="ghost" onClick={modal.hide} isDisabled={loading}>
               Cancel
             </Button>
             <Button
@@ -123,4 +123,6 @@ export default function DeleteModal({ worktree, onConfirm, onClose }: DeleteModa
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default DeleteModal

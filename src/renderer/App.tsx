@@ -4,7 +4,8 @@ import {
   VStack,
   useToast,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff, SetupConfig } from '../shared/types'
+import NiceModal from '@ebay/nice-modal-react'
+import type { WorktreeWithDiff } from '../shared/types'
 import { WorktreeProvider, useWorktree } from './contexts/WorktreeContext'
 import { AppActionsProvider, useAppActions } from './contexts/AppActionsContext'
 import { APIProvider, useAPI } from './api'
@@ -21,70 +22,29 @@ import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
 import ErrorBoundary from './components/ErrorBoundary'
 import { WorktreeCardSkeleton } from './components/WorktreeCard'
+import { ModalRegistry } from './components/ModalRegistry'
 
 function AppContent() {
-  const { loading, repoInfo, settings, detectedBaseBranch, createProgress, setFilter, refresh, setCreateProgress, worktrees, prStatuses } = useWorktree()
+  const { loading, repoInfo, settings, detectedBaseBranch, setFilter, refresh, worktrees, prStatuses } = useWorktree()
   const { handleDelete, handleBatchDelete, handleSaveSettings, handleOpenTerminal, handleOpenIDE } = useAppActions()
   const api = useAPI()
-  const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<WorktreeWithDiff | null>(null)
-  const [changeBranchTarget, setChangeBranchTarget] = useState<WorktreeWithDiff | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
-  const [showPalette, setShowPalette] = useState(false)
-  const [paletteInitialBranch, setPaletteInitialBranch] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
-  const [showCleanBranches, setShowCleanBranches] = useState(false)
-  const [cancellingCreate, setCancellingCreate] = useState(false)
 
   const worktreesWithMergedPR = worktrees.filter((wt) => prStatuses[wt.path]?.state === 'MERGED')
   const hasMergedPRWorktrees = worktreesWithMergedPR.length > 0
 
   const toast = useToast()
 
-  const handleCreate = useCallback(async (branchName: string, createNew: boolean, baseBranch: string) => {
-    if (!repoInfo) return
-    setCancellingCreate(false)
-    setCreateProgress({ step: 'creating', message: 'Starting...' })
-    const result = await api.worktree.create({
-      repoPath: repoInfo.path,
-      branchName,
-      createNewBranch: createNew,
-      baseBranch: baseBranch || undefined,
-    })
-    if (result.success) {
-      toast({ title: 'Worktree created', description: result.worktree?.path, status: 'success', duration: 3000 })
-      setShowCreate(false)
-      setCreateProgress(null)
-      refresh()
-    } else if (result.error !== 'cancelled') {
-      toast({ title: 'Create failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
-      setCreateProgress(null)
-    } else {
-      setCreateProgress(null)
-      setShowCreate(false)
-      setCancellingCreate(false)
-    }
-  }, [api, repoInfo, setCreateProgress, refresh, toast])
-
-  const handleCancelCreate = useCallback(async () => {
-    setCancellingCreate(true)
-    await api.worktree.cancelCreate()
-  }, [api])
-
-  const handleOpenCreateFromPalette = useCallback((initialBranch: string) => {
-    setPaletteInitialBranch(initialBranch)
-    setShowPalette(false)
-    setShowCreate(true)
-  }, [])
-
   const openSettings = useCallback(async () => {
-    if (repoInfo?.isRepo) {
-      const config = await api.setup.preview(repoInfo.path)
-      setSetupConfig(config)
-    }
-    setShowSettings(true)
-  }, [api, repoInfo])
+    if (!repoInfo) return
+    const config = repoInfo.isRepo ? await api.setup.preview(repoInfo.path) : null
+    NiceModal.show(SettingsModal, {
+      settings,
+      repoPath: repoInfo.path,
+      setupConfig: config,
+      onSave: handleSaveSettings,
+    })
+  }, [api, repoInfo, settings, handleSaveSettings])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -97,10 +57,21 @@ function AppContent() {
           if (!e.metaKey && !e.ctrlKey) refresh()
           break
         case 'c':
-          if (!e.metaKey && !e.ctrlKey) setShowCreate(true)
+          if (!e.metaKey && !e.ctrlKey && repoInfo) {
+            NiceModal.show(CreateWorktreeModal, { repoPath: repoInfo.path, detectedBaseBranch })
+          }
           break
         case 'k':
-          if (e.metaKey) { e.preventDefault(); setShowPalette(true) }
+          if (e.metaKey && repoInfo) {
+            e.preventDefault()
+            NiceModal.show(WorktreePalette, {
+              worktrees,
+              repoPath: repoInfo.path,
+              detectedBaseBranch,
+              onOpenTerminal: handleOpenTerminal,
+              onOpenIDE: handleOpenIDE,
+            })
+          }
           break
         case ',':
           if (e.metaKey) openSettings()
@@ -117,11 +88,10 @@ function AppContent() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [refresh, setFilter, openSettings, cleanupMode])
+  }, [refresh, setFilter, openSettings, cleanupMode, repoInfo, detectedBaseBranch, worktrees, handleOpenTerminal, handleOpenIDE])
 
   const handleDeleteConfirm = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
     await handleDelete(worktree, force, deleteFiles)
-    setDeleteTarget(null)
   }
 
   const handleEnterCleanup = useCallback(() => {
@@ -195,10 +165,10 @@ function AppContent() {
       </Box>
 
       <Header
-        onOpenCreate={() => setShowCreate(true)}
+        onOpenCreate={() => repoInfo && NiceModal.show(CreateWorktreeModal, { repoPath: repoInfo.path, detectedBaseBranch })}
         onOpenSettings={openSettings}
         onOpenCleanup={handleEnterCleanup}
-        onOpenCleanBranches={() => setShowCleanBranches(true)}
+        onOpenCleanBranches={() => repoInfo && NiceModal.show(CleanBranchesModal, { repoPath: repoInfo.path, baseBranch: detectedBaseBranch })}
         cleanupMode={cleanupMode}
         hasMergedPRWorktrees={hasMergedPRWorktrees}
       />
@@ -207,8 +177,12 @@ function AppContent() {
 
       <Box flex={1} overflowY="auto" px={5} pb={5}>
         <WorktreeList
-          onDelete={(wt) => setDeleteTarget(wt)}
-          onChangeBranch={(wt) => setChangeBranchTarget(wt)}
+          onDelete={(wt) => NiceModal.show(DeleteModal, { worktree: wt, onConfirm: handleDeleteConfirm })}
+          onChangeBranch={(wt) => repoInfo && NiceModal.show(ChangeBranchModal, {
+            repoPath: repoInfo.path,
+            currentBranch: wt.branch,
+            onSuccess: refresh,
+          })}
           cleanupMode={cleanupMode}
           worktreesWithMergedPR={worktreesWithMergedPR}
           onBatchDelete={handleBatchDeleteConfirm}
@@ -216,64 +190,6 @@ function AppContent() {
       </Box>
 
       <ShortcutHints />
-
-      {deleteTarget && (
-        <DeleteModal
-          worktree={deleteTarget}
-          onConfirm={handleDeleteConfirm}
-          onClose={() => setDeleteTarget(null)}
-        />
-      )}
-
-      {changeBranchTarget && repoInfo && (
-        <ChangeBranchModal
-          repoPath={repoInfo.path}
-          currentBranch={changeBranchTarget.branch}
-          onSuccess={refresh}
-          onClose={() => setChangeBranchTarget(null)}
-        />
-      )}
-
-      {showPalette && repoInfo && (
-        <WorktreePalette
-          worktrees={worktrees}
-          onOpenTerminal={handleOpenTerminal}
-          onOpenIDE={handleOpenIDE}
-          onOpenCreate={handleOpenCreateFromPalette}
-          onClose={() => setShowPalette(false)}
-        />
-      )}
-
-      {showCreate && repoInfo && (
-        <CreateWorktreeModal
-          repoPath={repoInfo.path}
-          detectedBaseBranch={detectedBaseBranch}
-          progress={createProgress}
-          cancelling={cancellingCreate}
-          initialBranchName={paletteInitialBranch}
-          onConfirm={handleCreate}
-          onCancel={handleCancelCreate}
-          onClose={() => { setShowCreate(false); setPaletteInitialBranch('') }}
-        />
-      )}
-
-      {showSettings && repoInfo && (
-        <SettingsModal
-          settings={settings}
-          repoPath={repoInfo.path}
-          setupConfig={setupConfig}
-          onSave={handleSaveSettings}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {showCleanBranches && repoInfo && (
-        <CleanBranchesModal
-          repoPath={repoInfo.path}
-          baseBranch={detectedBaseBranch}
-          onClose={() => setShowCleanBranches(false)}
-        />
-      )}
     </Box>
   )
 }
@@ -284,7 +200,9 @@ export default function App() {
       <APIProvider>
         <WorktreeProvider>
           <AppActionsProvider>
-            <AppContent />
+            <ModalRegistry>
+              <AppContent />
+            </ModalRegistry>
           </AppActionsProvider>
         </WorktreeProvider>
       </APIProvider>

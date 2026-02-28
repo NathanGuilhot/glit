@@ -31,6 +31,7 @@
     "install:global": "bash scripts/install-global.sh"
   },
   "dependencies": {
+    "@ebay/nice-modal-react": "^1.2.13",
     "electron-log": "^5.4.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9",
@@ -56,11 +57,11 @@
     "globals": "^17.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1",
-    "wait-on": "^8.0.2",
-    "sharp": "^0.33.5"
+    "wait-on": "^8.0.2"
   },
   "build": {
     "appId": "com.glit.app",
@@ -95,7 +96,9 @@
       "maintainer": "NathanGuilhot <contact@nighten.fr>"
     },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
     },
     "nsis": {

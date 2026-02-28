@@ -15,15 +15,14 @@ import {
   Divider,
   useToast,
 } from '@chakra-ui/react'
+import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { useAPI } from '../api'
 
-interface Props {
+const CleanBranchesModal = NiceModal.create<{
   repoPath: string
   baseBranch: string
-  onClose: () => void
-}
-
-export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Props) {
+}>(({ repoPath, baseBranch }) => {
+  const modal = useModal()
   const api = useAPI()
   const toast = useToast()
   const [branches, setBranches] = useState<string[]>([])
@@ -69,14 +68,14 @@ export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Pr
     } else {
       toast({ title: `Deleted ${deleted}, failed ${failed}`, status: 'warning', duration: 4000 })
     }
-    onClose()
-  }, [api, repoPath, selected, toast, onClose])
+    modal.hide()
+  }, [api, repoPath, selected, toast, modal])
 
   const allSelected = branches.length > 0 && selected.size === branches.length
   const noneSelected = selected.size === 0
 
   return (
-    <Modal isOpen onClose={onClose} size="sm" isCentered>
+    <Modal isOpen={modal.visible} onClose={modal.hide} size="sm" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2} fontSize="md">Clean merged branches</ModalHeader>
@@ -117,7 +116,7 @@ export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Pr
         </ModalBody>
         <ModalFooter>
           <HStack spacing={3}>
-            <Button variant="ghost" onClick={onClose} isDisabled={deleting}>Cancel</Button>
+            <Button variant="ghost" onClick={modal.hide} isDisabled={deleting}>Cancel</Button>
             {branches.length > 0 && (
               <Button
                 colorScheme="red"
@@ -133,4 +132,6 @@ export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Pr
       </ModalContent>
     </Modal>
   )
-}
+})
+
+export default CleanBranchesModal
