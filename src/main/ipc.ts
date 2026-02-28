@@ -247,6 +247,35 @@ async function sendProgress(getWindow: () => BrowserWindow | null, data: CreateP
   }
 }
 
+async function runSetupSteps(repoPath: string, worktreePath: string): Promise<void> {
+  const configPath = path.join(repoPath, '.glit', 'setup.yaml')
+  const configContent = await fs.readFile(configPath, 'utf-8') // throws if missing
+  const config = yaml.load(configContent) as SetupConfig
+
+  if (config.packages?.length) {
+    for (const pkgCmd of config.packages) {
+      try { await execAsync(pkgCmd, { cwd: worktreePath }) }
+      catch (e) { log.warn(`Package command failed: ${pkgCmd}`, e) }
+    }
+  }
+  if (config.envFiles?.length) {
+    for (const envFile of config.envFiles) {
+      try {
+        const srcPath = path.join(repoPath, envFile)
+        const destPath = path.join(worktreePath, envFile)
+        await fs.mkdir(path.dirname(destPath), { recursive: true })
+        await fs.copyFile(srcPath, destPath)
+      } catch (e) { log.warn(`Env file copy failed: ${envFile}`, e) }
+    }
+  }
+  if (config.commands?.length) {
+    for (const cmd of config.commands) {
+      try { await execAsync(cmd, { cwd: worktreePath }) }
+      catch (e) { log.warn(`Setup command failed: ${cmd}`, e) }
+    }
+  }
+}
+
 export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
   log.info('Setting up IPC handlers...')
 
@@ -366,55 +395,19 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       log.info(`Worktree created at: ${worktreePath}`)
 
       // Load and run setup
-      const configPath = path.join(repoPath, '.glit', 'setup.yaml')
-      try {
-        const configContent = await fs.readFile(configPath, 'utf-8')
-        const config = yaml.load(configContent) as SetupConfig
-
-        if (config.packages?.length) {
-          await sendProgress(getWindow, { step: 'packages', message: 'Installing packages...' })
-          for (const pkgCmd of config.packages) {
-            if (signal.aborted) break
-            try {
-              await sendProgress(getWindow, { step: 'packages', message: 'Installing packages...', detail: pkgCmd })
-              await execAsync(pkgCmd, { cwd: worktreePath, signal })
-            } catch (e) {
-              if (signal.aborted) break
-              log.warn(`Package command failed: ${pkgCmd}`, e)
+      if (!signal.aborted) {
+        try {
+          await sendProgress(getWindow, { step: 'packages', message: 'Running setup...' })
+          await runSetupSteps(repoPath, worktreePath)
+        } catch (e) {
+          if (!signal.aborted) {
+            if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+              log.info('No .glit/setup.yaml found, skipping setup')
+            } else {
+              log.warn('Setup failed during create', e)
             }
           }
         }
-
-        if (!signal.aborted && config.envFiles?.length) {
-          await sendProgress(getWindow, { step: 'env', message: 'Copying env files...' })
-          for (const envFile of config.envFiles) {
-            if (signal.aborted) break
-            try {
-              const srcPath = path.join(repoPath, envFile)
-              const destPath = path.join(worktreePath, envFile)
-              await fs.mkdir(path.dirname(destPath), { recursive: true })
-              await fs.copyFile(srcPath, destPath)
-            } catch (e) {
-              log.warn(`Env file copy failed: ${envFile}`, e)
-            }
-          }
-        }
-
-        if (!signal.aborted && config.commands?.length) {
-          await sendProgress(getWindow, { step: 'commands', message: 'Running setup commands...' })
-          for (const cmd of config.commands) {
-            if (signal.aborted) break
-            try {
-              await sendProgress(getWindow, { step: 'commands', message: 'Running setup commands...', detail: cmd })
-              await execAsync(cmd, { cwd: worktreePath, signal })
-            } catch (e) {
-              if (signal.aborted) break
-              log.warn(`Setup command failed: ${cmd}`, e)
-            }
-          }
-        }
-      } catch {
-        if (!signal.aborted) log.info('No .glit/setup.yaml found, skipping setup')
       }
 
       if (signal.aborted) {
@@ -444,6 +437,21 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     if (activeCreateController) {
       log.info('Cancelling worktree creation')
       activeCreateController.abort()
+    }
+  })
+
+  ipcMain.handle('worktree:runSetup', async (_event, { repoPath, worktreePath }: { repoPath: string; worktreePath: string }) => {
+    log.info(`Re-running setup for: ${worktreePath}`)
+    try {
+      await runSetupSteps(repoPath, worktreePath)
+      return { success: true }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        log.info('No .glit/setup.yaml found, skipping re-run')
+        return { success: true }
+      }
+      log.error('Setup re-run failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
 

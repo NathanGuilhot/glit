@@ -13,6 +13,7 @@ interface AppActionsContextValue {
   handleOpenIDE: (worktreePath: string) => Promise<void>
   handleOpenFinder: (worktreePath: string) => Promise<void>
   handleSaveSettings: (newSettings: AppSettings) => Promise<void>
+  handleRunSetup: (worktree: WorktreeWithDiff) => Promise<void>
 }
 
 const AppActionsContext = createContext<AppActionsContextValue | null>(null)
@@ -102,6 +103,18 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     toast({ title: 'Settings saved', status: 'success', duration: 1500 })
   }, [api, toast])
 
+  const handleRunSetup = useCallback(async (worktree: WorktreeWithDiff) => {
+    if (!repoInfo) return
+    const id = toast({ title: 'Running setup…', status: 'loading', duration: null, isClosable: false })
+    const result = await api.worktree.runSetup({ repoPath: repoInfo.path, worktreePath: worktree.path })
+    toast.close(id)
+    if (result.success) {
+      toast({ title: 'Setup complete', status: 'success', duration: 3000 })
+    } else {
+      toast({ title: 'Setup failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+    }
+  }, [api, repoInfo, toast])
+
   const value: AppActionsContextValue = {
     handleDelete,
     handleBatchDelete,
@@ -111,6 +124,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     handleOpenIDE,
     handleOpenFinder,
     handleSaveSettings,
+    handleRunSetup,
   }
 
   return (
