@@ -33,6 +33,7 @@ interface CreateWorktreeModalProps {
   detectedBaseBranch: string
   progress: CreateProgress | null
   cancelling?: boolean
+  initialBranchName?: string
   onConfirm: (branchName: string, createNew: boolean, baseBranch: string) => Promise<void>
   onCancel?: () => void
   onClose: () => void
@@ -237,13 +238,14 @@ export default function CreateWorktreeModal({
   detectedBaseBranch,
   progress,
   cancelling = false,
+  initialBranchName = '',
   onConfirm,
   onCancel,
   onClose,
 }: CreateWorktreeModalProps) {
   const api = useAPI()
-  const [branchName, setBranchName] = useState('')
-  const [createNew, setCreateNew] = useState(false)
+  const [branchName, setBranchName] = useState(initialBranchName)
+  const [createNew, setCreateNew] = useState(!!initialBranchName)
   const [baseBranch, setBaseBranch] = useState(detectedBaseBranch)
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)

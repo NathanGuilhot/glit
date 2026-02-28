@@ -52,6 +52,13 @@ export interface RepoInfo {
   name?: string
 }
 
+export interface RecentRepo {
+  path: string
+  name: string
+  displayPath: string
+  lastUsedAt: string
+}
+
 export interface CreateWorktreeOptions {
   repoPath: string
   branchName: string
@@ -97,6 +104,7 @@ export interface GlitAPI {
   }
   dialog: {
     pickFile: (repoPath: string) => Promise<string | null>
+    pickFolder: () => Promise<string | null>
   }
   terminal: {
     open: (path: string, terminal?: string) => Promise<{ success: boolean; error?: string }>
@@ -107,6 +115,8 @@ export interface GlitAPI {
   repo: {
     detect: () => Promise<RepoInfo>
     defaultBranch: (repoPath: string) => Promise<string>
+    switch: (repoPath: string) => Promise<RepoInfo>
+    listRecent: () => Promise<RecentRepo[]>
   }
   pr: {
     getStatus: (worktreePath: string) => Promise<PRStatus | null>

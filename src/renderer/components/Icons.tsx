@@ -109,6 +109,15 @@ export const IDEIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const ChevronDownIcon = createIcon({
+  displayName: 'ChevronDownIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <polyline key="poly" points="6 9 12 15 18 9" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const CloseIcon = createIcon({
   displayName: 'CloseIcon',
   viewBox: '0 0 24 24',
