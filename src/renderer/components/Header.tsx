@@ -1,4 +1,4 @@
-import { Box, HStack, VStack, Heading, Badge, IconButton, Tooltip, Spinner, Button, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Text } from '@chakra-ui/react'
+import { Box, HStack, VStack, Badge, IconButton, Tooltip, Spinner, Button, Menu, MenuButton, MenuList, MenuItem, MenuDivider, Text } from '@chakra-ui/react'
 import { RefreshIcon, SettingsIcon, PlusIcon, ChevronDownIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAPI } from '../api'
