@@ -18,6 +18,7 @@ import {
   Box,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
 
 const DeleteModal = NiceModal.create<{
@@ -25,6 +26,7 @@ const DeleteModal = NiceModal.create<{
   onConfirm: (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => Promise<void>
 }>(({ worktree, onConfirm }) => {
   const modal = useModal()
+  const { t } = useTranslation()
   const [force, setForce] = useState(false)
   const [deleteFiles, setDeleteFiles] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -44,7 +46,7 @@ const DeleteModal = NiceModal.create<{
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>
           <HStack spacing={3}>
-            <Text>Delete Worktree</Text>
+            <Text>{t('deleteWorktree.title')}</Text>
           </HStack>
         </ModalHeader>
 
@@ -65,9 +67,9 @@ const DeleteModal = NiceModal.create<{
               <Alert status="warning" borderRadius="md" bg="orange.900" border="1px solid" borderColor="orange.700">
                 <AlertIcon />
                 <VStack align="start" spacing={0}>
-                  <Text fontSize="sm" fontWeight="600">Uncommitted changes</Text>
+                  <Text fontSize="sm" fontWeight="600">{t('deleteWorktree.uncommittedChanges')}</Text>
                   <Text fontSize="xs" color="whiteAlpha.700">
-                    +{worktree.insertionCount} -{worktree.deletionCount} across {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
+                    {t('deleteWorktree.diffSummary', { count: worktree.fileCount, insertions: worktree.insertionCount, deletions: worktree.deletionCount })}
                   </Text>
                 </VStack>
               </Alert>
@@ -81,7 +83,7 @@ const DeleteModal = NiceModal.create<{
                   onChange={(e) => setForce(e.target.checked)}
                   colorScheme="orange"
                 >
-                  <Text fontSize="sm">Force delete (discard uncommitted changes)</Text>
+                  <Text fontSize="sm">{t('deleteWorktree.forceDelete')}</Text>
                 </Checkbox>
               )}
 
@@ -91,16 +93,16 @@ const DeleteModal = NiceModal.create<{
                 colorScheme="red"
               >
                 <VStack align="start" spacing={0}>
-                  <Text fontSize="sm">Also delete directory files</Text>
-                  <Text fontSize="xs" color="whiteAlpha.500">Permanently removes all files from disk</Text>
+                  <Text fontSize="sm">{t('deleteWorktree.deleteFiles')}</Text>
+                  <Text fontSize="xs" color="whiteAlpha.500">{t('deleteWorktree.deleteFilesPermanent')}</Text>
                 </VStack>
               </Checkbox>
             </VStack>
 
             <Text fontSize="xs" color="whiteAlpha.400">
-              This action will unregister the worktree from git
-              {deleteFiles ? ' and delete all files' : ''}.
-              {!deleteFiles && ' The directory will remain on disk.'}
+              {t('deleteWorktree.warningBase')}
+              {deleteFiles ? t('deleteWorktree.warningAndDeleteFiles') : ''}.
+              {!deleteFiles && t('deleteWorktree.warningKeepFiles')}
             </Text>
           </VStack>
         </ModalBody>
@@ -108,15 +110,15 @@ const DeleteModal = NiceModal.create<{
         <ModalFooter>
           <HStack spacing={3}>
             <Button variant="ghost" onClick={modal.hide} isDisabled={loading}>
-              Cancel
+              {t('deleteWorktree.cancel')}
             </Button>
             <Button
               colorScheme="red"
               onClick={handleConfirm}
               isLoading={loading}
-              loadingText="Deleting..."
+              loadingText={t('deleteWorktree.deleting')}
             >
-              Delete worktree
+              {t('deleteWorktree.delete')}
             </Button>
           </HStack>
         </ModalFooter>

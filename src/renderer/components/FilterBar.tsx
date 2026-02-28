@@ -1,10 +1,12 @@
 import { useRef } from 'react'
 import { Box, Input, InputGroup, InputLeftElement } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import { SearchIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 
 export default function FilterBar() {
   const { filter, setFilter } = useWorktree()
+  const { t } = useTranslation()
   const filterRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -15,7 +17,8 @@ export default function FilterBar() {
         </InputLeftElement>
         <Input
           ref={filterRef}
-          placeholder="Filter by branch or path… (/)"
+          data-filter-input="true"
+          placeholder={t('filterBar.placeholder')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           bg="whiteAlpha.50"

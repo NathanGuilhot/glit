@@ -1,5 +1,6 @@
 import React, { Component, type ReactNode } from 'react'
 import { Flex, Text } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -8,6 +9,19 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
+}
+
+function ErrorDisplay({ error, onReset }: { error: Error | null; onReset: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <Flex h="100vh" align="center" justify="center" direction="column" gap={4} p={8}>
+      <Text fontSize="2xl">{t('errorBoundary.title')}</Text>
+      <Text color="red.400" fontFamily="mono" fontSize="sm">
+        {error?.message}
+      </Text>
+      <button onClick={onReset}>{t('errorBoundary.tryAgain')}</button>
+    </Flex>
+  )
 }
 
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -27,13 +41,10 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   override render() {
     if (this.state.hasError) {
       return (
-        <Flex h="100vh" align="center" justify="center" direction="column" gap={4} p={8}>
-          <Text fontSize="2xl">Something went wrong</Text>
-          <Text color="red.400" fontFamily="mono" fontSize="sm">
-            {this.state.error?.message}
-          </Text>
-          <button onClick={() => this.setState({ hasError: false, error: null })}>Try Again</button>
-        </Flex>
+        <ErrorDisplay
+          error={this.state.error}
+          onReset={() => this.setState({ hasError: false, error: null })}
+        />
       )
     }
     return this.props.children

@@ -17,6 +17,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import NiceModal from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
 import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, StopIcon, LogsIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
@@ -62,13 +63,14 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup, handleSyncWorktree } = useAppActions()
   const api = useAPI()
   const toast = useToast()
+  const { t } = useTranslation()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
   const [isRebasing, setIsRebasing] = useState(false)
 
   const isRoot = repoInfo?.path === worktree.path
   const shortPath = worktree.displayPath ?? worktree.path
   const branchColor = getBranchColor(worktree.branch)
-  const branchDisplayText = worktree.branch || '(no branch)'
+  const branchDisplayText = worktree.branch || t('worktreeCard.noBranch')
   const runningProcess = runningProcesses[worktree.path]
   const prStatus = prStatuses[worktree.path]
 
@@ -91,11 +93,11 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
     try {
       const result = await api.branch.rebaseOnto(worktree.path, detectedBaseBranch)
       if (result.success) {
-        toast({ title: `Rebased onto ${detectedBaseBranch}`, status: 'success', duration: 3000 })
+        toast({ title: t('worktreeCard.toast.rebased', { branch: detectedBaseBranch }), status: 'success', duration: 3000 })
       } else {
         toast({
-          title: result.hasConflicts ? 'Conflicts — resolve in your IDE' : 'Rebase failed',
-          description: result.hasConflicts ? `Conflicts in ${worktree.branch}. Run \`git rebase --abort\` to cancel.` : result.error,
+          title: result.hasConflicts ? t('worktreeCard.toast.rebaseConflicts') : t('worktreeCard.toast.rebaseFailed'),
+          description: result.hasConflicts ? t('worktreeCard.toast.rebaseConflictsDescription', { branch: worktree.branch }) : result.error,
           status: result.hasConflicts ? 'warning' : 'error',
           duration: result.hasConflicts ? 8000 : 5000,
           isClosable: true,
@@ -154,7 +156,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
       <HStack spacing={[2, 3]} align="start">
         <VStack align="start" spacing={1} flex={1} minW={0}>
           <HStack spacing={2} flexWrap="wrap">
-            <Tooltip label={branchJustCopied ? 'Copied!' : 'Click to copy branch'} placement="bottom" openDelay={200}>
+            <Tooltip label={branchJustCopied ? t('worktreeCard.tooltips.copied') : t('worktreeCard.tooltips.clickToCopyBranch')} placement="bottom" openDelay={200}>
               <Badge
                 colorScheme={branchColor}
                 variant="subtle"
@@ -166,24 +168,24 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                 onClick={handleCopyBranchClick}
                 transition="opacity 0.1s"
               >
-                {branchJustCopied ? 'Copied!' : branchDisplayText}
+                {branchJustCopied ? t('worktreeCard.tooltips.copied') : branchDisplayText}
               </Badge>
             </Tooltip>
             {isRoot && (
               <Badge colorScheme="green" variant="outline" fontSize="9px">
-                root
+                {t('worktreeCard.badges.root')}
               </Badge>
             )}
             {worktree.isLocked && (
               <Badge colorScheme="orange" variant="subtle" fontSize="9px">
-                locked
+                {t('worktreeCard.badges.locked')}
               </Badge>
             )}
             {worktree.isStale && (
-              <Badge colorScheme="yellow" variant="subtle" fontSize="9px">stale</Badge>
+              <Badge colorScheme="yellow" variant="subtle" fontSize="9px">{t('worktreeCard.badges.stale')}</Badge>
             )}
             {prStatus && (
-              <Tooltip label={`PR #${prStatus.number} — click to open`} placement="bottom" openDelay={200}>
+              <Tooltip label={t('worktreeCard.tooltips.openPR', { number: prStatus.number })} placement="bottom" openDelay={200}>
                 <Badge
                   colorScheme={prStatus.state === 'OPEN' ? 'green' : prStatus.state === 'MERGED' ? 'purple' : 'gray'}
                   variant="subtle"
@@ -192,13 +194,13 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                   onClick={() => api.shell.openUrl(prStatus.url)}
                   _hover={{ opacity: 0.8 }}
                 >
-                  {prStatus.state === 'OPEN' ? '● Open' : prStatus.state === 'MERGED' ? '✓ Merged' : '⊘ Closed'}
+                  {prStatus.state === 'OPEN' ? t('worktreeCard.prState.open') : prStatus.state === 'MERGED' ? t('worktreeCard.prState.merged') : t('worktreeCard.prState.closed')}
                 </Badge>
               </Tooltip>
             )}
             {runningProcess && (
               <Tooltip
-                label={runningProcess.port ? `Open http://localhost:${runningProcess.port}` : 'Process running'}
+                label={runningProcess.port ? t('worktreeCard.tooltips.openLocalhost', { port: runningProcess.port }) : t('worktreeCard.tooltips.processRunning')}
                 placement="bottom"
                 openDelay={200}
               >
@@ -210,13 +212,13 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                   onClick={runningProcess.port ? () => api.shell.openUrl(`http://localhost:${runningProcess.port}`) : undefined}
                   _hover={runningProcess.port ? { opacity: 0.8 } : undefined}
                 >
-                  ● {runningProcess.port ? `:${runningProcess.port}` : 'running'}
+                  {runningProcess.port ? t('worktreeCard.badges.runningWithPort', { port: runningProcess.port }) : t('worktreeCard.badges.runningNoPort')}
                 </Badge>
               </Tooltip>
             )}
           </HStack>
 
-          <Tooltip label="Click to copy path" placement="bottom" openDelay={200}>
+          <Tooltip label={t('worktreeCard.tooltips.clickToCopyPath')} placement="bottom" openDelay={200}>
             <Text
               fontSize="11px"
               fontFamily="mono"
@@ -249,11 +251,11 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                     -{worktree.deletionCount}
                   </Text>
                   <Text fontSize="11px" color="whiteAlpha.400">
-                    {worktree.fileCount} file{worktree.fileCount !== 1 ? 's' : ''}
+                    {t('worktreeCard.fileCount', { count: worktree.fileCount })}
                   </Text>
                 </>
               ) : (
-                <Text fontSize="11px" color="whiteAlpha.300">clean</Text>
+                <Text fontSize="11px" color="whiteAlpha.300">{t('worktreeCard.clean')}</Text>
               )}
               {worktree.aheadCount > 0 && (
                 <Text fontSize="12px" color="whiteAlpha.600" fontFamily="mono" fontWeight="600">
@@ -271,20 +273,20 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">
             {runningProcess ? (
               <>
-                <TooltipIconButton label="View logs" icon={<LogsIcon boxSize={4} color="whiteAlpha.800" />} onClick={handleOpenLogs} />
-                <TooltipIconButton label="Stop process" icon={<StopIcon boxSize={3.5} color="red.400" />} onClick={handleStop} />
+                <TooltipIconButton label={t('worktreeCard.tooltips.viewLogs')} icon={<LogsIcon boxSize={4} color="whiteAlpha.800" />} onClick={handleOpenLogs} />
+                <TooltipIconButton label={t('worktreeCard.tooltips.stopProcess')} icon={<StopIcon boxSize={3.5} color="red.400" />} onClick={handleStop} />
               </>
             ) : (
-              <TooltipIconButton label="Run dev command" icon={<PlayIcon boxSize={3.5} color="whiteAlpha.800" />} onClick={() => void handleRun()} />
+              <TooltipIconButton label={t('worktreeCard.tooltips.runDevCommand')} icon={<PlayIcon boxSize={3.5} color="whiteAlpha.800" />} onClick={() => void handleRun()} />
             )}
-            <TooltipIconButton label={`Open in ${settings.preferredTerminal}`} icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenTerminal(worktree.path)} />
-            <TooltipIconButton label={`Open in ${settings.preferredIDE}`} icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenIDE(worktree.path)} />
+            <TooltipIconButton label={t('worktreeCard.tooltips.openInTerminal', { terminal: settings.preferredTerminal })} icon={<TerminalIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenTerminal(worktree.path)} />
+            <TooltipIconButton label={t('worktreeCard.tooltips.openInIDE', { ide: settings.preferredIDE })} icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenIDE(worktree.path)} />
           </HStack>
 
           <Menu>
             <MenuButton
               as={IconButton}
-              aria-label="More actions"
+              aria-label={t('worktreeCard.ariaLabels.moreActions')}
               icon={<DotsIcon boxSize={4} color="whiteAlpha.800" />}
               size="xs"
               variant="ghost"
@@ -298,7 +300,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                 _hover={{ bg: 'whiteAlpha.100' }}
                 fontSize="sm"
               >
-                Open in Finder
+                {t('worktreeCard.menu.openInFinder')}
               </MenuItem>
               {isRoot && onChangeBranch && (
                 <>
@@ -309,7 +311,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                     _hover={{ bg: 'whiteAlpha.100' }}
                     fontSize="sm"
                   >
-                    Change branch
+                    {t('worktreeCard.menu.changeBranch')}
                   </MenuItem>
                 </>
               )}
@@ -324,7 +326,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                     _hover={{ bg: 'whiteAlpha.100' }}
                     fontSize="sm"
                   >
-                    Rebase onto {detectedBaseBranch}
+                    {t('worktreeCard.menu.rebaseOnto', { branch: detectedBaseBranch })}
                   </MenuItem>
                 </>
               )}
@@ -335,7 +337,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                 _hover={{ bg: 'whiteAlpha.100' }}
                 fontSize="sm"
               >
-                Run setup
+                {t('worktreeCard.menu.runSetup')}
               </MenuItem>
               <MenuItem
                 icon={<PlayIcon boxSize={4} color="whiteAlpha.700" />}
@@ -344,7 +346,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                 _hover={{ bg: 'whiteAlpha.100' }}
                 fontSize="sm"
               >
-                Configure run command…
+                {t('worktreeCard.menu.configureRunCommand')}
               </MenuItem>
               {worktree.isStale && (
                 <>
@@ -356,7 +358,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                     _hover={{ bg: 'whiteAlpha.100' }}
                     fontSize="sm"
                   >
-                    Sync working tree
+                    {t('worktreeCard.menu.syncWorkingTree')}
                   </MenuItem>
                 </>
               )}
@@ -371,7 +373,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                     color="red.400"
                     fontSize="sm"
                   >
-                    Delete worktree
+                    {t('worktreeCard.menu.deleteWorktree')}
                   </MenuItem>
                 </>
               )}

@@ -12,6 +12,7 @@ import {
   HStack,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
+import { useTranslation } from 'react-i18next'
 import { useAPI, type BranchInfo } from '../api'
 import BranchSearchList from './BranchSearchList'
 
@@ -22,6 +23,7 @@ const ChangeBranchModal = NiceModal.create<{
 }>(({ repoPath, currentBranch, onSuccess }) => {
   const modal = useModal()
   const api = useAPI()
+  const { t } = useTranslation()
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -55,13 +57,13 @@ const ChangeBranchModal = NiceModal.create<{
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>
-          <Text>Change Branch</Text>
+          <Text>{t('changeBranch.title')}</Text>
         </ModalHeader>
 
         <ModalBody>
           <VStack align="stretch" spacing={3}>
             <Text fontSize="sm" color="whiteAlpha.600">
-              Select a branch to checkout in the root repository
+              {t('changeBranch.subtitle')}
             </Text>
             <BranchSearchList
               branches={branches}
@@ -80,16 +82,16 @@ const ChangeBranchModal = NiceModal.create<{
         <ModalFooter>
           <HStack spacing={3}>
             <Button variant="ghost" onClick={modal.hide} isDisabled={loading}>
-              Cancel
+              {t('changeBranch.cancel')}
             </Button>
             <Button
               colorScheme="brand"
               onClick={handleConfirm}
               isLoading={loading}
               isDisabled={!selectedBranch || selectedBranch === currentBranch}
-              loadingText="Checking out..."
+              loadingText={t('changeBranch.checkingOut')}
             >
-              Checkout
+              {t('changeBranch.checkout')}
             </Button>
           </HStack>
         </ModalFooter>

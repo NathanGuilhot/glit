@@ -1,0 +1,308 @@
+{
+  "app": {
+    "title": "Glit ·.°"
+  },
+  "worktree": {
+    "toast": {
+      "failedToLoad": "Échec du chargement du dépôt",
+      "failedToRefresh": "Échec de l'actualisation",
+      "notAGitRepo": "Pas un dépôt git",
+      "failedToSwitch": "Échec du changement de dépôt"
+    }
+  },
+  "actions": {
+    "toast": {
+      "worktreeDeleted": "Worktree supprimé",
+      "deleteFailed": "Échec de la suppression",
+      "pathCopied": "Chemin copié",
+      "branchCopied": "Branche copiée",
+      "failedToOpenTerminal": "Impossible d'ouvrir le terminal",
+      "failedToOpenIDE": "Impossible d'ouvrir l'IDE",
+      "settingsSaved": "Paramètres enregistrés",
+      "runningSetup": "Exécution du script…",
+      "setupComplete": "Script terminé",
+      "setupFailed": "Échec du script",
+      "syncing": "Synchronisation du working tree…",
+      "synced": "Working tree synchronisé",
+      "syncFailed": "Échec de la synchronisation"
+    }
+  },
+  "header": {
+    "noRecentRepos": "Aucun dépôt récent",
+    "openOtherRepo": "Ouvrir un autre dépôt…",
+    "current": "actuel",
+    "worktreeCount_one": "{{count}} worktree",
+    "worktreeCount_other": "{{count}} worktrees",
+    "cleanUp": "Nettoyer",
+    "tooltips": {
+      "newWorktree": "Nouveau worktree (c)",
+      "refresh": "Actualiser (r)",
+      "settings": "Paramètres (⌘,)"
+    },
+    "ariaLabels": {
+      "createWorktree": "Créer un worktree",
+      "refresh": "Actualiser",
+      "settings": "Paramètres"
+    }
+  },
+  "filterBar": {
+    "placeholder": "Filtrer par branche ou chemin… (/)"
+  },
+  "worktreeCard": {
+    "tooltips": {
+      "copied": "Copié !",
+      "clickToCopyBranch": "Cliquer pour copier la branche",
+      "clickToCopyPath": "Cliquer pour copier le chemin",
+      "openInTerminal": "Ouvrir dans {{terminal}}",
+      "openInIDE": "Ouvrir dans {{ide}}",
+      "openPR": "PR #{{number}} — cliquer pour ouvrir",
+      "processRunning": "Processus en cours",
+      "openLocalhost": "Ouvrir http://localhost:{{port}}",
+      "viewLogs": "Voir les logs",
+      "stopProcess": "Arrêter le processus",
+      "runDevCommand": "Lancer la commande dev"
+    },
+    "badges": {
+      "root": "racine",
+      "locked": "verrouillé",
+      "stale": "obsolète",
+      "running": "actif"
+    },
+    "prState": {
+      "open": "● Ouvert",
+      "merged": "✓ Fusionné",
+      "closed": "⊘ Fermé"
+    },
+    "ariaLabels": {
+      "openInTerminal": "Ouvrir dans le terminal",
+      "openInIDE": "Ouvrir dans l'IDE",
+      "moreActions": "Plus d'actions",
+      "viewLogs": "Voir les logs",
+      "stopProcess": "Arrêter le processus",
+      "runDevCommand": "Lancer la commande dev"
+    },
+    "menu": {
+      "openInFinder": "Ouvrir dans Finder",
+      "changeBranch": "Changer de branche",
+      "rebaseOnto": "Rebaser sur {{branch}}",
+      "runSetup": "Exécuter le script",
+      "configureRunCommand": "Configurer la commande…",
+      "syncWorkingTree": "Synchroniser le working tree",
+      "deleteWorktree": "Supprimer le worktree"
+    },
+    "clean": "propre",
+    "noBranch": "(sans branche)",
+    "fileCount_one": "{{count}} fichier",
+    "fileCount_other": "{{count}} fichiers",
+    "toast": {
+      "rebased": "Rebasé sur {{branch}}",
+      "rebaseConflicts": "Conflits — résoudre dans votre IDE",
+      "rebaseConflictsDescription": "Conflits dans {{branch}}. Lancer `git rebase --abort` pour annuler.",
+      "rebaseFailed": "Échec du rebase"
+    }
+  },
+  "worktreeList": {
+    "noMatch": "Aucun worktree ne correspond à « {{filter}} »",
+    "clearFilter": "Effacer le filtre",
+    "createFirstWorktree": "Créez votre premier worktree (c)"
+  },
+  "palette": {
+    "placeholder": "Filtrer ou saisir un nom de branche…",
+    "createNew": "+ Créer un worktree « {{branch}} »",
+    "hints": {
+      "navigate": "naviguer",
+      "terminal": "terminal",
+      "ide": "IDE",
+      "close": "fermer"
+    }
+  },
+  "changeBranch": {
+    "title": "Changer de branche",
+    "subtitle": "Sélectionner une branche à extraire dans le dépôt racine",
+    "current": "(actuelle)",
+    "cancel": "Annuler",
+    "checkout": "Extraire",
+    "checkingOut": "Extraction en cours..."
+  },
+  "createWorktree": {
+    "title": "Nouveau worktree",
+    "fields": {
+      "branchName": "Nom de branche",
+      "createNewBranch": "Créer une nouvelle branche",
+      "baseBranch": "Branche de base"
+    },
+    "placeholders": {
+      "newBranch": "feature/ma-fonctionnalite",
+      "existingBranch": "branche-existante"
+    },
+    "validation": {
+      "required": "Le nom de branche est requis",
+      "invalidChars": "Caractères invalides dans le nom de branche"
+    },
+    "setupScript": "Script de configuration",
+    "badges": {
+      "setupYaml": ".glit/setup.yaml",
+      "packages": "paquets",
+      "envFiles": "fichiers env",
+      "cmd": "cmd"
+    },
+    "progress": {
+      "success": "Worktree créé avec succès !"
+    },
+    "buttons": {
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "create": "Créer le worktree",
+      "cancelling": "Annulation…",
+      "creating": "Création du worktree…"
+    },
+    "current": "(actuelle)",
+    "toast": {
+      "created": "Worktree créé",
+      "createFailed": "Échec de la création"
+    }
+  },
+  "deleteWorktree": {
+    "title": "Supprimer le worktree",
+    "uncommittedChanges": "Modifications non validées",
+    "diffSummary_one": "+{{insertions}} -{{deletions}} dans {{count}} fichier",
+    "diffSummary_other": "+{{insertions}} -{{deletions}} dans {{count}} fichiers",
+    "forceDelete": "Forcer la suppression (ignorer les modifications non validées)",
+    "deleteFiles": "Supprimer aussi les fichiers du répertoire",
+    "deleteFilesPermanent": "Supprime définitivement tous les fichiers du disque",
+    "warningBase": "Cette action va désenregistrer le worktree de git",
+    "warningAndDeleteFiles": " et supprimer tous les fichiers",
+    "warningKeepFiles": " Le répertoire restera sur le disque.",
+    "cancel": "Annuler",
+    "delete": "Supprimer le worktree",
+    "deleting": "Suppression..."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "shortcut": "⌘,",
+    "preferredTerminal": {
+      "label": "Terminal préféré",
+      "helper": "Utilisé pour ouvrir les worktrees dans un terminal"
+    },
+    "preferredIDE": {
+      "label": "IDE préféré",
+      "helper": "Utilisé pour ouvrir les worktrees dans un éditeur"
+    },
+    "autoRefresh": {
+      "label": "Actualisation auto",
+      "helper": "Actualiser la liste des worktrees automatiquement"
+    },
+    "setupScript": {
+      "label": "Script de configuration",
+      "badge": ".glit/setup.yaml",
+      "helper": "Exécuté automatiquement lors de la création d'un worktree"
+    },
+    "lists": {
+      "packages": "Paquets",
+      "envFiles": "Fichiers env",
+      "commands": "Commandes"
+    },
+    "placeholders": {
+      "npmInstall": "npm install",
+      "envFile": ".env",
+      "command": "echo hello"
+    },
+    "browse": "Parcourir…",
+    "add": "+ Ajouter",
+    "ariaLabels": {
+      "remove": "Supprimer",
+      "clearCommand": "Effacer la commande"
+    },
+    "runCommands": {
+      "title": "Commandes d'exécution",
+      "helper": "Commande dev à lancer par worktree. Les modifications sont enregistrées immédiatement.",
+      "placeholder": "ex. bun run dev"
+    },
+    "terminals": {
+      "Terminal": "Terminal.app",
+      "iTerm2": "iTerm2",
+      "Hyper": "Hyper",
+      "Kitty": "Kitty",
+      "Alacritty": "Alacritty",
+      "Warp": "Warp"
+    },
+    "ides": {
+      "VSCode": "Visual Studio Code",
+      "Cursor": "Cursor",
+      "Zed": "Zed",
+      "WebStorm": "WebStorm",
+      "Sublime": "Sublime Text"
+    },
+    "dirtyWarning": {
+      "message": "Vous avez des modifications non enregistrées.",
+      "keepEditing": "Continuer l'édition",
+      "discardAndClose": "Ignorer et fermer"
+    },
+    "cancel": "Annuler",
+    "save": "Enregistrer les paramètres"
+  },
+  "cleanup": {
+    "title": "Nettoyer",
+    "worktreesWithMergedPRs": "Worktrees avec PRs fusionnées :",
+    "branchesMergedInto": "Branches fusionnées dans {{ref}} :",
+    "all": "Tout",
+    "none": "Aucun",
+    "cancel": "Annuler",
+    "confirm": {
+      "removeWorktrees_one": "Supprimer {{count}} worktree",
+      "removeWorktrees_other": "Supprimer {{count}} worktrees",
+      "deleteBranches_one": "Supprimer {{count}} branche",
+      "deleteBranches_other": "Supprimer {{count}} branches",
+      "cleanUp": "Nettoyer",
+      "and": " et "
+    },
+    "toast": {
+      "cleanedUp": "Nettoyé : {{items}}",
+      "partial": "Partiel : {{items}}",
+      "worktrees_one": "{{count}} worktree",
+      "worktrees_other": "{{count}} worktrees",
+      "worktreesPartial": "{{deleted}}/{{total}} worktrees",
+      "branches_one": "{{count}} branche",
+      "branches_other": "{{count}} branches",
+      "branchesPartial": "{{deleted}}/{{total}} branches"
+    }
+  },
+  "processLog": {
+    "title": "Logs",
+    "noOutput": "Aucune sortie pour l'instant…"
+  },
+  "runCommand": {
+    "title": "Lancer une commande",
+    "detecting": "Détection…",
+    "availableScripts": "Scripts disponibles",
+    "note": "La commande est mémorisée pour ce worktree. Vous pouvez la modifier via l'icône ⚙.",
+    "placeholder": "ex. bun run dev",
+    "cancel": "Annuler",
+    "run": "Lancer"
+  },
+  "errorBoundary": {
+    "title": "Une erreur est survenue",
+    "tryAgain": "Réessayer"
+  },
+  "notGitRepo": {
+    "title": "Pas un dépôt git",
+    "subtitle": "Glit doit être lancé depuis un dépôt git",
+    "currentPath": "Chemin actuel",
+    "howToUse": "Comment utiliser Glit",
+    "hints": {
+      "navigate": "Naviguer vers un dépôt git",
+      "navigateCmd": "cd /chemin/vers/votre/repo",
+      "launch": "Lancer Glit",
+      "launchCmd": "glit"
+    },
+    "directRun": "Ou lancer <1>glit /chemin/vers/repo</1> directement",
+    "noWorktrees": "Aucun worktree à gérer"
+  },
+  "shortcutHints": {
+    "palette": "palette",
+    "create": "créer",
+    "refresh": "actualiser",
+    "filter": "filtrer",
+    "settings": "paramètres"
+  }
+}
