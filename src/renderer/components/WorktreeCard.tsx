@@ -15,7 +15,7 @@ import {
   Skeleton,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
-import { CopyIcon, IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
@@ -201,16 +201,6 @@ function CardContent({
                 variant="ghost"
                 colorScheme="whiteAlpha"
                 onClick={() => onOpenIDE(worktree.path)}
-              />
-            </Tooltip>
-            <Tooltip label="Copy path" placement="top" openDelay={200}>
-              <IconButton
-                aria-label="Copy path"
-                icon={<CopyIcon boxSize={4} color="whiteAlpha.800" />}
-                size="xs"
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                onClick={() => onCopyPath(worktree.path)}
               />
             </Tooltip>
           </HStack>
