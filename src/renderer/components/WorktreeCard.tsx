@@ -15,7 +15,7 @@ import {
   Skeleton,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
-import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon } from './Icons'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
@@ -45,6 +45,7 @@ function CardContent({
   onOpenIDE,
   onOpenFinder,
   onOpenUrl,
+  onRunSetup,
   onDelete,
   onChangeBranch,
 }: {
@@ -65,6 +66,7 @@ function CardContent({
   onOpenIDE: (path: string) => void
   onOpenFinder: (path: string) => void
   onOpenUrl: (url: string) => void
+  onRunSetup: () => void
   onDelete?: () => void
   onChangeBranch?: () => void
 }) {
@@ -242,6 +244,15 @@ function CardContent({
                   </MenuItem>
                 </>
               )}
+              <MenuItem
+                icon={<RefreshIcon boxSize={4} color="whiteAlpha.700" />}
+                onClick={onRunSetup}
+                bg="transparent"
+                _hover={{ bg: 'whiteAlpha.100' }}
+                fontSize="sm"
+              >
+                Run setup
+              </MenuItem>
               {!isMain && onDelete && (
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
@@ -296,7 +307,7 @@ export function WorktreeCardSkeleton() {
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMerged }: WorktreeCardProps) {
   const { settings, prStatuses, repoInfo } = useWorktree()
-  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder } = useAppActions()
+  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup } = useAppActions()
   const api = useAPI()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
 
@@ -331,6 +342,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch, isMer
       onOpenIDE={handleOpenIDE}
       onOpenFinder={handleOpenFinder}
       onOpenUrl={api.shell.openUrl}
+      onRunSetup={() => handleRunSetup(worktree)}
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
       onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
     />
