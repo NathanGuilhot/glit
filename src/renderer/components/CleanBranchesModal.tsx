@@ -31,10 +31,13 @@ export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Pr
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
 
+  const [mergeRefLabel, setMergeRefLabel] = useState(baseBranch)
+
   useEffect(() => {
     api.worktree.getMergedBranches(repoPath, baseBranch).then((result) => {
-      setBranches(result)
-      setSelected(new Set(result))
+      setBranches(result.branches)
+      setSelected(new Set(result.branches))
+      setMergeRefLabel(result.mergeRefLabel)
       setLoading(false)
     })
   }, [api, repoPath, baseBranch])
@@ -84,11 +87,11 @@ export default function CleanBranchesModal({ repoPath, baseBranch, onClose }: Pr
               <Text fontSize="sm" color="whiteAlpha.600">Finding merged branches…</Text>
             </HStack>
           ) : branches.length === 0 ? (
-            <Text fontSize="sm" color="whiteAlpha.600">No local branches merged into <Text as="span" fontFamily="mono">{baseBranch}</Text>.</Text>
+            <Text fontSize="sm" color="whiteAlpha.600">No local branches merged into <Text as="span" fontFamily="mono">{mergeRefLabel}</Text>.</Text>
           ) : (
             <VStack align="stretch" spacing={2}>
               <Text fontSize="xs" color="whiteAlpha.500">
-                Branches merged into <Text as="span" fontFamily="mono">{baseBranch}</Text>:
+                Branches merged into <Text as="span" fontFamily="mono">{mergeRefLabel}</Text>:
               </Text>
               <HStack spacing={2}>
                 <Button size="xs" variant="ghost" onClick={() => setSelected(new Set(branches))} isDisabled={allSelected}>All</Button>
