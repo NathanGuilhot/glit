@@ -92,7 +92,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     } finally {
       setLoading(false)
     }
-  }, [api, toast, updatePrStatuses])
+  }, [api, toast, t, updatePrStatuses])
 
   const refresh = useCallback(async () => {
     if (!repoInfo?.isRepo) return
@@ -106,7 +106,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     } finally {
       setRefreshing(false)
     }
-  }, [api, repoInfo, toast, updatePrStatuses])
+  }, [api, repoInfo, toast, t, updatePrStatuses])
 
   useEffect(() => {
     loadRepo()
@@ -179,7 +179,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     } finally {
       setSwitching(false)
     }
-  }, [api, repoInfo, toast, setFilter, updatePrStatuses])
+  }, [api, repoInfo, toast, setFilter, t, updatePrStatuses])
 
   const filtered = worktrees.filter((wt) => {
     if (!filter) return true

@@ -99,7 +99,7 @@ const CleanupModal = NiceModal.create<{
       toast({ title: t('cleanup.toast.partial', { items: parts.join(', ') }), status: 'warning', duration: 4000 })
     }
     modal.hide()
-  }, [api, repoPath, selectedWorktrees, selectedBranches, mergedPRWorktrees, handleBatchDelete, refresh, toast, modal])
+  }, [api, repoPath, selectedWorktrees, selectedBranches, mergedPRWorktrees, handleBatchDelete, refresh, toast, modal, t])
 
   const allWorktreesSelected = mergedPRWorktrees.length > 0 && selectedWorktrees.size === mergedPRWorktrees.length
   const noWorktreesSelected = selectedWorktrees.size === 0

@@ -50,7 +50,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     } else {
       toast({ title: t('actions.toast.deleteFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
-  }, [api, repoInfo, refresh, toast])
+  }, [api, repoInfo, refresh, toast, t])
 
   const handleBatchDelete = useCallback(async (worktrees: WorktreeWithDiff[]): Promise<{ deleted: number; failed: number }> => {
     if (!repoInfo) return { deleted: 0, failed: 0 }
@@ -76,26 +76,26 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
   const handleCopyPath = useCallback(async (worktreePath: string) => {
     await api.clipboard.copy(worktreePath)
     toast({ title: t('actions.toast.pathCopied'), status: 'success', duration: 1500, position: 'bottom-right' })
-  }, [api, toast])
+  }, [api, toast, t])
 
   const handleCopyBranch = useCallback(async (branch: string) => {
     await api.clipboard.copy(branch)
     toast({ title: t('actions.toast.branchCopied'), status: 'success', duration: 1500, position: 'bottom-right' })
-  }, [api, toast])
+  }, [api, toast, t])
 
   const handleOpenTerminal = useCallback(async (worktreePath: string) => {
     const result = await api.terminal.open(worktreePath, settings.preferredTerminal)
     if (!result.success) {
       toast({ title: t('actions.toast.failedToOpenTerminal'), description: result.error, status: 'error', duration: 4000 })
     }
-  }, [api, settings.preferredTerminal, toast])
+  }, [api, settings.preferredTerminal, toast, t])
 
   const handleOpenIDE = useCallback(async (worktreePath: string) => {
     const result = await api.ide.open(worktreePath, settings.preferredIDE)
     if (!result.success) {
       toast({ title: t('actions.toast.failedToOpenIDE'), description: result.error, status: 'error', duration: 4000 })
     }
-  }, [api, settings.preferredIDE, toast])
+  }, [api, settings.preferredIDE, toast, t])
 
   const handleOpenFinder = useCallback(async (worktreePath: string) => {
     await api.shell.openPath(worktreePath)
@@ -104,7 +104,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     await api.settings.set(newSettings)
     toast({ title: t('actions.toast.settingsSaved'), status: 'success', duration: 1500 })
-  }, [api, toast])
+  }, [api, toast, t])
 
   const handleRunSetup = useCallback(async (worktree: WorktreeWithDiff) => {
     if (!repoInfo) return
@@ -116,7 +116,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     } else {
       toast({ title: t('actions.toast.setupFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
-  }, [api, repoInfo, toast])
+  }, [api, repoInfo, toast, t])
 
   const handleSyncWorktree = useCallback(async (worktree: WorktreeWithDiff) => {
     const id = toast({ title: t('actions.toast.syncing'), status: 'loading', duration: null, isClosable: false })
@@ -128,7 +128,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     } else {
       toast({ title: t('actions.toast.syncFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
     }
-  }, [api, toast, refresh])
+  }, [api, toast, refresh, t])
 
   const value: AppActionsContextValue = {
     handleDelete,
