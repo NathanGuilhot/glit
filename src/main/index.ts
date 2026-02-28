@@ -85,7 +85,11 @@ app.whenReady().then(() => {
   checkForUpdates()
 
   if (process.platform === 'darwin') {
-    app.dock?.setIcon(path.join(__dirname, '../../build/icon.png'))
+    try {
+      app.dock?.setIcon(path.join(__dirname, '../../build/icon.png'))
+    } catch (error) {
+      log.warn('Could not set dock icon:', error)
+    }
   }
 
   app.on('activate', () => {
