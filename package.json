@@ -1,7 +1,11 @@
 {
   "name": "glit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Git worktree manager",
+  "author": {
+    "name": "NathanGuilhot",
+    "email": "contact@nighten.fr"
+  },
   "type": "module",
   "main": "dist/main/index.js",
   "bin": {
@@ -79,14 +83,16 @@
         }
       ],
       "category": "public.app-category.developer-tools",
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "identity": null
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "maintainer": "NathanGuilhot <contact@nighten.fr>"
     },
     "win": {
       "target": ["nsis"],
