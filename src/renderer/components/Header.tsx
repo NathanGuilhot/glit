@@ -7,11 +7,10 @@ interface HeaderProps {
   onOpenSettings: () => void
   onOpenCleanup: () => void
   cleanupMode?: boolean
-  hasMergedBranches?: boolean
-  onExitCleanup?: () => void
+  hasMergedPRWorktrees?: boolean
 }
 
-export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cleanupMode, hasMergedBranches, onExitCleanup }: HeaderProps) {
+export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cleanupMode, hasMergedPRWorktrees }: HeaderProps) {
   const { repoInfo, worktrees, refreshing, refresh } = useWorktree()
 
   return (
@@ -30,14 +29,9 @@ export default function Header({ onOpenCreate, onOpenSettings, onOpenCleanup, cl
           )}
         </HStack>
         <HStack spacing={1}>
-          {!cleanupMode && hasMergedBranches && (
+          {!cleanupMode && hasMergedPRWorktrees && (
             <Button size="sm" variant="ghost" colorScheme="orange" onClick={onOpenCleanup}>
               Clean up
-            </Button>
-          )}
-          {cleanupMode && (
-            <Button size="sm" variant="ghost" colorScheme="orange" onClick={onExitCleanup}>
-              Done
             </Button>
           )}
           <Tooltip label="New worktree (c)" placement="bottom">

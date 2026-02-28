@@ -21,7 +21,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { WorktreeCardSkeleton } from './components/WorktreeCard'
 
 function AppContent() {
-  const { loading, repoInfo, settings, detectedBaseBranch, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
+  const { loading, repoInfo, settings, detectedBaseBranch, createProgress, setFilter, refresh, setCreateProgress, worktrees, prStatuses } = useWorktree()
   const { handleDelete, handleBatchDelete, handleSaveSettings } = useAppActions()
   const api = useAPI()
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
@@ -31,7 +31,9 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false)
   const [cleanupMode, setCleanupMode] = useState(false)
   const [cancellingCreate, setCancellingCreate] = useState(false)
-  const [mergedBranches, setMergedBranches] = useState<string[]>([])
+
+  const worktreesWithMergedPR = worktrees.filter((wt) => prStatuses[wt.path]?.state === 'MERGED')
+  const hasMergedPRWorktrees = worktreesWithMergedPR.length > 0
 
   const toast = useToast()
 
@@ -97,53 +99,40 @@ function AppContent() {
           e.preventDefault()
           break
         case 'Escape':
-          setFilter('')
+          if (cleanupMode) setCleanupMode(false)
+          else setFilter('')
           break
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [refresh, setFilter, openSettings])
+  }, [refresh, setFilter, openSettings, cleanupMode])
 
   const handleDeleteConfirm = async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
     await handleDelete(worktree, force, deleteFiles)
     setDeleteTarget(null)
   }
 
-  const fetchMergedBranches = useCallback(async () => {
-    if (!repoInfo?.isRepo) return
-    const result = await api.worktree.getMergedBranches(repoInfo.path, detectedBaseBranch)
-    setMergedBranches(result)
-  }, [api, repoInfo?.path, repoInfo?.isRepo, detectedBaseBranch])
-
-  useEffect(() => {
-    fetchMergedBranches()
-  }, [fetchMergedBranches])
-
   const handleEnterCleanup = useCallback(() => {
     setCleanupMode(true)
-    const count = mergedBranches.length
+    const count = worktreesWithMergedPR.length
     toast({
-      title: `${count} worktree${count !== 1 ? 's' : ''} with merged branches`,
+      title: `${count} worktree${count !== 1 ? 's' : ''} with merged PR`,
       status: 'info',
       duration: 3000,
     })
-  }, [mergedBranches.length, toast])
+  }, [worktreesWithMergedPR.length, toast])
 
-  const handleExitCleanup = useCallback(() => {
-    setCleanupMode(false)
-  }, [])
-
-  const handleBatchDeleteConfirm = useCallback(async (worktrees: WorktreeWithDiff[]) => {
-    const { deleted, failed } = await handleBatchDelete(worktrees)
+  const handleBatchDeleteConfirm = useCallback(async (worktreesToDelete: WorktreeWithDiff[]) => {
+    const { deleted, failed } = await handleBatchDelete(worktreesToDelete)
     if (failed === 0) {
       toast({ title: `Deleted ${deleted} worktree${deleted !== 1 ? 's' : ''}`, status: 'success', duration: 3000 })
     } else {
       toast({ title: `Deleted ${deleted}, failed ${failed}`, status: 'warning', duration: 4000 })
     }
     setCleanupMode(false)
-    await fetchMergedBranches()
-  }, [handleBatchDelete, toast, fetchMergedBranches])
+    await refresh()
+  }, [handleBatchDelete, toast, refresh])
 
   if (loading) {
     return (
@@ -199,8 +188,7 @@ function AppContent() {
         onOpenSettings={openSettings}
         onOpenCleanup={handleEnterCleanup}
         cleanupMode={cleanupMode}
-        hasMergedBranches={mergedBranches.length > 0}
-        onExitCleanup={handleExitCleanup}
+        hasMergedPRWorktrees={hasMergedPRWorktrees}
       />
 
       <FilterBar />
@@ -210,8 +198,7 @@ function AppContent() {
           onDelete={(wt) => setDeleteTarget(wt)}
           onChangeBranch={(wt) => setChangeBranchTarget(wt)}
           cleanupMode={cleanupMode}
-          mergedBranches={mergedBranches}
-          onExitCleanup={handleExitCleanup}
+          worktreesWithMergedPR={worktreesWithMergedPR}
           onBatchDelete={handleBatchDeleteConfirm}
         />
       </Box>

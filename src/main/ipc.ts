@@ -540,20 +540,6 @@ end tell'`
     await runGitCommand(repoPath, ['checkout', '--ignore-other-worktrees', branchName])
   })
 
-  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
-    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
-    try {
-      const output = await runGitCommand(repoPath, ['branch', '--merged', baseBranch])
-      return output
-        .split('\n')
-        .map((l) => l.replace(/^\*\s*/, '').trim())
-        .filter((name) => name && name !== baseBranch)
-    } catch (error) {
-      log.warn('getMergedBranches failed:', error)
-      return []
-    }
-  })
-
   ipcMain.handle('pr:getStatus', async (_event, worktreePath: string) => {
     try {
       const { stdout } = await execAsync('gh pr view --json state,number,url', { cwd: worktreePath })

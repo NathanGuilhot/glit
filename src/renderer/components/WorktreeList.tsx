@@ -11,18 +11,15 @@ interface WorktreeListProps {
   onDelete: (worktree: WorktreeWithDiff) => void
   onChangeBranch: (worktree: WorktreeWithDiff) => void
   cleanupMode?: boolean
-  mergedBranches?: string[]
-  onExitCleanup?: () => void
+  worktreesWithMergedPR?: WorktreeWithDiff[]
   onBatchDelete?: (worktrees: WorktreeWithDiff[]) => void
 }
 
-export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, mergedBranches, onBatchDelete }: WorktreeListProps) {
+export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, worktreesWithMergedPR, onBatchDelete }: WorktreeListProps) {
   const { worktrees, filter, setFilter } = useWorktree()
   const [showBatchConfirm, setShowBatchConfirm] = useState(false)
 
-  const mergedWorktrees = cleanupMode && mergedBranches
-    ? worktrees.filter((wt) => mergedBranches.includes(wt.branch))
-    : []
+  const mergedWorktrees = cleanupMode && worktreesWithMergedPR ? worktreesWithMergedPR : []
 
   if (worktrees.length === 0) {
     return (
@@ -58,7 +55,7 @@ export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, me
           worktree={wt}
           onDelete={onDelete}
           onChangeBranch={onChangeBranch}
-          isMerged={cleanupMode && mergedBranches?.includes(wt.branch)}
+          isMerged={cleanupMode && worktreesWithMergedPR?.some((w) => w.path === wt.path)}
         />
       ))}
 
@@ -66,10 +63,10 @@ export default function WorktreeList({ onDelete, onChangeBranch, cleanupMode, me
         <Modal isOpen onClose={() => setShowBatchConfirm(false)} size="sm" isCentered>
           <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
           <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
-            <ModalHeader pb={2} fontSize="md">Remove merged worktrees?</ModalHeader>
+            <ModalHeader pb={2} fontSize="md">Remove merged PR worktrees?</ModalHeader>
             <ModalBody>
               <Text fontSize="sm" color="whiteAlpha.700">
-                This will remove {mergedWorktrees.length} worktree{mergedWorktrees.length !== 1 ? 's' : ''} whose branches are merged into the base branch. This cannot be undone.
+                This will remove {mergedWorktrees.length} worktree{mergedWorktrees.length !== 1 ? 's' : ''} whose PRs are merged. This cannot be undone.
               </Text>
             </ModalBody>
             <ModalFooter>

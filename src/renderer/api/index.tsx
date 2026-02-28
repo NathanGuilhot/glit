@@ -20,7 +20,6 @@ export interface API {
     delete: (options: Parameters<GlitAPI['worktree']['delete']>[0]) => ReturnType<GlitAPI['worktree']['delete']>
     create: (options: Parameters<GlitAPI['worktree']['create']>[0]) => ReturnType<GlitAPI['worktree']['create']>
     cancelCreate: () => ReturnType<GlitAPI['worktree']['cancelCreate']>
-    getMergedBranches: (repoPath: string, baseBranch: string) => ReturnType<GlitAPI['worktree']['getMergedBranches']>
   }
   branch: {
     list: (repoPath: string) => ReturnType<GlitAPI['branch']['list']>
@@ -67,7 +66,6 @@ export function createAPI(glit: GlitAPI): API {
       delete: glit.worktree.delete,
       create: glit.worktree.create,
       cancelCreate: glit.worktree.cancelCreate,
-      getMergedBranches: glit.worktree.getMergedBranches,
     },
     branch: {
       list: glit.branch.list,
