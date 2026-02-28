@@ -10,10 +10,10 @@ import {
   Text,
   VStack,
   HStack,
-  List,
-  ListItem,
 } from '@chakra-ui/react'
-import { useAPI, BranchInfo } from '../api'
+import { useAPI } from '../api'
+import type { BranchInfo } from '../../shared/types'
+import BranchSearchList from './BranchSearchList'
 
 interface ChangeBranchModalProps {
   repoPath: string
@@ -52,12 +52,6 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
     }
   }
 
-  const handleSelect = (branchName: string) => {
-    if (branchName !== currentBranch) {
-      setSelectedBranch(branchName)
-    }
-  }
-
   return (
     <Modal isOpen onClose={onClose} size="md" isCentered scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
@@ -71,28 +65,14 @@ export default function ChangeBranchModal({ repoPath, currentBranch, onSuccess, 
             <Text fontSize="sm" color="whiteAlpha.600">
               Select a branch to checkout in the root repository
             </Text>
-            <List spacing={1} maxH="300px" overflowY="auto" borderRadius="md" border="1px solid" borderColor="whiteAlpha.100">
-              {branches.map((branch) => (
-                <ListItem
-                  key={branch.name}
-                  px={3}
-                  py={2}
-                  cursor="pointer"
-                  bg={selectedBranch === branch.name ? 'brand.500' : branch.name === currentBranch ? 'whiteAlpha.50' : 'transparent'}
-                  _hover={{ bg: selectedBranch === branch.name ? 'brand.600' : 'whiteAlpha.100' }}
-                  onClick={() => handleSelect(branch.name)}
-                  borderBottom="1px solid"
-                  borderColor="whiteAlpha.50"
-                >
-                  <HStack justify="space-between">
-                    <Text fontSize="sm">{branch.name}</Text>
-                    {branch.name === currentBranch && (
-                      <Text fontSize="xs" color="green.400">(current)</Text>
-                    )}
-                  </HStack>
-                </ListItem>
-              ))}
-            </List>
+            <BranchSearchList
+              branches={branches}
+              selected={selectedBranch}
+              onSelect={setSelectedBranch}
+              currentBranch={currentBranch}
+              disableCurrent={true}
+              maxH="260px"
+            />
             {error && (
               <Text fontSize="sm" color="red.400">{error}</Text>
             )}
