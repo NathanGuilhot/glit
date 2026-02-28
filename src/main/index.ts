@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, Menu } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import log from 'electron-log'
@@ -6,6 +6,8 @@ import { setupIpcHandlers } from './ipc.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+app.setName('Glit')
 
 log.initialize()
 log.transports.file.level = 'info'
@@ -74,12 +76,47 @@ function createWindow(): void {
   log.info('Main window created')
 }
 
-ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
-  return shell.openPath(filePath)
-})
+const isMac = process.platform === 'darwin'
 
 app.whenReady().then(() => {
   log.info('App ready')
+  const menuTemplate: Parameters<typeof Menu.buildFromTemplate>[0] = [
+    ...(isMac
+      ? [
+          {
+            label: 'Glit',
+            submenu: [
+              {
+                label: 'About Glit',
+                click: () => {
+                  app.setAboutPanelOptions({
+                    applicationName: 'Glit',
+                    applicationVersion: app.getVersion(),
+                  })
+                  app.showAboutPanel()
+                },
+              },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const },
+            ],
+          },
+        ]
+      : []),
+    {
+      label: 'File',
+      submenu: [isMac ? { role: 'close' as const } : { role: 'quit' as const }],
+    },
+    { role: 'editMenu' as const },
+    { role: 'viewMenu' as const },
+    { role: 'windowMenu' as const },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate))
   setupIpcHandlers(() => mainWindow)
   createWindow()
   checkForUpdates()

@@ -129,6 +129,17 @@ export const RebaseIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const SyncIcon = createIcon({
+  displayName: 'SyncIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="bar" x1="4" y1="20" x2="20" y2="20" />,
+    <line key="stem" x1="12" y1="4" x2="12" y2="16" />,
+    <polyline key="arrow" points="7 11 12 16 17 11" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const CloseIcon = createIcon({
   displayName: 'CloseIcon',
   viewBox: '0 0 24 24',

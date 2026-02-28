@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, dialog, BrowserWindow } from 'electron'
+import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -117,16 +117,25 @@ async function getWorktrees(repoPath: string): Promise<Worktree[]> {
   return worktrees
 }
 
-async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: number; insertionCount: number; deletionCount: number }> {
+async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: number; insertionCount: number; deletionCount: number; isStale: boolean }> {
   try {
     // Check if path exists
     await fs.access(worktreePath)
-    const output = await runGitCommand(worktreePath, ['diff', '--numstat', 'HEAD'])
-    if (!output.trim()) {
-      return { fileCount: 0, insertionCount: 0, deletionCount: 0 }
+    const [indexDiff, headDiff] = await Promise.all([
+      runGitCommand(worktreePath, ['diff', '--numstat']),
+      runGitCommand(worktreePath, ['diff', '--numstat', 'HEAD']),
+    ])
+
+    // Stale: working tree matches index (no user edits) but differs from HEAD (HEAD moved)
+    if (!indexDiff.trim() && headDiff.trim()) {
+      return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: true }
     }
 
-    const lines = output.trim().split('\n')
+    if (!headDiff.trim()) {
+      return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: false }
+    }
+
+    const lines = headDiff.trim().split('\n')
     let fileCount = 0
     let insertionCount = 0
     let deletionCount = 0
@@ -140,9 +149,9 @@ async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: numbe
       }
     }
 
-    return { fileCount, insertionCount, deletionCount }
+    return { fileCount, insertionCount, deletionCount, isStale: false }
   } catch {
-    return { fileCount: 0, insertionCount: 0, deletionCount: 0 }
+    return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: false }
   }
 }
 
@@ -447,6 +456,17 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     }
   })
 
+  ipcMain.handle('worktree:sync', async (_event, worktreePath: string) => {
+    log.info(`Syncing working tree: ${worktreePath}`)
+    try {
+      await runGitCommand(worktreePath, ['reset', '--hard', 'HEAD'])
+      return { success: true }
+    } catch (error) {
+      log.error('Error syncing worktree:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   ipcMain.handle('worktree:runSetup', async (_event, { repoPath, worktreePath }: { repoPath: string; worktreePath: string }) => {
     log.info(`Re-running setup for: ${worktreePath}`)
     try {
@@ -664,8 +684,11 @@ end tell'`
   })
 
   ipcMain.handle('shell:openUrl', async (_event, url: string) => {
-    const { shell } = await import('electron')
     await shell.openExternal(url)
+  })
+
+  ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
+    return shell.openPath(filePath)
   })
 
   log.info('IPC handlers setup complete')

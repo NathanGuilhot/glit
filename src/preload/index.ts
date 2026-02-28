@@ -11,6 +11,7 @@ const api: GlitAPI = {
       ipcRenderer.invoke('worktree:getMergedBranches', repoPath, baseBranch),
     runSetup: (options: { repoPath: string; worktreePath: string }) =>
       ipcRenderer.invoke('worktree:runSetup', options),
+    sync: (worktreePath: string) => ipcRenderer.invoke('worktree:sync', worktreePath),
   },
   branch: {
     list: (repoPath: string) => ipcRenderer.invoke('branch:list', repoPath),

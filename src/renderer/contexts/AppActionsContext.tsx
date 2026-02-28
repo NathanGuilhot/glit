@@ -14,6 +14,7 @@ interface AppActionsContextValue {
   handleOpenFinder: (worktreePath: string) => Promise<void>
   handleSaveSettings: (newSettings: AppSettings) => Promise<void>
   handleRunSetup: (worktree: WorktreeWithDiff) => Promise<void>
+  handleSyncWorktree: (worktree: WorktreeWithDiff) => Promise<void>
 }
 
 const AppActionsContext = createContext<AppActionsContextValue | null>(null)
@@ -115,6 +116,18 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     }
   }, [api, repoInfo, toast])
 
+  const handleSyncWorktree = useCallback(async (worktree: WorktreeWithDiff) => {
+    const id = toast({ title: 'Syncing working tree…', status: 'loading', duration: null, isClosable: false })
+    const result = await api.worktree.sync(worktree.path)
+    toast.close(id)
+    if (result.success) {
+      toast({ title: 'Working tree synced', status: 'success', duration: 3000 })
+      refresh()
+    } else {
+      toast({ title: 'Sync failed', description: result.error, status: 'error', duration: 5000, isClosable: true })
+    }
+  }, [api, toast, refresh])
+
   const value: AppActionsContextValue = {
     handleDelete,
     handleBatchDelete,
@@ -125,6 +138,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     handleOpenFinder,
     handleSaveSettings,
     handleRunSetup,
+    handleSyncWorktree,
   }
 
   return (

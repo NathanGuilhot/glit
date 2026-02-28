@@ -14,6 +14,7 @@ export interface DiffStats {
   deletionCount: number
   aheadCount: number
   behindCount: number
+  isStale: boolean
 }
 
 export interface WorktreeWithDiff extends Worktree, DiffStats {}
@@ -88,6 +89,7 @@ export interface GlitAPI {
     cancelCreate: () => Promise<void>
     getMergedBranches: (repoPath: string, baseBranch: string) => Promise<{ branches: string[]; mergeRefLabel: string }>
     runSetup: (options: { repoPath: string; worktreePath: string }) => Promise<{ success: boolean; error?: string }>
+    sync: (worktreePath: string) => Promise<{ success: boolean; error?: string }>
   }
   branch: {
     list: (repoPath: string) => Promise<BranchInfo[]>

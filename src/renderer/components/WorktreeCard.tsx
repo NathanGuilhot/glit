@@ -17,7 +17,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
-import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon } from './Icons'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
@@ -46,6 +46,7 @@ function CardContent({
   onOpenFinder,
   onOpenUrl,
   onRunSetup,
+  onSyncWorktree,
   onDelete,
   onChangeBranch,
   onRebase,
@@ -69,6 +70,7 @@ function CardContent({
   onOpenFinder: (path: string) => void
   onOpenUrl: (url: string) => void
   onRunSetup: () => void
+  onSyncWorktree: () => void
   onDelete?: () => void
   onChangeBranch?: () => void
   onRebase?: () => void
@@ -120,6 +122,9 @@ function CardContent({
               <Badge colorScheme="orange" variant="subtle" fontSize="9px">
                 locked
               </Badge>
+            )}
+            {worktree.isStale && (
+              <Badge colorScheme="yellow" variant="subtle" fontSize="9px">stale</Badge>
             )}
             {prStatus && (
               <Tooltip label={`PR #${prStatus.number} — click to open`} placement="bottom" openDelay={200}>
@@ -268,6 +273,20 @@ function CardContent({
               >
                 Run setup
               </MenuItem>
+              {worktree.isStale && (
+                <>
+                  <MenuDivider borderColor="whiteAlpha.100" />
+                  <MenuItem
+                    icon={<SyncIcon boxSize={4} color="yellow.300" />}
+                    onClick={onSyncWorktree}
+                    bg="transparent"
+                    _hover={{ bg: 'whiteAlpha.100' }}
+                    fontSize="sm"
+                  >
+                    Sync working tree
+                  </MenuItem>
+                </>
+              )}
               {!isMain && onDelete && (
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
@@ -322,7 +341,7 @@ export function WorktreeCardSkeleton() {
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: WorktreeCardProps) {
   const { settings, prStatuses, repoInfo, detectedBaseBranch } = useWorktree()
-  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup } = useAppActions()
+  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup, handleSyncWorktree } = useAppActions()
   const api = useAPI()
   const toast = useToast()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
@@ -388,6 +407,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
       onOpenFinder={handleOpenFinder}
       onOpenUrl={api.shell.openUrl}
       onRunSetup={() => handleRunSetup(worktree)}
+      onSyncWorktree={() => handleSyncWorktree(worktree)}
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
       onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
       onRebase={canRebase ? handleRebase : undefined}
