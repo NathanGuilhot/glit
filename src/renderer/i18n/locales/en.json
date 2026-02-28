@@ -66,7 +66,9 @@
       "root": "root",
       "locked": "locked",
       "stale": "stale",
-      "running": "running"
+      "running": "running",
+      "runningWithPort": "● :{{port}}",
+      "runningNoPort": "● running"
     },
     "prState": {
       "open": "● Open",
@@ -109,12 +111,20 @@
   "palette": {
     "placeholder": "Filter or type branch name…",
     "createNew": "+ Create new worktree \"{{branch}}\"",
+    "fileCount": "{{count}} files",
     "hints": {
       "navigate": "navigate",
       "terminal": "terminal",
       "ide": "IDE",
-      "close": "close"
+      "close": "close",
+      "openInTerminal": "↵",
+      "openInIDE": "⌘↵",
+      "escape": "esc"
     }
+  },
+  "branchSearchList": {
+    "noMatch": "No branches match \"{{query}}\"",
+    "current": "(current)"
   },
   "changeBranch": {
     "title": "Change Branch",

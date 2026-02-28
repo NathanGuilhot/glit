@@ -162,7 +162,7 @@ const WorktreePalette = NiceModal.create<{
                         <Text fontSize="xs" color="orange.400" fontFamily="mono">↓{wt.behindCount}</Text>
                       )}
                       {wt.fileCount > 0 && (
-                        <Text fontSize="xs" color="whiteAlpha.500" fontFamily="mono">+{wt.fileCount} files</Text>
+                        <Text fontSize="xs" color="whiteAlpha.500" fontFamily="mono">+{t('palette.fileCount', { count: wt.fileCount })}</Text>
                       )}
                     </HStack>
                   </HStack>
@@ -192,7 +192,12 @@ const WorktreePalette = NiceModal.create<{
 
           <Box px={4} py={2} borderTop="1px solid" borderColor="whiteAlpha.50">
             <HStack spacing={4} justify="center">
-              {[['↑↓', t('palette.hints.navigate')], ['↵', t('palette.hints.terminal')], ['⌘↵', t('palette.hints.ide')], ['esc', t('palette.hints.close')]].map(([key, label]) => (
+              {[
+                ['↑↓', t('palette.hints.navigate')],
+                [t('palette.hints.openInTerminal'), t('palette.hints.terminal')],
+                [t('palette.hints.openInIDE'), t('palette.hints.ide')],
+                [t('palette.hints.escape'), t('palette.hints.close')],
+              ].map(([key, label]) => (
                 <HStack key={key} spacing={1}>
                   <Text
                     fontSize="10px"

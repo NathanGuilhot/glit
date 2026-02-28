@@ -156,7 +156,7 @@ function AppContent() {
           letterSpacing="-0.02em"
           style={{ pointerEvents: 'none' } as React.CSSProperties}
         >
-          Glit ·.°
+          {t('app.title')}
         </Box>
       </Box>
 

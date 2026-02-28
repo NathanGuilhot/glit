@@ -212,7 +212,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                   onClick={runningProcess.port ? () => api.shell.openUrl(`http://localhost:${runningProcess.port}`) : undefined}
                   _hover={runningProcess.port ? { opacity: 0.8 } : undefined}
                 >
-                  ● {runningProcess.port ? `:${runningProcess.port}` : t('worktreeCard.badges.running')}
+                  {runningProcess.port ? t('worktreeCard.badges.runningWithPort', { port: runningProcess.port }) : t('worktreeCard.badges.runningNoPort')}
                 </Badge>
               </Tooltip>
             )}
