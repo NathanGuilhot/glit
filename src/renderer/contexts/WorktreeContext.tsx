@@ -8,6 +8,7 @@ interface WorktreeContextValue {
   worktrees: WorktreeWithDiff[]
   prStatuses: Record<string, PRStatus | null>
   settings: AppSettings
+  detectedBaseBranch: string
   loading: boolean
   refreshing: boolean
   filter: string
@@ -37,9 +38,9 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const [settings, setSettings] = useState<AppSettings>({
     preferredTerminal: 'Terminal',
     preferredIDE: 'VSCode',
-    defaultBaseBranch: '',
     autoRefresh: true,
   })
+  const [detectedBaseBranch, setDetectedBaseBranch] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilterState] = useState(() => sessionStorage.getItem('glit:filter') ?? '')
@@ -65,7 +66,8 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
         api.repo.defaultBranch(info.path),
       ])
       setWorktrees(wts)
-      setSettings({ ...cfg, defaultBaseBranch: cfg.defaultBaseBranch || detectedBranch })
+      setSettings(cfg)
+      setDetectedBaseBranch(detectedBranch)
       Promise.all(wts.map(async (wt) => {
         const status = await api.pr.getStatus(wt.path)
         return [wt.path, status] as const
@@ -116,6 +118,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     worktrees: filter ? filtered : worktrees,
     prStatuses,
     settings,
+    detectedBaseBranch,
     loading,
     refreshing,
     filter,

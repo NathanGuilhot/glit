@@ -29,7 +29,6 @@ export interface CreateProgress {
 }
 export interface AppSettings {
     preferredTerminal: string;
-    defaultBaseBranch: string;
     autoRefresh: boolean;
 }
 export interface RepoInfo {

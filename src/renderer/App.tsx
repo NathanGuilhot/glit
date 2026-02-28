@@ -21,7 +21,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { WorktreeCardSkeleton } from './components/WorktreeCard'
 
 function AppContent() {
-  const { loading, repoInfo, settings, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
+  const { loading, repoInfo, settings, detectedBaseBranch, createProgress, setFilter, refresh, setCreateProgress } = useWorktree()
   const { handleDelete, handleBatchDelete, handleSaveSettings } = useAppActions()
   const api = useAPI()
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
@@ -112,10 +112,9 @@ function AppContent() {
 
   const fetchMergedBranches = useCallback(async () => {
     if (!repoInfo?.isRepo) return
-    const baseBranch = settings.defaultBaseBranch || 'main'
-    const result = await api.worktree.getMergedBranches(repoInfo.path, baseBranch)
+    const result = await api.worktree.getMergedBranches(repoInfo.path, detectedBaseBranch)
     setMergedBranches(result)
-  }, [api, repoInfo?.path, repoInfo?.isRepo, settings.defaultBaseBranch])
+  }, [api, repoInfo?.path, repoInfo?.isRepo, detectedBaseBranch])
 
   useEffect(() => {
     fetchMergedBranches()
@@ -239,7 +238,7 @@ function AppContent() {
       {showCreate && repoInfo && (
         <CreateWorktreeModal
           repoPath={repoInfo.path}
-          settings={settings}
+          detectedBaseBranch={detectedBaseBranch}
           progress={createProgress}
           cancelling={cancellingCreate}
           onConfirm={handleCreate}

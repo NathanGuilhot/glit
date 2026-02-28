@@ -42,7 +42,6 @@ export type TerminalOption = 'Terminal' | 'iTerm2' | 'Hyper' | 'Kitty' | 'Alacri
 export interface AppSettings {
   preferredTerminal: TerminalOption
   preferredIDE: IDEOption
-  defaultBaseBranch: string
   autoRefresh: boolean
 }
 

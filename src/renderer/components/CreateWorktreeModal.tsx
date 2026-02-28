@@ -25,12 +25,12 @@ import {
   Spinner,
   Progress,
 } from '@chakra-ui/react'
-import type { AppSettings, SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
+import type { SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
 import { useAPI } from '../api'
 
 interface CreateWorktreeModalProps {
   repoPath: string
-  settings: AppSettings
+  detectedBaseBranch: string
   progress: CreateProgress | null
   cancelling?: boolean
   onConfirm: (branchName: string, createNew: boolean, baseBranch: string) => Promise<void>
@@ -234,7 +234,7 @@ function CreateWorktreeProgress({ progress }: CreateWorktreeProgressProps) {
 
 export default function CreateWorktreeModal({
   repoPath,
-  settings,
+  detectedBaseBranch,
   progress,
   cancelling = false,
   onConfirm,
@@ -244,7 +244,7 @@ export default function CreateWorktreeModal({
   const api = useAPI()
   const [branchName, setBranchName] = useState('')
   const [createNew, setCreateNew] = useState(false)
-  const [baseBranch, setBaseBranch] = useState(settings.defaultBaseBranch)
+  const [baseBranch, setBaseBranch] = useState(detectedBaseBranch)
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [setupConfig, setSetupConfig] = useState<SetupConfig | null>(null)
   const [loadingBranches, setLoadingBranches] = useState(true)
@@ -264,12 +264,12 @@ export default function CreateWorktreeModal({
       ])
       setBranches(branchList)
       const currentBranch = branchList.find((b) => b.isCurrent && !b.isRemote)
-      setBaseBranch(currentBranch?.name ?? settings.defaultBaseBranch)
+      setBaseBranch(currentBranch?.name ?? detectedBaseBranch)
       setSetupConfig(config)
       setLoadingBranches(false)
     }
     loadData()
-  }, [api, repoPath, settings])
+  }, [api, repoPath, detectedBaseBranch])
 
   const validate = (): string => {
     if (!branchName.trim()) return 'Branch name is required'

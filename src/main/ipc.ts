@@ -46,7 +46,6 @@ function shortenPathForDisplay(fullPath: string): string {
 const defaultSettings: AppSettings = {
   preferredTerminal: 'Terminal',
   preferredIDE: 'VSCode',
-  defaultBaseBranch: '',
   autoRefresh: true,
 }
 
@@ -55,7 +54,8 @@ const store = new Store<{ settings: AppSettings }>({
 })
 
 async function runGitCommand(cwd: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> {
-  const cmd = `git ${args.join(' ')}`
+  const safeArgs = args.map(arg => /[^\w/-]/.test(arg) ? `'${arg.replace(/'/g, "'\\''")}'` : arg)
+  const cmd = `git ${safeArgs.join(' ')}`
   log.debug(`Git: ${cmd} [${cwd}]`)
   const { stdout, stderr } = await execAsync(cmd, { cwd, signal: options?.signal })
   if (stderr) log.debug(`Git stderr: ${stderr}`)
@@ -161,16 +161,13 @@ async function getWorktreeLastActivity(worktreePath: string): Promise<string | u
 
 async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   const branches: BranchInfo[] = []
-  let currentBranch = ''
 
   try {
-    const localOutput = await runGitCommand(repoPath, ['branch'])
-    const localLines = localOutput.split('\n').filter(Boolean)
-    const currentLine = localLines.find((b) => b.startsWith('*'))
-    currentBranch = currentLine?.slice(2).trim() ?? ''
+    const localOutput = await runGitCommand(repoPath, ['branch', '--format=%(refname:short)'])
+    const currentBranch = (await runGitCommand(repoPath, ['branch', '--show-current'])).trim()
 
-    for (const line of localLines) {
-      const name = line.replace(/^\*\s*/, '').trim()
+    for (const line of localOutput.split('\n').filter(Boolean)) {
+      const name = line.trim()
       if (name) {
         branches.push({ name, isRemote: false, isCurrent: name === currentBranch })
       }
@@ -180,7 +177,7 @@ async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   }
 
   try {
-    const remoteOutput = await runGitCommand(repoPath, ['branch', '-r'])
+    const remoteOutput = await runGitCommand(repoPath, ['branch', '-r', '--format=%(refname:short)'])
     for (const line of remoteOutput.split('\n').filter(Boolean)) {
       const name = line.trim()
       if (name && !name.includes('HEAD')) {

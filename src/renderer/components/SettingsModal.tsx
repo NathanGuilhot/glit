@@ -55,7 +55,6 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
   const api = useAPI()
   const [terminal, setTerminal] = useState<TerminalOption>(settings.preferredTerminal)
   const [ide, setIde] = useState<IDEOption>(settings.preferredIDE)
-  const [baseBranch, setBaseBranch] = useState(settings.defaultBaseBranch)
   const [autoRefresh, setAutoRefresh] = useState(settings.autoRefresh)
   const [saving, setSaving] = useState(false)
 
@@ -66,7 +65,7 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
 
   const handleSave = async () => {
     setSaving(true)
-    await onSave({ preferredTerminal: terminal, preferredIDE: ide, defaultBaseBranch: baseBranch, autoRefresh })
+    await onSave({ preferredTerminal: terminal, preferredIDE: ide, autoRefresh })
     const filteredPackages = packages.filter(Boolean)
     const filteredEnvFiles = envFiles.filter(Boolean)
     const filteredCommands = commands.filter(Boolean)
@@ -90,7 +89,6 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
   const isDirty =
     terminal !== settings.preferredTerminal ||
     ide !== settings.preferredIDE ||
-    baseBranch !== settings.defaultBaseBranch ||
     autoRefresh !== settings.autoRefresh ||
     setupChanged
 
@@ -217,22 +215,6 @@ export default function SettingsModal({ settings, repoPath, setupConfig, onSave,
             </FormControl>
 
             <Divider borderColor="whiteAlpha.100" />
-
-            <FormControl>
-              <FormLabel fontSize="sm">Default base branch</FormLabel>
-              <Input
-                value={baseBranch}
-                onChange={(e) => setBaseBranch(e.target.value)}
-                placeholder="main"
-                fontFamily="mono"
-                fontSize="sm"
-                bg="whiteAlpha.50"
-                borderColor="whiteAlpha.200"
-              />
-              <FormHelperText fontSize="xs" color="whiteAlpha.500">
-                Default branch to fork from when creating new worktrees
-              </FormHelperText>
-            </FormControl>
 
             <Divider borderColor="whiteAlpha.100" />
 
