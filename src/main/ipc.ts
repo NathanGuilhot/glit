@@ -1,6 +1,7 @@
-import { ipcMain, clipboard, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, clipboard, dialog, shell, BrowserWindow, app } from 'electron'
 import log from 'electron-log'
-import { exec } from 'child_process'
+import { exec, spawn } from 'child_process'
+import type { ChildProcess } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import fs from 'fs/promises'
@@ -17,12 +18,26 @@ import type {
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
   CreateProgress,
+  RunningProcess,
+  ProcessLog,
+  DevCommandInfo,
 } from '../shared/types.js'
 
 const execAsync = promisify(exec)
 
 let activeCreateController: AbortController | null = null
 let activeRepoPath: string | null = null
+
+// Process runner state
+const runningProcesses = new Map<string, { proc: ChildProcess; info: RunningProcess }>()
+const processLogs = new Map<string, ProcessLog[]>()
+const MAX_LOG_LINES = 500
+
+app.on('will-quit', () => {
+  for (const { proc } of runningProcesses.values()) {
+    try { proc.kill('SIGTERM') } catch { /* ignore */ }
+  }
+})
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -53,8 +68,8 @@ const defaultSettings: AppSettings = {
   autoRefresh: true,
 }
 
-const store = new Store<{ settings: AppSettings; recentRepos: RecentRepo[] }>({
-  defaults: { settings: defaultSettings, recentRepos: [] },
+const store = new Store<{ settings: AppSettings; recentRepos: RecentRepo[]; devCommands: Record<string, string> }>({
+  defaults: { settings: defaultSettings, recentRepos: [], devCommands: {} },
 })
 
 function addToRecentRepos(info: RepoInfo): void {
@@ -254,6 +269,28 @@ async function getDefaultBranch(repoPath: string): Promise<string> {
   }
 
   return 'main'
+}
+
+function sendWindowEvent(getWindow: () => BrowserWindow | null, channel: string, data: unknown): void {
+  const win = getWindow()
+  if (win && !win.isDestroyed()) {
+    win.webContents.send(channel, data)
+  }
+}
+
+function detectPort(line: string): number | null {
+  const match = line.match(/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{2,5})/)
+  if (match) return parseInt(match[1]!, 10)
+  const portMatch = line.match(/(?:port|PORT)\s*[:\s]\s*(\d{2,5})/)
+  if (portMatch) return parseInt(portMatch[1]!, 10)
+  return null
+}
+
+function appendProcessLog(worktreePath: string, line: string, isError: boolean): void {
+  const logs = processLogs.get(worktreePath) ?? []
+  logs.push({ line, isError, ts: Date.now() })
+  if (logs.length > MAX_LOG_LINES) logs.shift()
+  processLogs.set(worktreePath, logs)
 }
 
 async function sendProgress(getWindow: () => BrowserWindow | null, data: CreateProgress): Promise<void> {
@@ -627,17 +664,17 @@ end tell'`
     try {
       const currentBranch = (await runGitCommand(repoPath, ['branch', '--show-current'])).trim()
       if (!currentBranch) return { success: false, error: 'Not on a branch (detached HEAD)' }
+      try {
+        await execAsync('git fetch origin --quiet', { cwd: repoPath, timeout: 10000 })
+      } catch {
+        log.warn('git fetch failed, proceeding with local state')
+      }
       await runGitCommand(repoPath, ['rebase', mainBranch])
       return { success: true, branch: currentBranch }
     } catch (error) {
-      try {
-        await runGitCommand(repoPath, ['rebase', '--abort'])
-        log.info('Rebase aborted after conflict')
-      } catch (abortError) {
-        log.warn('Failed to abort rebase:', abortError)
-      }
       const msg = error instanceof Error ? error.message : String(error)
-      return { success: false, error: msg }
+      const hasConflicts = /conflict/i.test(msg) || /CONFLICT/.test(msg)
+      return { success: false, hasConflicts, error: msg }
     }
   })
 
@@ -689,6 +726,138 @@ end tell'`
 
   ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
     return shell.openPath(filePath)
+  })
+
+  // Dev command detection
+  ipcMain.handle('worktree:detectDevCommand', async (_event, worktreePath: string): Promise<DevCommandInfo> => {
+    let pkgManager: DevCommandInfo['pkgManager'] = 'npm'
+    try {
+      const files = await fs.readdir(worktreePath)
+      if (files.includes('bun.lockb')) pkgManager = 'bun'
+      else if (files.includes('pnpm-lock.yaml')) pkgManager = 'pnpm'
+      else if (files.includes('yarn.lock')) pkgManager = 'yarn'
+    } catch { /* ignore */ }
+
+    // setup.yaml dev key takes priority
+    try {
+      const setupPath = path.join(worktreePath, '.glit', 'setup.yaml')
+      const content = await fs.readFile(setupPath, 'utf-8')
+      const config = yaml.load(content) as SetupConfig
+      if (config.dev) {
+        return { command: config.dev, pkgManager, scripts: [] }
+      }
+    } catch { /* no setup.yaml */ }
+
+    let scripts: string[] = []
+    try {
+      const pkgPath = path.join(worktreePath, 'package.json')
+      const pkgContent = await fs.readFile(pkgPath, 'utf-8')
+      const pkg = JSON.parse(pkgContent) as { scripts?: Record<string, string> }
+      scripts = Object.keys(pkg.scripts ?? {})
+    } catch { /* no package.json */ }
+
+    const defaultScript = scripts.includes('dev') ? 'dev' : scripts.includes('start') ? 'start' : null
+    const command = defaultScript ? `${pkgManager} run ${defaultScript}` : null
+    return { command, pkgManager, scripts }
+  })
+
+  // Saved dev commands per worktree
+  ipcMain.handle('process:getSavedCommand', async (_event, worktreePath: string): Promise<string | null> => {
+    const devCommands = store.get('devCommands', {})
+    return devCommands[worktreePath] ?? null
+  })
+
+  ipcMain.handle('process:saveCommand', async (_event, worktreePath: string, command: string) => {
+    const devCommands = store.get('devCommands', {})
+    store.set('devCommands', { ...devCommands, [worktreePath]: command })
+  })
+
+  ipcMain.handle('process:getAllDevCommands', async (): Promise<Record<string, string>> => {
+    return store.get('devCommands', {})
+  })
+
+  // Process runner
+  ipcMain.handle('process:start', async (_event, worktreePath: string, command: string) => {
+    const existing = runningProcesses.get(worktreePath)
+    if (existing) {
+      try { existing.proc.kill('SIGTERM') } catch { /* ignore */ }
+      runningProcesses.delete(worktreePath)
+    }
+    processLogs.set(worktreePath, [])
+    log.info(`Starting process in ${worktreePath}: ${command}`)
+
+    const proc = spawn(command, [], { cwd: worktreePath, shell: true, env: { ...process.env } })
+    const info: RunningProcess = { worktreePath, command, pid: proc.pid, startedAt: Date.now() }
+    runningProcesses.set(worktreePath, { proc, info })
+
+    const handleLine = (line: string, isError: boolean) => {
+      appendProcessLog(worktreePath, line, isError)
+      sendWindowEvent(getWindow, 'process:output', { worktreePath, line, isError })
+      if (!info.port) {
+        const port = detectPort(line)
+        if (port) {
+          info.port = port
+          sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'running', port, pid: proc.pid })
+        }
+      }
+    }
+
+    let stdoutBuf = ''
+    proc.stdout?.on('data', (data: Buffer) => {
+      stdoutBuf += data.toString()
+      let nl: number
+      while ((nl = stdoutBuf.indexOf('\n')) !== -1) {
+        const line = stdoutBuf.slice(0, nl).replace(/\r$/, '')
+        stdoutBuf = stdoutBuf.slice(nl + 1)
+        if (line) handleLine(line, false)
+      }
+    })
+
+    let stderrBuf = ''
+    proc.stderr?.on('data', (data: Buffer) => {
+      stderrBuf += data.toString()
+      let nl: number
+      while ((nl = stderrBuf.indexOf('\n')) !== -1) {
+        const line = stderrBuf.slice(0, nl).replace(/\r$/, '')
+        stderrBuf = stderrBuf.slice(nl + 1)
+        if (line) handleLine(line, true)
+      }
+    })
+
+    proc.on('close', (code) => {
+      log.info(`Process closed: ${worktreePath}, code: ${code}`)
+      runningProcesses.delete(worktreePath)
+      sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'stopped', exitCode: code ?? undefined })
+    })
+
+    proc.on('error', (err) => {
+      log.error(`Process error in ${worktreePath}`, err)
+      runningProcesses.delete(worktreePath)
+      sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'error', error: err.message })
+    })
+
+    sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'running', pid: proc.pid })
+    return { success: true, pid: proc.pid }
+  })
+
+  ipcMain.handle('process:stop', async (_event, worktreePath: string) => {
+    const entry = runningProcesses.get(worktreePath)
+    if (!entry) return
+    log.info(`Stopping process: ${worktreePath}`)
+    entry.proc.kill('SIGTERM')
+    setTimeout(() => {
+      if (runningProcesses.has(worktreePath)) {
+        entry.proc.kill('SIGKILL')
+      }
+    }, 3000)
+  })
+
+  ipcMain.handle('process:list', async (): Promise<RunningProcess[]> => {
+    return Array.from(runningProcesses.values()).map(({ info }) => ({ ...info }))
+  })
+
+  ipcMain.handle('process:getLogs', async (_event, worktreePath: string): Promise<ProcessLog[]> => {
+    return processLogs.get(worktreePath) ?? []
   })
 
   log.info('IPC handlers setup complete')

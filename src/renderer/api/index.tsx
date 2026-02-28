@@ -13,6 +13,9 @@ export type {
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
   PRStatus,
+  RunningProcess,
+  ProcessLog,
+  DevCommandInfo,
 } from '../../shared/types'
 
 export interface API {
@@ -24,6 +27,7 @@ export interface API {
     getMergedBranches: (repoPath: string, baseBranch: string) => ReturnType<GlitAPI['worktree']['getMergedBranches']>
     runSetup: (options: Parameters<GlitAPI['worktree']['runSetup']>[0]) => ReturnType<GlitAPI['worktree']['runSetup']>
     sync: (worktreePath: string) => ReturnType<GlitAPI['worktree']['sync']>
+    detectDevCommand: (worktreePath: string) => ReturnType<GlitAPI['worktree']['detectDevCommand']>
   }
   branch: {
     list: (repoPath: string) => ReturnType<GlitAPI['branch']['list']>
@@ -65,6 +69,15 @@ export interface API {
     openPath: (path: string) => ReturnType<GlitAPI['shell']['openPath']>
     openUrl: (url: string) => ReturnType<GlitAPI['shell']['openUrl']>
   }
+  process: {
+    start: (worktreePath: string, command: string) => ReturnType<GlitAPI['process']['start']>
+    stop: (worktreePath: string) => ReturnType<GlitAPI['process']['stop']>
+    list: () => ReturnType<GlitAPI['process']['list']>
+    getLogs: (worktreePath: string) => ReturnType<GlitAPI['process']['getLogs']>
+    saveCommand: (worktreePath: string, command: string) => ReturnType<GlitAPI['process']['saveCommand']>
+    getSavedCommand: (worktreePath: string) => ReturnType<GlitAPI['process']['getSavedCommand']>
+    getAllDevCommands: () => ReturnType<GlitAPI['process']['getAllDevCommands']>
+  }
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void
 }
 
@@ -78,6 +91,7 @@ export function createAPI(glit: GlitAPI): API {
       getMergedBranches: glit.worktree.getMergedBranches,
       runSetup: glit.worktree.runSetup,
       sync: glit.worktree.sync,
+      detectDevCommand: glit.worktree.detectDevCommand,
     },
     branch: {
       list: glit.branch.list,
@@ -118,6 +132,15 @@ export function createAPI(glit: GlitAPI): API {
     shell: {
       openPath: glit.shell.openPath,
       openUrl: glit.shell.openUrl,
+    },
+    process: {
+      start: glit.process.start,
+      stop: glit.process.stop,
+      list: glit.process.list,
+      getLogs: glit.process.getLogs,
+      saveCommand: glit.process.saveCommand,
+      getSavedCommand: glit.process.getSavedCommand,
+      getAllDevCommands: glit.process.getAllDevCommands,
     },
     on: glit.on,
   }

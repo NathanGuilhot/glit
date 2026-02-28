@@ -149,3 +149,33 @@ export const CloseIcon = createIcon({
   ],
   defaultProps: { ...strokeDefaults, strokeWidth: 2.5 },
 })
+
+export const PlayIcon = createIcon({
+  displayName: 'PlayIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <polygon key="triangle" points="5 3 19 12 5 21 5 3" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const StopIcon = createIcon({
+  displayName: 'StopIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <rect key="rect" x="3" y="3" width="18" height="18" rx="2" ry="2" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const LogsIcon = createIcon({
+  displayName: 'LogsIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="l1" x1="4" y1="6" x2="20" y2="6" />,
+    <line key="l2" x1="4" y1="10" x2="14" y2="10" />,
+    <line key="l3" x1="4" y1="14" x2="18" y2="14" />,
+    <line key="l4" x1="4" y1="18" x2="12" y2="18" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})

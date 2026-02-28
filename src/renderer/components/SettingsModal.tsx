@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Modal,
   ModalOverlay,
@@ -25,6 +25,7 @@ import {
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
+import type { WorktreeWithDiff } from '../api'
 import { CloseIcon } from './Icons'
 
 const TERMINALS: { value: TerminalOption; label: string }[] = [
@@ -61,6 +62,19 @@ const SettingsModal = NiceModal.create<{
   const [envFiles, setEnvFiles] = useState<string[]>(setupConfig?.envFiles ?? [])
   const [commands, setCommands] = useState<string[]>(setupConfig?.commands ?? [])
   const [showDirtyWarning, setShowDirtyWarning] = useState(false)
+
+  const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
+  const [devCommands, setDevCommands] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    Promise.all([
+      api.worktree.list(repoPath),
+      api.process.getAllDevCommands(),
+    ]).then(([wts, cmds]) => {
+      setWorktrees(wts)
+      setDevCommands(cmds)
+    })
+  }, [repoPath])
 
   const handleSave = async () => {
     setSaving(true)
@@ -156,6 +170,10 @@ const SettingsModal = NiceModal.create<{
     </VStack>
   )
 
+  const handleCommandBlur = async (worktreePath: string, value: string) => {
+    await api.process.saveCommand(worktreePath, value)
+  }
+
   const handleClose = () => {
     if (isDirty) {
       setShowDirtyWarning(true)
@@ -248,6 +266,51 @@ const SettingsModal = NiceModal.create<{
                 () => api.dialog.pickFile(repoPath)
               )}
               {renderListEditor('Commands', 'echo hello', commands, setCommands)}
+            </VStack>
+
+            <Divider borderColor="whiteAlpha.100" />
+
+            <VStack align="stretch" spacing={3}>
+              <VStack align="stretch" spacing={0}>
+                <Text fontSize="sm" fontWeight="semibold">Run Commands</Text>
+                <Text fontSize="xs" color="whiteAlpha.500">Dev command to run per worktree. Changes save immediately.</Text>
+              </VStack>
+
+              {worktrees.map((wt) => (
+                <HStack key={wt.path} spacing={2} align="center">
+                  <Badge
+                    colorScheme={wt.branch === 'main' || wt.branch === 'master' ? 'green' : 'gray'}
+                    variant="subtle"
+                    fontSize="xs"
+                    flexShrink={0}
+                  >
+                    {wt.branch}
+                  </Badge>
+                  <Input
+                    value={devCommands[wt.path] ?? ''}
+                    onChange={(e) => setDevCommands((prev) => ({ ...prev, [wt.path]: e.target.value }))}
+                    onBlur={(e) => handleCommandBlur(wt.path, e.target.value)}
+                    placeholder="e.g. bun run dev"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    size="sm"
+                    bg="whiteAlpha.50"
+                    borderColor="whiteAlpha.200"
+                  />
+                  <IconButton
+                    aria-label="Clear command"
+                    icon={<CloseIcon />}
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    isDisabled={!devCommands[wt.path]}
+                    onClick={() => {
+                      setDevCommands((prev) => ({ ...prev, [wt.path]: '' }))
+                      void api.process.saveCommand(wt.path, '')
+                    }}
+                  />
+                </HStack>
+              ))}
             </VStack>
           </VStack>
         </ModalBody>

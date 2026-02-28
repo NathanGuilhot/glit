@@ -12,6 +12,7 @@ const api: GlitAPI = {
     runSetup: (options: { repoPath: string; worktreePath: string }) =>
       ipcRenderer.invoke('worktree:runSetup', options),
     sync: (worktreePath: string) => ipcRenderer.invoke('worktree:sync', worktreePath),
+    detectDevCommand: (worktreePath: string) => ipcRenderer.invoke('worktree:detectDevCommand', worktreePath),
   },
   branch: {
     list: (repoPath: string) => ipcRenderer.invoke('branch:list', repoPath),
@@ -52,6 +53,15 @@ const api: GlitAPI = {
   shell: {
     openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
     openUrl: (url: string) => ipcRenderer.invoke('shell:openUrl', url),
+  },
+  process: {
+    start: (worktreePath: string, command: string) => ipcRenderer.invoke('process:start', worktreePath, command),
+    stop: (worktreePath: string) => ipcRenderer.invoke('process:stop', worktreePath),
+    list: () => ipcRenderer.invoke('process:list'),
+    getLogs: (worktreePath: string) => ipcRenderer.invoke('process:getLogs', worktreePath),
+    saveCommand: (worktreePath: string, command: string) => ipcRenderer.invoke('process:saveCommand', worktreePath, command),
+    getSavedCommand: (worktreePath: string) => ipcRenderer.invoke('process:getSavedCommand', worktreePath),
+    getAllDevCommands: () => ipcRenderer.invoke('process:getAllDevCommands'),
   },
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args)

@@ -29,6 +29,27 @@ export interface SetupConfig {
   packages?: string[]
   envFiles?: string[]
   commands?: string[]
+  dev?: string
+}
+
+export interface RunningProcess {
+  worktreePath: string
+  command: string
+  pid?: number
+  port?: number
+  startedAt: number
+}
+
+export interface ProcessLog {
+  line: string
+  isError: boolean
+  ts: number
+}
+
+export interface DevCommandInfo {
+  command: string | null
+  pkgManager: 'npm' | 'yarn' | 'pnpm' | 'bun'
+  scripts: string[]
 }
 
 export interface CreateProgress {
@@ -90,12 +111,22 @@ export interface GlitAPI {
     getMergedBranches: (repoPath: string, baseBranch: string) => Promise<{ branches: string[]; mergeRefLabel: string }>
     runSetup: (options: { repoPath: string; worktreePath: string }) => Promise<{ success: boolean; error?: string }>
     sync: (worktreePath: string) => Promise<{ success: boolean; error?: string }>
+    detectDevCommand: (worktreePath: string) => Promise<DevCommandInfo>
   }
   branch: {
     list: (repoPath: string) => Promise<BranchInfo[]>
     checkout: (repoPath: string, branchName: string) => Promise<void>
-    rebaseOnto: (repoPath: string, mainBranch: string) => Promise<{ success: boolean; branch?: string; error?: string }>
+    rebaseOnto: (repoPath: string, mainBranch: string) => Promise<{ success: boolean; branch?: string; hasConflicts?: boolean; error?: string }>
     delete: (repoPath: string, branchName: string) => Promise<void>
+  }
+  process: {
+    start: (worktreePath: string, command: string) => Promise<{ success: boolean; pid?: number; error?: string }>
+    stop: (worktreePath: string) => Promise<void>
+    list: () => Promise<RunningProcess[]>
+    getLogs: (worktreePath: string) => Promise<ProcessLog[]>
+    saveCommand: (worktreePath: string, command: string) => Promise<void>
+    getSavedCommand: (worktreePath: string) => Promise<string | null>
+    getAllDevCommands: () => Promise<Record<string, string>>
   }
   settings: {
     get: () => Promise<AppSettings>

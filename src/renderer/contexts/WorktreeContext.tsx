@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useToast } from '@chakra-ui/react'
-import type { WorktreeWithDiff, RepoInfo, RecentRepo, AppSettings, CreateProgress, PRStatus } from '../../shared/types'
+import type { WorktreeWithDiff, RepoInfo, RecentRepo, AppSettings, CreateProgress, PRStatus, RunningProcess } from '../../shared/types'
 import { type API, defaultAPI } from '../api'
 
 interface WorktreeContextValue {
@@ -19,6 +19,7 @@ interface WorktreeContextValue {
   switchRepo: (path: string) => Promise<void>
   createProgress: CreateProgress | null
   setCreateProgress: (progress: CreateProgress | null) => void
+  runningProcesses: Record<string, RunningProcess>
 }
 
 const WorktreeContext = createContext<WorktreeContextValue | null>(null)
@@ -50,6 +51,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
   const [recentRepos, setRecentRepos] = useState<RecentRepo[]>([])
   const [filter, setFilterState] = useState(() => sessionStorage.getItem('glit:filter') ?? '')
   const [createProgress, setCreateProgress] = useState<CreateProgress | null>(null)
+  const [runningProcesses, setRunningProcesses] = useState<Record<string, RunningProcess>>({})
 
   const setFilter = useCallback((value: string) => {
     setFilterState(value)
@@ -114,6 +116,36 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     return unsub
   }, [api])
 
+  useEffect(() => {
+    // Sync initial running processes on mount
+    api.process.list().then((procs) => {
+      const map: Record<string, RunningProcess> = {}
+      for (const p of procs) map[p.worktreePath] = p
+      setRunningProcesses(map)
+    }).catch(() => {})
+
+    const unsub = api.on('process:status', (data: unknown) => {
+      const event = data as { worktreePath: string; status: 'running' | 'stopped' | 'error'; port?: number; pid?: number }
+      setRunningProcesses((prev) => {
+        if (event.status === 'running') {
+          const existing = prev[event.worktreePath]
+          return {
+            ...prev,
+            [event.worktreePath]: {
+              ...(existing ?? { worktreePath: event.worktreePath, command: '', startedAt: Date.now() }),
+              ...(event.port !== undefined ? { port: event.port } : {}),
+              ...(event.pid !== undefined ? { pid: event.pid } : {}),
+            },
+          }
+        }
+        const next = { ...prev }
+        delete next[event.worktreePath]
+        return next
+      })
+    })
+    return unsub
+  }, [api])
+
   const switchRepo = useCallback(async (newPath: string) => {
     if (newPath === repoInfo?.path) return
     setSwitching(true)
@@ -171,6 +203,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     switchRepo,
     createProgress,
     setCreateProgress,
+    runningProcesses,
   }
 
   return (

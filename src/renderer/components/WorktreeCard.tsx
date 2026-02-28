@@ -16,11 +16,14 @@ import {
   Spinner,
   useToast,
 } from '@chakra-ui/react'
-import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus } from '../../shared/types'
-import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon } from './Icons'
+import NiceModal from '@ebay/nice-modal-react'
+import type { WorktreeWithDiff, IDEOption, TerminalOption, PRStatus, RunningProcess } from '../../shared/types'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, StopIcon, LogsIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
+import { ProcessLogDrawer } from './ProcessLogDrawer'
+import { RunCommandModal } from './RunCommandModal'
 
 interface WorktreeCardProps {
   worktree: WorktreeWithDiff
@@ -36,6 +39,7 @@ function CardContent({
   isMain,
   isRoot,
   prStatus,
+  runningProcess,
   shortPath,
   preferredTerminal,
   preferredIDE,
@@ -50,6 +54,10 @@ function CardContent({
   onDelete,
   onChangeBranch,
   onRebase,
+  onRun,
+  onStop,
+  onOpenLogs,
+  onReconfigure,
   rebaseBranch,
   isRebasing,
 }: {
@@ -60,6 +68,7 @@ function CardContent({
   isMain: boolean
   isRoot: boolean
   prStatus?: PRStatus | null
+  runningProcess?: RunningProcess
   shortPath: string
   preferredTerminal: TerminalOption
   preferredIDE: IDEOption
@@ -74,6 +83,10 @@ function CardContent({
   onDelete?: () => void
   onChangeBranch?: () => void
   onRebase?: () => void
+  onRun?: () => void
+  onStop?: () => void
+  onOpenLogs?: () => void
+  onReconfigure?: () => void
   rebaseBranch?: string
   isRebasing?: boolean
 }) {
@@ -140,6 +153,24 @@ function CardContent({
                 </Badge>
               </Tooltip>
             )}
+            {runningProcess && (
+              <Tooltip
+                label={runningProcess.port ? `Open http://localhost:${runningProcess.port}` : 'Process running'}
+                placement="bottom"
+                openDelay={200}
+              >
+                <Badge
+                  colorScheme="green"
+                  variant="subtle"
+                  fontSize="9px"
+                  cursor={runningProcess.port ? 'pointer' : 'default'}
+                  onClick={runningProcess.port ? () => onOpenUrl(`http://localhost:${runningProcess.port}`) : undefined}
+                  _hover={runningProcess.port ? { opacity: 0.8 } : undefined}
+                >
+                  ● {runningProcess.port ? `:${runningProcess.port}` : 'running'}
+                </Badge>
+              </Tooltip>
+            )}
           </HStack>
 
           <Tooltip label="Click to copy path" placement="bottom" openDelay={200}>
@@ -195,6 +226,41 @@ function CardContent({
           </Box>
 
           <HStack spacing={0} opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.15s">
+            {runningProcess ? (
+              <>
+                <Tooltip label="View logs" placement="top" openDelay={200}>
+                  <IconButton
+                    aria-label="View logs"
+                    icon={<LogsIcon boxSize={4} color="whiteAlpha.800" />}
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    onClick={onOpenLogs}
+                  />
+                </Tooltip>
+                <Tooltip label="Stop process" placement="top" openDelay={200}>
+                  <IconButton
+                    aria-label="Stop process"
+                    icon={<StopIcon boxSize={3.5} color="red.400" />}
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    onClick={onStop}
+                  />
+                </Tooltip>
+              </>
+            ) : (
+              <Tooltip label="Run dev command" placement="top" openDelay={200}>
+                <IconButton
+                  aria-label="Run dev command"
+                  icon={<PlayIcon boxSize={3.5} color="whiteAlpha.800" />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="whiteAlpha"
+                  onClick={onRun}
+                />
+              </Tooltip>
+            )}
             <Tooltip label={`Open in ${preferredTerminal}`} placement="top" openDelay={200}>
               <IconButton
                 aria-label="Open in terminal"
@@ -249,7 +315,7 @@ function CardContent({
                   </MenuItem>
                 </>
               )}
-              {isRoot && onRebase && rebaseBranch && (
+              {onRebase && rebaseBranch && (
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
                   <MenuItem
@@ -273,6 +339,17 @@ function CardContent({
               >
                 Run setup
               </MenuItem>
+              {onReconfigure && (
+                <MenuItem
+                  icon={<PlayIcon boxSize={4} color="whiteAlpha.700" />}
+                  onClick={onReconfigure}
+                  bg="transparent"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  fontSize="sm"
+                >
+                  Configure run command…
+                </MenuItem>
+              )}
               {worktree.isStale && (
                 <>
                   <MenuDivider borderColor="whiteAlpha.100" />
@@ -340,7 +417,7 @@ export function WorktreeCardSkeleton() {
 }
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: WorktreeCardProps) {
-  const { settings, prStatuses, repoInfo, detectedBaseBranch } = useWorktree()
+  const { settings, prStatuses, repoInfo, detectedBaseBranch, runningProcesses } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup, handleSyncWorktree } = useAppActions()
   const api = useAPI()
   const toast = useToast()
@@ -352,9 +429,9 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
   const shortPath = worktree.displayPath ?? worktree.path
   const branchColor = getBranchColor(worktree.branch)
   const branchDisplayText = worktree.branch || '(no branch)'
+  const runningProcess = runningProcesses[worktree.path]
 
   const canRebase =
-    isRoot &&
     !!detectedBaseBranch &&
     !worktree.isBare &&
     !!worktree.branch &&
@@ -368,24 +445,54 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
   }
 
   const handleRebase = async () => {
-    if (!repoInfo || !detectedBaseBranch) return
+    if (!detectedBaseBranch) return
     setIsRebasing(true)
     try {
-      const result = await api.branch.rebaseOnto(repoInfo.path, detectedBaseBranch)
+      const result = await api.branch.rebaseOnto(worktree.path, detectedBaseBranch)
       if (result.success) {
         toast({ title: `Rebased onto ${detectedBaseBranch}`, status: 'success', duration: 3000 })
       } else {
         toast({
-          title: 'Rebase failed',
-          description: result.error,
-          status: 'error',
-          duration: 5000,
+          title: result.hasConflicts ? 'Conflicts — resolve in your IDE' : 'Rebase failed',
+          description: result.hasConflicts ? `Conflicts in ${worktree.branch}. Run \`git rebase --abort\` to cancel.` : result.error,
+          status: result.hasConflicts ? 'warning' : 'error',
+          duration: result.hasConflicts ? 8000 : 5000,
           isClosable: true,
         })
       }
     } finally {
       setIsRebasing(false)
     }
+  }
+
+  const openRunModal = (clearSaved = false) => {
+    if (clearSaved) {
+      void api.process.saveCommand(worktree.path, '')
+    }
+    NiceModal.show(RunCommandModal, {
+      worktreePath: worktree.path,
+      branch: branchDisplayText,
+      onConfirm: (command: string) => {
+        void api.process.start(worktree.path, command)
+      },
+    })
+  }
+
+  const handleRun = async () => {
+    const saved = await api.process.getSavedCommand(worktree.path)
+    if (saved) {
+      void api.process.start(worktree.path, saved)
+    } else {
+      openRunModal()
+    }
+  }
+
+  const handleStop = () => {
+    void api.process.stop(worktree.path)
+  }
+
+  const handleOpenLogs = () => {
+    NiceModal.show(ProcessLogDrawer, { worktreePath: worktree.path, branch: branchDisplayText })
   }
 
   return (
@@ -397,6 +504,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
       isMain={isMain}
       isRoot={isRoot}
       prStatus={prStatuses[worktree.path]}
+      runningProcess={runningProcess}
       shortPath={shortPath}
       preferredTerminal={settings.preferredTerminal}
       preferredIDE={settings.preferredIDE}
@@ -411,6 +519,10 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
       onDelete={onDelete ? () => onDelete(worktree) : undefined}
       onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
       onRebase={canRebase ? handleRebase : undefined}
+      onRun={() => void handleRun()}
+      onStop={handleStop}
+      onOpenLogs={handleOpenLogs}
+      onReconfigure={() => openRunModal(true)}
       rebaseBranch={detectedBaseBranch ?? undefined}
       isRebasing={isRebasing}
     />
