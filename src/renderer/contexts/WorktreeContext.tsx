@@ -127,6 +127,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       setWorktrees([])
       setFilter('')
       setPrStatuses({})
+      setDetectedBaseBranch('')
       const [wts, cfg, detectedBranch, recent] = await Promise.all([
         api.worktree.list(info.path),
         api.settings.get(),
