@@ -53,7 +53,7 @@ const ChangeBranchModal = NiceModal.create<{
   }
 
   return (
-    <Modal isOpen={modal.visible} onClose={modal.hide} size="md" isCentered scrollBehavior="inside">
+    <Modal isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} size="md" isCentered scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>

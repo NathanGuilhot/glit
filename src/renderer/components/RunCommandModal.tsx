@@ -57,7 +57,7 @@ export const RunCommandModal = NiceModal.create<RunCommandModalProps>(({ worktre
   }
 
   return (
-    <Modal isOpen={modal.visible} onClose={modal.hide} size="md">
+    <Modal isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} size="md">
       <ModalOverlay />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader fontSize="md" pb={2}>
