@@ -95,7 +95,7 @@ const WorktreePalette = NiceModal.create<{
   }, [query, selectedIndex, filteredWorktrees, showCreate, totalItems, onOpenTerminal, onOpenIDE, handleOpenCreate, modal])
 
   return (
-    <Modal isOpen={modal.visible} onClose={modal.hide} size="xl" isCentered>
+    <Modal isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} size="xl" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid" overflow="hidden">
         <ModalBody p={0}>

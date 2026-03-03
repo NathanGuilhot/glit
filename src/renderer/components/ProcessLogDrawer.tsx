@@ -50,7 +50,7 @@ export const ProcessLogDrawer = NiceModal.create<ProcessLogDrawerProps>(({ workt
   }, [logs])
 
   return (
-    <Drawer isOpen={modal.visible} onClose={modal.hide} placement="bottom" size="md">
+    <Drawer isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} placement="bottom" size="md">
       <DrawerOverlay />
       <DrawerContent bg="gray.900" borderTop="1px solid" borderColor="whiteAlpha.100">
         <DrawerCloseButton color="whiteAlpha.600" />

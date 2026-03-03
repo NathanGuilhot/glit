@@ -304,7 +304,7 @@ const CreateWorktreeModal = NiceModal.create<{
   }
 
   return (
-    <Modal isOpen={modal.visible} onClose={handleCancelClick} size="lg" isCentered>
+    <Modal isOpen={modal.visible} onClose={handleCancelClick} onCloseComplete={() => modal.remove()} size="lg" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.700" />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader pb={2}>{t('createWorktree.title')}</ModalHeader>
