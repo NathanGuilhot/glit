@@ -10,5 +10,6 @@
     "rootDir": "./src",
     "noEmit": false
   },
-  "include": ["src/main/**/*", "src/shared/**/*"]
+  "include": ["src/main/**/*", "src/shared/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.spec.*"]
 }

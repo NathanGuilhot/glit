@@ -10,5 +10,5 @@
     "rootDir": "./src",
     "noEmit": false
   },
-  "include": ["src/preload/**/*", "src/shared/**/*"]
+  "include": ["src/preload/**/*"]
 }

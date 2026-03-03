@@ -22,6 +22,7 @@ import type {
   DevCommandInfo,
   GitFileStatus,
 } from '../shared/types.js'
+import { sanitizeBranchForPath } from '../shared/branch.js'
 
 const execAsync = promisify(exec)
 
@@ -427,7 +428,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     activeCreateController = controller
     const { signal } = controller
 
-    const safeName = branchName.replace(/[^a-zA-Z0-9._-]/g, '-')
+    const safeName = sanitizeBranchForPath(branchName)
     const worktreePath = customPath ?? path.join(repoPath, '..', `glit-worktrees`, safeName)
 
     // Resolve the effective base branch, falling back to auto-detected default
