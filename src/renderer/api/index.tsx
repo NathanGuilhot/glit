@@ -16,6 +16,7 @@ export type {
   RunningProcess,
   ProcessLog,
   DevCommandInfo,
+  GitFileStatus,
 } from '../../shared/types'
 
 export type API = GlitAPI

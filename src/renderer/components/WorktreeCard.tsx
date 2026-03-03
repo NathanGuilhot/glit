@@ -19,12 +19,13 @@ import {
 import NiceModal from '@ebay/nice-modal-react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
-import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, StopIcon, LogsIcon } from './Icons'
+import { IDEIcon, TerminalIcon, TrashIcon, FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, StopIcon, LogsIcon, CommitIcon, PushIcon } from './Icons'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
 import { ProcessLogDrawer } from './ProcessLogDrawer'
 import { RunCommandModal } from './RunCommandModal'
+import { QuickCommitModal } from './QuickCommitModal'
 import { TooltipIconButton } from './TooltipIconButton'
 import { getBranchColor } from '../utils'
 
@@ -59,13 +60,14 @@ export function WorktreeCardSkeleton() {
 }
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: WorktreeCardProps) {
-  const { settings, prStatuses, repoInfo, detectedBaseBranch, runningProcesses } = useWorktree()
+  const { settings, prStatuses, repoInfo, detectedBaseBranch, runningProcesses, refresh } = useWorktree()
   const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup, handleSyncWorktree } = useAppActions()
   const api = useAPI()
   const toast = useToast()
   const { t } = useTranslation()
   const [branchJustCopied, setBranchJustCopied] = useState(false)
   const [isRebasing, setIsRebasing] = useState(false)
+  const [isPushing, setIsPushing] = useState(false)
 
   const isRoot = repoInfo?.path === worktree.path
   const shortPath = worktree.displayPath ?? worktree.path
@@ -138,7 +140,27 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
     NiceModal.show(ProcessLogDrawer, { worktreePath: worktree.path, branch: branchDisplayText })
   }
 
+  const handleQuickCommit = () => {
+    NiceModal.show(QuickCommitModal, { worktreePath: worktree.path, branch: branchDisplayText })
+  }
+
+  const handlePush = async (force = false) => {
+    setIsPushing(true)
+    try {
+      const result = await api.git.push(worktree.path, force)
+      if (result.success) {
+        toast({ title: force ? t('worktreeCard.toast.forcePushed') : t('worktreeCard.toast.pushed'), status: 'success', duration: 3000 })
+        void refresh()
+      } else {
+        toast({ title: t('worktreeCard.toast.pushFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
+      }
+    } finally {
+      setIsPushing(false)
+    }
+  }
+
   const hasDiff = worktree.fileCount > 0
+  const hasBranch = !!worktree.branch && !worktree.branch.startsWith('detached:') && !worktree.isBare
 
   return (
     <Box
@@ -159,7 +181,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             <Tooltip label={branchJustCopied ? t('worktreeCard.tooltips.copied') : t('worktreeCard.tooltips.clickToCopyBranch')} placement="bottom" openDelay={200}>
               <Badge
                 colorScheme={branchColor}
-                variant="subtle"
+                variant="solid"
                 fontSize="xs"
                 px={2}
                 py={0.5}
@@ -330,6 +352,42 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
                   </MenuItem>
                 </>
               )}
+              {hasDiff && (
+                <MenuItem
+                  icon={<CommitIcon boxSize={4} color="whiteAlpha.700" />}
+                  onClick={handleQuickCommit}
+                  bg="transparent"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  fontSize="sm"
+                >
+                  {t('worktreeCard.menu.quickCommit')}
+                </MenuItem>
+              )}
+              {worktree.aheadCount > 0 && (
+                <MenuItem
+                  icon={isPushing ? <Spinner size="xs" /> : <PushIcon boxSize={4} color="whiteAlpha.700" />}
+                  onClick={() => void handlePush(false)}
+                  isDisabled={isPushing}
+                  bg="transparent"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  fontSize="sm"
+                >
+                  {t('worktreeCard.menu.push')}
+                </MenuItem>
+              )}
+              {hasBranch && (
+                <MenuItem
+                  icon={isPushing ? <Spinner size="xs" /> : <PushIcon boxSize={4} color="whiteAlpha.700" />}
+                  onClick={() => void handlePush(true)}
+                  isDisabled={isPushing}
+                  bg="transparent"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  fontSize="sm"
+                >
+                  {t('worktreeCard.menu.forcePush')}
+                </MenuItem>
+              )}
+              <MenuDivider borderColor="whiteAlpha.100" />
               <MenuItem
                 icon={<RefreshIcon boxSize={4} color="whiteAlpha.700" />}
                 onClick={() => handleRunSetup(worktree)}

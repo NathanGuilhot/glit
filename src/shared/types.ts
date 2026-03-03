@@ -81,6 +81,13 @@ export interface RecentRepo {
   lastUsedAt: string
 }
 
+export interface GitFileStatus {
+  path: string
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'copied'
+  staged: boolean
+  oldPath?: string
+}
+
 export interface CreateWorktreeOptions {
   repoPath: string
   branchName: string
@@ -154,6 +161,11 @@ export interface GlitAPI {
     defaultBranch: (repoPath: string) => Promise<string>
     switch: (repoPath: string) => Promise<RepoInfo>
     listRecent: () => Promise<RecentRepo[]>
+  }
+  git: {
+    status: (worktreePath: string) => Promise<GitFileStatus[]>
+    commit: (worktreePath: string, files: string[], message: string) => Promise<{ success: boolean; error?: string }>
+    push: (worktreePath: string, force?: boolean) => Promise<{ success: boolean; error?: string }>
   }
   pr: {
     getStatus: (worktreePath: string) => Promise<PRStatus | null>

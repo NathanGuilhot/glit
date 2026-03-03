@@ -87,6 +87,9 @@
       "rebaseOnto": "Rebaser sur {{branch}}",
       "runSetup": "Exécuter le script",
       "configureRunCommand": "Configurer la commande…",
+      "quickCommit": "Commit rapide…",
+      "push": "Pousser",
+      "forcePush": "Forcer le push",
       "syncWorkingTree": "Synchroniser le working tree",
       "deleteWorktree": "Supprimer le worktree"
     },
@@ -98,7 +101,10 @@
       "rebased": "Rebasé sur {{branch}}",
       "rebaseConflicts": "Conflits — résoudre dans votre IDE",
       "rebaseConflictsDescription": "Conflits dans {{branch}}. Lancer `git rebase --abort` pour annuler.",
-      "rebaseFailed": "Échec du rebase"
+      "rebaseFailed": "Échec du rebase",
+      "pushed": "Poussé vers le distant",
+      "pushFailed": "Échec du push",
+      "forcePushed": "Push forcé vers le distant"
     }
   },
   "worktreeList": {
@@ -279,6 +285,20 @@
     "placeholder": "ex. bun run dev",
     "cancel": "Annuler",
     "run": "Lancer"
+  },
+  "quickCommit": {
+    "title": "Commit rapide",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "messagePlaceholder": "Message de commit…",
+    "commit": "Commit",
+    "committing": "Commit en cours…",
+    "staged": "indexé",
+    "noChanges": "Aucune modification à commiter",
+    "toast": {
+      "committed": "Modifications commitées",
+      "commitFailed": "Échec du commit"
+    }
   },
   "errorBoundary": {
     "title": "Une erreur est survenue",
