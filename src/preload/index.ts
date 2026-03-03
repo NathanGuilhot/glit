@@ -54,6 +54,11 @@ const api: GlitAPI = {
     openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
     openUrl: (url: string) => ipcRenderer.invoke('shell:openUrl', url),
   },
+  git: {
+    status: (worktreePath: string) => ipcRenderer.invoke('git:status', worktreePath),
+    commit: (worktreePath: string, files: string[], message: string) => ipcRenderer.invoke('git:commit', worktreePath, files, message),
+    push: (worktreePath: string, force?: boolean) => ipcRenderer.invoke('git:push', worktreePath, force),
+  },
   process: {
     start: (worktreePath: string, command: string) => ipcRenderer.invoke('process:start', worktreePath, command),
     stop: (worktreePath: string) => ipcRenderer.invoke('process:stop', worktreePath),

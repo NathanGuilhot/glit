@@ -89,6 +89,9 @@
       "rebaseOnto": "Rebase onto {{branch}}",
       "runSetup": "Run setup",
       "configureRunCommand": "Configure run command…",
+      "quickCommit": "Quick commit…",
+      "push": "Push",
+      "forcePush": "Force push",
       "syncWorkingTree": "Sync working tree",
       "deleteWorktree": "Delete worktree"
     },
@@ -100,7 +103,10 @@
       "rebased": "Rebased onto {{branch}}",
       "rebaseConflicts": "Conflicts — resolve in your IDE",
       "rebaseConflictsDescription": "Conflicts in {{branch}}. Run `git rebase --abort` to cancel.",
-      "rebaseFailed": "Rebase failed"
+      "rebaseFailed": "Rebase failed",
+      "pushed": "Pushed to remote",
+      "pushFailed": "Push failed",
+      "forcePushed": "Force pushed to remote"
     }
   },
   "worktreeList": {
@@ -289,6 +295,20 @@
     "placeholder": "e.g. bun run dev",
     "cancel": "Cancel",
     "run": "Run"
+  },
+  "quickCommit": {
+    "title": "Quick commit",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "messagePlaceholder": "Commit message…",
+    "commit": "Commit",
+    "committing": "Committing…",
+    "staged": "staged",
+    "noChanges": "No changes to commit",
+    "toast": {
+      "committed": "Changes committed",
+      "commitFailed": "Commit failed"
+    }
   },
   "errorBoundary": {
     "title": "Something went wrong",

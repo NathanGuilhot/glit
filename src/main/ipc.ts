@@ -20,6 +20,7 @@ import type {
   RunningProcess,
   ProcessLog,
   DevCommandInfo,
+  GitFileStatus,
 } from '../shared/types.js'
 
 const execAsync = promisify(exec)
@@ -328,6 +329,17 @@ async function runSetupSteps(repoPath: string, worktreePath: string): Promise<vo
       try { await execAsync(cmd, { cwd: worktreePath }) }
       catch (e) { log.warn(`Setup command failed: ${cmd}`, e) }
     }
+  }
+}
+
+function mapStatusCode(code: string): GitFileStatus['status'] | null {
+  switch (code) {
+    case 'M': return 'modified'
+    case 'A': return 'added'
+    case 'D': return 'deleted'
+    case 'R': return 'renamed'
+    case 'C': return 'copied'
+    default: return null
   }
 }
 
@@ -835,5 +847,76 @@ end tell'`
 
   ipcMain.handle('process:getLogs', async (_event, worktreePath: string): Promise<ProcessLog[]> => {
     return processLogs.get(worktreePath) ?? []
+  })
+
+  // Git operations
+  ipcMain.handle('git:status', async (_event, worktreePath: string): Promise<GitFileStatus[]> => {
+    log.info(`Getting git status for: ${worktreePath}`)
+    try {
+      const output = await runGitCommand(worktreePath, ['status', '--porcelain', '-uall'])
+      if (!output.trim()) return []
+
+      const results: GitFileStatus[] = []
+      for (const line of output.split('\n')) {
+        if (!line || line.length < 4) continue
+        const x = line[0]! // staging area
+        const y = line[1]! // working tree
+        const rest = line.slice(3)
+
+        // Handle renames: "R  old -> new"
+        let filePath = rest
+        let oldPath: string | undefined
+        const arrowIdx = rest.indexOf(' -> ')
+        if (arrowIdx !== -1) {
+          oldPath = rest.slice(0, arrowIdx)
+          filePath = rest.slice(arrowIdx + 4)
+        }
+
+        // Map staged changes (X column)
+        if (x !== ' ' && x !== '?') {
+          const status = mapStatusCode(x)
+          if (status) results.push({ path: filePath, status, staged: true, oldPath })
+        }
+
+        // Map unstaged/working tree changes (Y column)
+        if (y !== ' ') {
+          if (x === '?' && y === '?') {
+            results.push({ path: filePath, status: 'untracked', staged: false })
+          } else if (y !== '?') {
+            const status = mapStatusCode(y)
+            if (status) results.push({ path: filePath, status, staged: false, oldPath })
+          }
+        }
+      }
+      return results
+    } catch (error) {
+      log.error('git:status failed:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle('git:commit', async (_event, worktreePath: string, files: string[], message: string) => {
+    log.info(`Committing ${files.length} files in: ${worktreePath}`)
+    try {
+      await runGitCommand(worktreePath, ['add', '--', ...files])
+      await runGitCommand(worktreePath, ['commit', '-m', message])
+      return { success: true }
+    } catch (error) {
+      log.error('git:commit failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:push', async (_event, worktreePath: string, force?: boolean) => {
+    log.info(`Pushing from: ${worktreePath}, force: ${force ?? false}`)
+    try {
+      const args = ['push']
+      if (force) args.push('--force-with-lease')
+      await runGitCommand(worktreePath, args)
+      return { success: true }
+    } catch (error) {
+      log.error('git:push failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
   })
 }

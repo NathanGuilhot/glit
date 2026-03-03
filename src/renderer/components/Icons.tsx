@@ -168,6 +168,27 @@ export const StopIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const CommitIcon = createIcon({
+  displayName: 'CommitIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <circle key="c" cx="12" cy="12" r="4" />,
+    <line key="l1" x1="1.05" y1="12" x2="7" y2="12" />,
+    <line key="l2" x1="17.01" y1="12" x2="22.96" y2="12" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const PushIcon = createIcon({
+  displayName: 'PushIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="line" x1="12" y1="19" x2="12" y2="5" />,
+    <polyline key="arrow" points="5 12 12 5 19 12" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const LogsIcon = createIcon({
   displayName: 'LogsIcon',
   viewBox: '0 0 24 24',
