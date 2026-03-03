@@ -28,6 +28,7 @@ import {
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { useTranslation } from 'react-i18next'
 import type { SetupConfig, CreateProgress, BranchInfo } from '../../shared/types'
+import { isValidBranchName } from '../../shared/branch'
 import { useAPI } from '../api'
 import { useWorktree } from '../contexts/WorktreeContext'
 import BranchSearchList from './BranchSearchList'
@@ -260,7 +261,7 @@ const CreateWorktreeModal = NiceModal.create<{
 
   const validate = (): string => {
     if (!branchName.trim()) return t('createWorktree.validation.required')
-    if (!/^[a-zA-Z0-9._/-]+$/.test(branchName)) return t('createWorktree.validation.invalidChars')
+    if (!isValidBranchName(branchName)) return t('createWorktree.validation.invalidChars')
     return ''
   }
 

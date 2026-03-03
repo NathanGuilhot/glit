@@ -28,7 +28,8 @@
     "typecheck:preload": "tsc --project tsconfig.preload.json --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "install:global": "bash scripts/install-global.sh"
+    "install:global": "bash scripts/install-global.sh",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ebay/nice-modal-react": "^1.2.13",
@@ -64,6 +65,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1",
+    "vitest": "^4.0.18",
     "wait-on": "^8.0.2"
   },
   "build": {
