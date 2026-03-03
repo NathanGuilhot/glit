@@ -181,7 +181,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             <Tooltip label={branchJustCopied ? t('worktreeCard.tooltips.copied') : t('worktreeCard.tooltips.clickToCopyBranch')} placement="bottom" openDelay={200}>
               <Badge
                 colorScheme={branchColor}
-                variant="subtle"
+                variant="solid"
                 fontSize="xs"
                 px={2}
                 py={0.5}

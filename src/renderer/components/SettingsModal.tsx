@@ -282,7 +282,7 @@ const SettingsModal = NiceModal.create<{
                 <HStack key={wt.path} spacing={2} align="center">
                   <Badge
                     colorScheme={getBranchColor(wt.branch)}
-                    variant="subtle"
+                    variant="solid"
                     fontSize="xs"
                     flexShrink={0}
                   >
