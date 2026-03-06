@@ -67,6 +67,15 @@ const SettingsModal = NiceModal.create<{
   const [commands, setCommands] = useState<string[]>(setupConfig?.commands ?? [])
   const [showDirtyWarning, setShowDirtyWarning] = useState(false)
 
+  const [savedBaseline, setSavedBaseline] = useState({
+    terminal: settings.preferredTerminal,
+    ide: settings.preferredIDE,
+    autoRefresh: settings.autoRefresh,
+    packages: setupConfig?.packages ?? [],
+    envFiles: setupConfig?.envFiles ?? [],
+    commands: setupConfig?.commands ?? [],
+  })
+
   const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
   const [devCommands, setDevCommands] = useState<Record<string, string>>({})
 
@@ -96,17 +105,25 @@ const SettingsModal = NiceModal.create<{
       await api.setup.save(repoPath, {})
     }
     setSaving(false)
+    setSavedBaseline({
+      terminal,
+      ide,
+      autoRefresh,
+      packages: packages.filter(Boolean),
+      envFiles: envFiles.filter(Boolean),
+      commands: commands.filter(Boolean),
+    })
   }
 
   const setupChanged =
-    JSON.stringify(packages.filter(Boolean)) !== JSON.stringify(setupConfig?.packages ?? []) ||
-    JSON.stringify(envFiles.filter(Boolean)) !== JSON.stringify(setupConfig?.envFiles ?? []) ||
-    JSON.stringify(commands.filter(Boolean)) !== JSON.stringify(setupConfig?.commands ?? [])
+    JSON.stringify(packages.filter(Boolean)) !== JSON.stringify(savedBaseline.packages) ||
+    JSON.stringify(envFiles.filter(Boolean)) !== JSON.stringify(savedBaseline.envFiles) ||
+    JSON.stringify(commands.filter(Boolean)) !== JSON.stringify(savedBaseline.commands)
 
   const isDirty =
-    terminal !== settings.preferredTerminal ||
-    ide !== settings.preferredIDE ||
-    autoRefresh !== settings.autoRefresh ||
+    terminal !== savedBaseline.terminal ||
+    ide !== savedBaseline.ide ||
+    autoRefresh !== savedBaseline.autoRefresh ||
     setupChanged
 
   const updateItem = (setter: React.Dispatch<React.SetStateAction<string[]>>, index: number, value: string) => {
