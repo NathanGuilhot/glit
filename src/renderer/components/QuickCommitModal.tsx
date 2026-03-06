@@ -16,6 +16,7 @@ import {
   Checkbox,
   Spinner,
   Box,
+  Tooltip,
   useToast,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
@@ -23,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import type { GitFileStatus } from '../../shared/types'
 import { useAPI } from '../api'
 import { useWorktree } from '../contexts/WorktreeContext'
+import { truncateMiddle } from '../utils'
 
 interface QuickCommitModalProps {
   worktreePath: string
@@ -174,9 +176,33 @@ export const QuickCommitModal = NiceModal.create<QuickCommitModalProps>(({ workt
                     <Text fontSize="xs" fontFamily="mono" fontWeight="600" color={statusColors[file.status]} w="14px" textAlign="center">
                       {statusLabels[file.status]}
                     </Text>
-                    <Text fontSize="xs" fontFamily="mono" color="whiteAlpha.800" flex={1} noOfLines={1}>
-                      {file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
-                    </Text>
+                    <Tooltip
+                      label={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+                      openDelay={200}
+                      placement="top"
+                      hasArrow
+                      fontSize="xs"
+                      fontFamily="mono"
+                    >
+                      <Text
+                        fontSize="xs"
+                        fontFamily="mono"
+                        color="whiteAlpha.800"
+                        flex={1}
+                        cursor="pointer"
+                        _hover={{ textDecoration: 'underline' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const fullPath = file.oldPath ? `${file.oldPath} → ${file.path}` : file.path
+                          void navigator.clipboard.writeText(fullPath)
+                          toast({ title: t('quickCommit.pathCopied', 'Path copied'), status: 'info', duration: 1500 })
+                        }}
+                      >
+                        {file.oldPath
+                          ? `${truncateMiddle(file.oldPath, 22)} → ${truncateMiddle(file.path, 22)}`
+                          : truncateMiddle(file.path, 50)}
+                      </Text>
+                    </Tooltip>
                     {file.staged && (
                       <Badge colorScheme="green" variant="subtle" fontSize="9px">{t('quickCommit.staged')}</Badge>
                     )}
