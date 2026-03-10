@@ -1,6 +1,6 @@
 {
   "name": "glit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Git worktree manager",
   "author": {
     "name": "NathanGuilhot",
