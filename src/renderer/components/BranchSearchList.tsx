@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   VStack,
   Input,
@@ -46,9 +46,19 @@ export default function BranchSearchList({
     return () => clearTimeout(timer)
   }, [rawQuery])
 
-  const filtered = branches.filter((b) =>
-    b.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+  const filtered = useMemo(
+    () => branches.filter((b) => b.name.toLowerCase().includes(debouncedQuery.toLowerCase())),
+    [branches, debouncedQuery]
   )
+
+  const scrollSelectedIntoView = useCallback((node: HTMLElement | null) => {
+    if (!node) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        node.scrollIntoView({ block: 'nearest' })
+      })
+    })
+  }, [])
 
   if (isLoading) {
     return (
@@ -97,6 +107,7 @@ export default function BranchSearchList({
               return (
                 <ListItem
                   key={branch.name}
+                  ref={isSelected ? scrollSelectedIntoView : undefined}
                   px={3}
                   py={2}
                   cursor={isDisabled ? 'default' : 'pointer'}
