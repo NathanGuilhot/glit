@@ -4,6 +4,10 @@ Glit manages your worktree and allow you to quickly switch between them.
 
 ![screenshot](./assets/screenshot.png)
 
+I've been frustrated by how useful worktree can be, while at the same time being so hard to use. Existing wrappers either felt incomplete or where locking in too many things behind their tooling (claude code, cursor to name a few).
+
+While humanly reviewed, this tool was mostly generated from various AI tools. I've reached a stage where I love using Glit to continue working on Glit and my other projects, so that might be a sign that it can be useful to some people!
+
 ## Features
 - list all your worktree, with their branch and a solid overview of the diff
 - delete your unused wortree cleanly
