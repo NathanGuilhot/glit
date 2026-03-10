@@ -89,7 +89,7 @@
       "rebaseOnto": "Rebase onto {{branch}}",
       "runSetup": "Run setup",
       "configureRunCommand": "Configure run command…",
-      "quickCommit": "Quick commit…",
+      "quickCommit": "Review & commit",
       "push": "Push",
       "forcePush": "Force push",
       "syncWorkingTree": "Sync working tree",
@@ -308,6 +308,31 @@
     "toast": {
       "committed": "Changes committed",
       "commitFailed": "Commit failed"
+    }
+  },
+  "codeReview": {
+    "title": "Review & Commit",
+    "filterFiles": "Filter files…",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "files": "files",
+    "messagePlaceholder": "Commit message…",
+    "committing": "Committing…",
+    "commitCount": "Commit {{count}} files",
+    "selectFilePrompt": "Select a file to review",
+    "binaryFile": "Binary file — cannot display diff",
+    "noChanges": "File has no changes",
+    "revertFile": "Revert file",
+    "revertSelectedLines": "Revert {{count}} selected lines",
+    "discardHunk": "Discard hunk",
+    "toast": {
+      "committed": "Changes committed",
+      "commitFailed": "Commit failed",
+      "fileReverted": "File reverted",
+      "linesReverted": "{{count}} lines reverted",
+      "hunkReverted": "Hunk reverted",
+      "revertFailed": "Revert failed",
+      "editFailed": "Edit failed"
     }
   },
   "errorBoundary": {

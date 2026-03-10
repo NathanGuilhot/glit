@@ -88,6 +88,43 @@ export interface GitFileStatus {
   oldPath?: string
 }
 
+export interface FileStatusWithStats extends GitFileStatus {
+  additions: number
+  deletions: number
+}
+
+export interface DiffLine {
+  type: 'add' | 'remove' | 'context'
+  content: string
+  oldLineNumber: number | null
+  newLineNumber: number | null
+}
+
+export interface DiffHunk {
+  header: string
+  oldStart: number
+  oldCount: number
+  newStart: number
+  newCount: number
+  lines: DiffLine[]
+}
+
+export interface FileDiff {
+  path: string
+  oldPath?: string
+  status: GitFileStatus['status']
+  hunks: DiffHunk[]
+  isBinary: boolean
+  additions: number
+  deletions: number
+}
+
+export interface RevertLineSpec {
+  type: 'add' | 'remove'
+  newLineNumber?: number
+  oldLineNumber?: number
+}
+
 export interface CreateWorktreeOptions {
   repoPath: string
   branchName: string
@@ -164,6 +201,12 @@ export interface GlitAPI {
   }
   git: {
     status: (worktreePath: string) => Promise<GitFileStatus[]>
+    statusWithStats: (worktreePath: string) => Promise<FileStatusWithStats[]>
+    diff: (worktreePath: string, filePath: string) => Promise<FileDiff>
+    revertLines: (worktreePath: string, filePath: string, linesToRevert: RevertLineSpec[]) => Promise<{ success: boolean; error?: string }>
+    revertFile: (worktreePath: string, filePath: string) => Promise<{ success: boolean; error?: string }>
+    applyEdit: (worktreePath: string, filePath: string, lineNumber: number, newContent: string) => Promise<{ success: boolean; error?: string }>
+    deleteLine: (worktreePath: string, filePath: string, lineNumber: number) => Promise<{ success: boolean; error?: string }>
     commit: (worktreePath: string, files: string[], message: string) => Promise<{ success: boolean; error?: string }>
     push: (worktreePath: string, force?: boolean) => Promise<{ success: boolean; error?: string }>
   }

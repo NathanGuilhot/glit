@@ -21,8 +21,12 @@ import type {
   ProcessLog,
   DevCommandInfo,
   GitFileStatus,
+  FileStatusWithStats,
+  FileDiff,
+  RevertLineSpec,
 } from '../shared/types.js'
 import { sanitizeBranchForPath } from '../shared/branch.js'
+import { parseDiff, synthesizeAdditionDiff } from './diffParser.js'
 
 const execAsync = promisify(exec)
 
@@ -917,6 +921,279 @@ end tell'`
       return { success: true }
     } catch (error) {
       log.error('git:push failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:statusWithStats', async (_event, worktreePath: string): Promise<FileStatusWithStats[]> => {
+    log.info(`Getting git status with stats for: ${worktreePath}`)
+    try {
+      const [statusOutput, numstatOutput] = await Promise.all([
+        runGitCommand(worktreePath, ['status', '--porcelain', '-uall']),
+        runGitCommand(worktreePath, ['diff', '--numstat', 'HEAD']).catch(() => ''),
+      ])
+
+      if (!statusOutput.trim()) return []
+
+      const statsMap = new Map<string, { additions: number; deletions: number }>()
+      for (const line of numstatOutput.split('\n')) {
+        if (!line) continue
+        const match = line.match(/^(\d+|-)\s+(\d+|-)\s+(.+)/)
+        if (match) {
+          const adds = match[1] === '-' ? 0 : parseInt(match[1]!, 10)
+          const dels = match[2] === '-' ? 0 : parseInt(match[2]!, 10)
+          // Handle renames: "old => new" or "{old => new}/path"
+          let filePath = match[3]!
+          const arrowIdx = filePath.indexOf(' => ')
+          if (arrowIdx !== -1) {
+            // Simple rename: "old -> new"
+            filePath = filePath.slice(arrowIdx + 4)
+          }
+          const braceMatch = filePath.match(/^(.*)?\{.*? => (.*?)\}(.*)$/)
+          if (braceMatch) {
+            filePath = (braceMatch[1] ?? '') + (braceMatch[2] ?? '') + (braceMatch[3] ?? '')
+          }
+          statsMap.set(filePath, { additions: adds, deletions: dels })
+        }
+      }
+
+      // Parse status
+      const results: FileStatusWithStats[] = []
+      const seen = new Set<string>()
+      for (const line of statusOutput.split('\n')) {
+        if (!line || line.length < 4) continue
+        const x = line[0]!
+        const y = line[1]!
+        const rest = line.slice(3)
+
+        let filePath = rest
+        let oldPath: string | undefined
+        const arrowIdx = rest.indexOf(' -> ')
+        if (arrowIdx !== -1) {
+          oldPath = rest.slice(0, arrowIdx)
+          filePath = rest.slice(arrowIdx + 4)
+        }
+
+        // Deduplicate: only show once per file (prefer unstaged)
+        if (seen.has(filePath)) continue
+
+        let status: GitFileStatus['status'] | null = null
+        let staged = false
+
+        if (x === '?' && y === '?') {
+          status = 'untracked'
+        } else if (y !== ' ' && y !== '?') {
+          status = mapStatusCode(y)
+        } else if (x !== ' ' && x !== '?') {
+          status = mapStatusCode(x)
+          staged = true
+        }
+
+        if (status) {
+          seen.add(filePath)
+          const stats = statsMap.get(filePath) ?? { additions: 0, deletions: 0 }
+          // For untracked files, count lines directly
+          if (status === 'untracked' && stats.additions === 0) {
+            try {
+              const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
+              stats.additions = content.split('\n').filter(l => l !== '' || content.endsWith('\n')).length
+              if (content.endsWith('\n') && content.length > 0) {
+                stats.additions = content.split('\n').length - 1
+              } else if (content.length > 0) {
+                stats.additions = content.split('\n').length
+              }
+            } catch {
+              // binary or unreadable
+            }
+          }
+          results.push({ path: filePath, status, staged, oldPath, additions: stats.additions, deletions: stats.deletions })
+        }
+      }
+      return results
+    } catch (error) {
+      log.error('git:statusWithStats failed:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle('git:diff', async (_event, worktreePath: string, filePath: string): Promise<FileDiff> => {
+    log.info(`Getting diff for: ${filePath} in ${worktreePath}`)
+    try {
+      // First, determine file status
+      const statusOutput = await runGitCommand(worktreePath, ['status', '--porcelain', '-uall', '--', filePath])
+      let status: GitFileStatus['status'] = 'modified'
+      let isUntracked = false
+
+      for (const line of statusOutput.split('\n')) {
+        if (!line || line.length < 4) continue
+        const x = line[0]!
+        const y = line[1]!
+        if (x === '?' && y === '?') {
+          status = 'untracked'
+          isUntracked = true
+        } else if (y === 'D' || x === 'D') {
+          status = 'deleted'
+        } else if (y === 'A' || x === 'A') {
+          status = 'added'
+        } else if (y === 'R' || x === 'R') {
+          status = 'renamed'
+        }
+      }
+
+      if (isUntracked) {
+        try {
+          const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
+          return synthesizeAdditionDiff(content, filePath)
+        } catch {
+          return { path: filePath, status: 'untracked', hunks: [], isBinary: true, additions: 0, deletions: 0 }
+        }
+      }
+
+      // Try working tree diff against HEAD first, then cached diff
+      let rawDiff = ''
+      try {
+        rawDiff = await runGitCommand(worktreePath, ['diff', 'HEAD', '--', filePath])
+      } catch {
+        // might be a new file only in index
+        try {
+          rawDiff = await runGitCommand(worktreePath, ['diff', '--cached', 'HEAD', '--', filePath])
+        } catch {
+          // fall through
+        }
+      }
+
+      if (!rawDiff.trim()) {
+        // Could be a staged-only new file
+        try {
+          rawDiff = await runGitCommand(worktreePath, ['diff', '--cached', '--', filePath])
+          if (rawDiff.trim()) {
+            status = 'added'
+          }
+        } catch {
+          // fall through
+        }
+      }
+
+      return parseDiff(rawDiff, filePath, status)
+    } catch (error) {
+      log.error('git:diff failed:', error)
+      return { path: filePath, status: 'modified', hunks: [], isBinary: false, additions: 0, deletions: 0 }
+    }
+  })
+
+  ipcMain.handle('git:revertLines', async (_event, worktreePath: string, filePath: string, linesToRevert: RevertLineSpec[]): Promise<{ success: boolean; error?: string }> => {
+    log.info(`Reverting ${linesToRevert.length} lines in: ${filePath}`)
+    try {
+      const fullPath = path.join(worktreePath, filePath)
+      const currentContent = await fs.readFile(fullPath, 'utf-8')
+      const currentLines = currentContent.split('\n')
+
+      // Get original content from HEAD
+      let originalLines: string[] = []
+      try {
+        const original = await runGitCommand(worktreePath, ['show', `HEAD:${filePath}`])
+        originalLines = original.split('\n')
+      } catch {
+        // File doesn't exist in HEAD (new file)
+      }
+
+      // Separate additions and removals to revert
+      const additionsToRevert = linesToRevert
+        .filter(l => l.type === 'add' && l.newLineNumber != null)
+        .map(l => l.newLineNumber!)
+        .sort((a, b) => b - a) // bottom-to-top
+
+      const removalsToRevert = linesToRevert
+        .filter(l => l.type === 'remove' && l.oldLineNumber != null)
+        .sort((a, b) => (b.oldLineNumber ?? 0) - (a.oldLineNumber ?? 0)) // bottom-to-top
+
+      // 1. Remove added lines (bottom-to-top so indices stay stable)
+      for (const newLineNum of additionsToRevert) {
+        const idx = newLineNum - 1
+        if (idx >= 0 && idx < currentLines.length) {
+          currentLines.splice(idx, 1)
+        }
+      }
+
+      // 2. Re-insert removed lines
+      // After removing additions, we need to figure out where to insert the removed lines.
+      // This is complex — we need to map old line numbers to positions in the current (post-removal) file.
+      // For simplicity, we re-compute by building a line map.
+      // For each removal: find where oldLineNumber content should go in the modified file.
+      for (const spec of removalsToRevert) {
+        if (spec.oldLineNumber == null) continue
+        const oldIdx = spec.oldLineNumber - 1
+        if (oldIdx >= 0 && oldIdx < originalLines.length) {
+          const lineContent = originalLines[oldIdx]!
+          // Insert at position — try to find the right spot based on surrounding context
+          // Simple approach: insert at the position corresponding to oldLineNumber, clamped
+          const insertIdx = Math.min(oldIdx, currentLines.length)
+          currentLines.splice(insertIdx, 0, lineContent)
+        }
+      }
+
+      await fs.writeFile(fullPath, currentLines.join('\n'), 'utf-8')
+      return { success: true }
+    } catch (error) {
+      log.error('git:revertLines failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:revertFile', async (_event, worktreePath: string, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    log.info(`Reverting file: ${filePath} in ${worktreePath}`)
+    try {
+      // Check if file is tracked
+      try {
+        await runGitCommand(worktreePath, ['ls-files', '--error-unmatch', '--', filePath])
+        // Tracked: restore from HEAD
+        await runGitCommand(worktreePath, ['checkout', 'HEAD', '--', filePath])
+      } catch {
+        // Untracked: delete the file
+        const fullPath = path.join(worktreePath, filePath)
+        await fs.unlink(fullPath)
+      }
+      return { success: true }
+    } catch (error) {
+      log.error('git:revertFile failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:applyEdit', async (_event, worktreePath: string, filePath: string, lineNumber: number, newContent: string): Promise<{ success: boolean; error?: string }> => {
+    log.info(`Applying edit to ${filePath}:${lineNumber} in ${worktreePath}`)
+    try {
+      const fullPath = path.join(worktreePath, filePath)
+      const content = await fs.readFile(fullPath, 'utf-8')
+      const lines = content.split('\n')
+      const idx = lineNumber - 1
+      if (idx < 0 || idx >= lines.length) {
+        return { success: false, error: `Line ${lineNumber} out of range (file has ${lines.length} lines)` }
+      }
+      lines[idx] = newContent
+      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
+      return { success: true }
+    } catch (error) {
+      log.error('git:applyEdit failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:deleteLine', async (_event, worktreePath: string, filePath: string, lineNumber: number): Promise<{ success: boolean; error?: string }> => {
+    log.info(`Deleting line ${lineNumber} from ${filePath} in ${worktreePath}`)
+    try {
+      const fullPath = path.join(worktreePath, filePath)
+      const content = await fs.readFile(fullPath, 'utf-8')
+      const lines = content.split('\n')
+      const idx = lineNumber - 1
+      if (idx < 0 || idx >= lines.length) {
+        return { success: false, error: `Line ${lineNumber} out of range (file has ${lines.length} lines)` }
+      }
+      lines.splice(idx, 1)
+      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
+      return { success: true }
+    } catch (error) {
+      log.error('git:deleteLine failed:', error)
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })

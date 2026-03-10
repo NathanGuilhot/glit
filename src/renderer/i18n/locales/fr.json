@@ -87,7 +87,7 @@
       "rebaseOnto": "Rebaser sur {{branch}}",
       "runSetup": "Exécuter le script",
       "configureRunCommand": "Configurer la commande…",
-      "quickCommit": "Commit rapide…",
+      "quickCommit": "Revoir & commiter",
       "push": "Pousser",
       "forcePush": "Forcer le push",
       "syncWorkingTree": "Synchroniser le working tree",
@@ -298,6 +298,31 @@
     "toast": {
       "committed": "Modifications commitées",
       "commitFailed": "Échec du commit"
+    }
+  },
+  "codeReview": {
+    "title": "Revoir & commiter",
+    "filterFiles": "Filtrer les fichiers…",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "files": "fichiers",
+    "messagePlaceholder": "Message de commit…",
+    "committing": "Commit en cours…",
+    "commitCount": "Commiter {{count}} fichiers",
+    "selectFilePrompt": "Sélectionnez un fichier à revoir",
+    "binaryFile": "Fichier binaire — impossible d'afficher le diff",
+    "noChanges": "Aucune modification dans ce fichier",
+    "revertFile": "Annuler le fichier",
+    "revertSelectedLines": "Annuler {{count}} lignes sélectionnées",
+    "discardHunk": "Annuler le bloc",
+    "toast": {
+      "committed": "Modifications commitées",
+      "commitFailed": "Échec du commit",
+      "fileReverted": "Fichier annulé",
+      "linesReverted": "{{count}} lignes annulées",
+      "hunkReverted": "Bloc annulé",
+      "revertFailed": "Échec de l'annulation",
+      "editFailed": "Échec de la modification"
     }
   },
   "errorBoundary": {

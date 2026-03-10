@@ -25,7 +25,7 @@ import { useAppActions } from '../contexts/AppActionsContext'
 import { useAPI } from '../api'
 import { ProcessLogDrawer } from './ProcessLogDrawer'
 import { RunCommandModal } from './RunCommandModal'
-import { QuickCommitModal } from './QuickCommitModal'
+import { CodeReviewModal } from './CodeReviewModal'
 import { TooltipIconButton } from './TooltipIconButton'
 import { getBranchColor } from '../utils'
 
@@ -141,7 +141,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
   }
 
   const handleQuickCommit = () => {
-    NiceModal.show(QuickCommitModal, { worktreePath: worktree.path, branch: branchDisplayText })
+    NiceModal.show(CodeReviewModal, { worktreePath: worktree.path, branch: branchDisplayText })
   }
 
   const handlePush = async (force = false) => {

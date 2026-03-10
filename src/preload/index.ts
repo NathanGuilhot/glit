@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions, SetupConfig } from '../shared/types'
+import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions, SetupConfig, RevertLineSpec } from '../shared/types'
 
 const api: GlitAPI = {
   worktree: {
@@ -56,6 +56,12 @@ const api: GlitAPI = {
   },
   git: {
     status: (worktreePath: string) => ipcRenderer.invoke('git:status', worktreePath),
+    statusWithStats: (worktreePath: string) => ipcRenderer.invoke('git:statusWithStats', worktreePath),
+    diff: (worktreePath: string, filePath: string) => ipcRenderer.invoke('git:diff', worktreePath, filePath),
+    revertLines: (worktreePath: string, filePath: string, linesToRevert: RevertLineSpec[]) => ipcRenderer.invoke('git:revertLines', worktreePath, filePath, linesToRevert),
+    revertFile: (worktreePath: string, filePath: string) => ipcRenderer.invoke('git:revertFile', worktreePath, filePath),
+    applyEdit: (worktreePath: string, filePath: string, lineNumber: number, newContent: string) => ipcRenderer.invoke('git:applyEdit', worktreePath, filePath, lineNumber, newContent),
+    deleteLine: (worktreePath: string, filePath: string, lineNumber: number) => ipcRenderer.invoke('git:deleteLine', worktreePath, filePath, lineNumber),
     commit: (worktreePath: string, files: string[], message: string) => ipcRenderer.invoke('git:commit', worktreePath, files, message),
     push: (worktreePath: string, force?: boolean) => ipcRenderer.invoke('git:push', worktreePath, force),
   },

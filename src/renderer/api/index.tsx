@@ -17,6 +17,11 @@ export type {
   ProcessLog,
   DevCommandInfo,
   GitFileStatus,
+  FileStatusWithStats,
+  FileDiff,
+  DiffHunk,
+  DiffLine,
+  RevertLineSpec,
 } from '../../shared/types'
 
 export type API = GlitAPI
