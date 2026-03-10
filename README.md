@@ -35,7 +35,7 @@ open release/*.dmg
 Or install globally via npm to use `glit` from anywhere:
 
 ```bash
-npm install -g .
+npm run install:global
 ```
 
 
