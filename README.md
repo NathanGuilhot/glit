@@ -58,8 +58,8 @@ The glit window will open for the current repo
 ## How to release
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 ## Stack
