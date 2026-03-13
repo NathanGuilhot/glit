@@ -166,6 +166,31 @@ async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: numbe
       }
     }
 
+    // Include untracked files in the counts
+    try {
+      const lsOutput = await runGitCommand(worktreePath, ['ls-files', '--others', '--exclude-standard'])
+      const untrackedFiles = lsOutput.trim().split('\n').filter(Boolean)
+      for (const filePath of untrackedFiles) {
+        try {
+          const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
+          let lineCount: number
+          if (content.endsWith('\n') && content.length > 0) {
+            lineCount = content.split('\n').length - 1
+          } else if (content.length > 0) {
+            lineCount = content.split('\n').length
+          } else {
+            lineCount = 0
+          }
+          fileCount++
+          insertionCount += lineCount
+        } catch {
+          // binary or unreadable — skip
+        }
+      }
+    } catch {
+      // status command failed — skip untracked files
+    }
+
     return { fileCount, insertionCount, deletionCount, isStale: false }
   } catch {
     return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: false }
@@ -432,7 +457,26 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     activeCreateController = controller
     const { signal } = controller
 
-    const safeName = sanitizeBranchForPath(branchName)
+    // Strip remote prefix so git creates a local tracking branch instead of detached HEAD
+    let resolvedBranch = branchName
+    if (!createNewBranch) {
+      try {
+        const remotesOut = await runGitCommand(repoPath, ['remote'])
+        const remotes = remotesOut.split('\n').map(r => r.trim()).filter(Boolean)
+        for (const remote of remotes) {
+          if (branchName.startsWith(remote + '/')) {
+            resolvedBranch = branchName.slice(remote.length + 1)
+            break
+          }
+        }
+      } catch {
+        if (branchName.startsWith('origin/')) {
+          resolvedBranch = branchName.slice(7)
+        }
+      }
+    }
+
+    const safeName = sanitizeBranchForPath(resolvedBranch)
     const worktreePath = customPath ?? path.join(repoPath, '..', `glit-worktrees`, safeName)
 
     // Resolve the effective base branch, falling back to auto-detected default
@@ -458,7 +502,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         args.push('-b', branchName, worktreePath)
         if (effectiveBase) args.push(effectiveBase)
       } else {
-        args.push(worktreePath, branchName)
+        args.push(worktreePath, resolvedBranch)
       }
       await runGitCommand(repoPath, args, { signal })
       log.info(`Worktree created at: ${worktreePath}`)
@@ -488,7 +532,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       activeCreateController = null
       return {
         success: true,
-        worktree: { path: worktreePath, displayPath: shortenPathForDisplay(worktreePath), branch: branchName, isBare: false, isLocked: false },
+        worktree: { path: worktreePath, displayPath: shortenPathForDisplay(worktreePath), branch: resolvedBranch, isBare: false, isLocked: false },
       }
     } catch (error) {
       activeCreateController = null
@@ -1194,6 +1238,25 @@ end tell'`
       return { success: true }
     } catch (error) {
       log.error('git:deleteLine failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('git:insertLine', async (_event, worktreePath: string, filePath: string, afterLineNumber: number, content: string): Promise<{ success: boolean; error?: string }> => {
+    log.info(`Inserting line after ${afterLineNumber} in ${filePath} in ${worktreePath}`)
+    try {
+      const fullPath = path.join(worktreePath, filePath)
+      const fileContent = await fs.readFile(fullPath, 'utf-8')
+      const lines = fileContent.split('\n')
+      const idx = afterLineNumber
+      if (idx < 0 || idx > lines.length) {
+        return { success: false, error: `Line ${afterLineNumber} out of range (file has ${lines.length} lines)` }
+      }
+      lines.splice(idx, 0, content)
+      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
+      return { success: true }
+    } catch (error) {
+      log.error('git:insertLine failed:', error)
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
