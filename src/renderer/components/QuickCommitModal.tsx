@@ -62,14 +62,17 @@ export const QuickCommitModal = NiceModal.create<QuickCommitModalProps>(({ workt
   const [committing, setCommitting] = useState(false)
 
   useEffect(() => {
-    setLoading(true)
-    api.git.status(worktreePath).then((result) => {
-      setFiles(result)
-      setSelected(new Set(result.map((f) => f.path)))
-    }).catch(() => {
-      setFiles([])
-    }).finally(() => setLoading(false))
-  }, [api, worktreePath])
+    if (modal.visible) {
+      setMessage('')
+      setLoading(true)
+      api.git.status(worktreePath).then((result) => {
+        setFiles(result)
+        setSelected(new Set(result.map((f) => f.path)))
+      }).catch(() => {
+        setFiles([])
+      }).finally(() => setLoading(false))
+    }
+  }, [modal.visible, api, worktreePath])
 
   const allSelected = selected.size === files.length && files.length > 0
   const toggleAll = () => {
@@ -107,7 +110,7 @@ export const QuickCommitModal = NiceModal.create<QuickCommitModalProps>(({ workt
   }
 
   return (
-    <Modal isOpen={modal.visible} onClose={modal.hide} size="lg">
+    <Modal isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} size="lg">
       <ModalOverlay />
       <ModalContent bg="gray.800" borderColor="whiteAlpha.100" border="1px solid">
         <ModalHeader fontSize="md" pb={2}>

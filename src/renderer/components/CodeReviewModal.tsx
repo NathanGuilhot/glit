@@ -18,7 +18,7 @@ import type { FileStatusWithStats, FileDiff, RevertLineSpec } from '../../shared
 import { useAPI } from '../api'
 import { useWorktree } from '../contexts/WorktreeContext'
 import { FileListPanel } from './code-review/FileListPanel'
-import { DiffViewer } from './code-review/DiffViewer'
+import { DiffViewer, focusLineTextarea } from './code-review/DiffViewer'
 
 interface CodeReviewModalProps {
   worktreePath: string
@@ -61,8 +61,16 @@ export const CodeReviewModal = NiceModal.create<CodeReviewModalProps>(({ worktre
   }, [api, worktreePath])
 
   useEffect(() => {
-    void loadFiles()
-  }, [loadFiles])
+    if (modal.visible) {
+      diffCache.current.clear()
+      setActiveFile(null)
+      setCurrentDiff(null)
+      setSelectedLines(new Set())
+      setCommitMessage('')
+      setFileFilter('')
+      void loadFiles()
+    }
+  }, [modal.visible, loadFiles])
 
   // Load diff for active file
   const loadDiff = useCallback(async (filePath: string) => {
@@ -285,6 +293,7 @@ export const CodeReviewModal = NiceModal.create<CodeReviewModalProps>(({ worktre
   const handleDeleteLine = useCallback(async (lineNumber: number) => {
     if (!activeFile) return
     const savedScroll = diffScrollRef.current?.scrollTop ?? 0
+    const focusTarget = Math.max(1, lineNumber - 1)
     try {
       const result = await api.git.deleteLine(worktreePath, activeFile, lineNumber)
       if (result.success) {
@@ -293,10 +302,37 @@ export const CodeReviewModal = NiceModal.create<CodeReviewModalProps>(({ worktre
           if (diffScrollRef.current) {
             diffScrollRef.current.scrollTop = savedScroll
           }
+          focusLineTextarea(focusTarget)
         })
       } else {
         toast({ title: t('codeReview.toast.editFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
       }
+    } catch {
+      toast({ title: t('codeReview.toast.editFailed'), status: 'error', duration: 5000 })
+    }
+  }, [activeFile, api, worktreePath, toast, t, refreshActiveFile])
+
+  const handleSplitLine = useCallback(async (lineNumber: number, before: string, after: string) => {
+    if (!activeFile) return
+    const savedScroll = diffScrollRef.current?.scrollTop ?? 0
+    try {
+      const editResult = await api.git.applyEdit(worktreePath, activeFile, lineNumber, before)
+      if (!editResult.success) {
+        toast({ title: t('codeReview.toast.editFailed'), description: editResult.error, status: 'error', duration: 5000, isClosable: true })
+        return
+      }
+      const insertResult = await api.git.insertLine(worktreePath, activeFile, lineNumber, after)
+      if (!insertResult.success) {
+        toast({ title: t('codeReview.toast.editFailed'), description: insertResult.error, status: 'error', duration: 5000, isClosable: true })
+        return
+      }
+      await refreshActiveFile()
+      requestAnimationFrame(() => {
+        if (diffScrollRef.current) {
+          diffScrollRef.current.scrollTop = savedScroll
+        }
+        focusLineTextarea(lineNumber + 1, 0)
+      })
     } catch {
       toast({ title: t('codeReview.toast.editFailed'), status: 'error', duration: 5000 })
     }
@@ -320,7 +356,7 @@ export const CodeReviewModal = NiceModal.create<CodeReviewModalProps>(({ worktre
   }, [commitMessage, selectedFiles, api, worktreePath, toast, t, modal, refresh])
 
   return (
-    <Modal isOpen={modal.visible} onClose={modal.hide} size="full">
+    <Modal isOpen={modal.visible} onClose={modal.hide} onCloseComplete={() => modal.remove()} size="full">
       <ModalOverlay />
       <ModalContent
         maxW="95vw"
@@ -374,6 +410,7 @@ export const CodeReviewModal = NiceModal.create<CodeReviewModalProps>(({ worktre
               onRevertHunk={(idx) => void handleRevertHunk(idx)}
               onApplyEdit={(ln, content) => void handleApplyEdit(ln, content)}
               onDeleteLine={(ln) => void handleDeleteLine(ln)}
+              onSplitLine={(ln, before, after) => void handleSplitLine(ln, before, after)}
             />
           </HStack>
         </ModalBody>

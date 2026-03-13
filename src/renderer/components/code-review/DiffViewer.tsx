@@ -22,6 +22,7 @@ interface DiffViewerProps {
   onRevertHunk: (hunkIdx: number) => void
   onApplyEdit: (lineNumber: number, newContent: string) => void
   onDeleteLine: (lineNumber: number) => void
+  onSplitLine: (lineNumber: number, before: string, after: string) => void
 }
 
 const addBg = 'rgba(46, 160, 67, 0.15)'
@@ -31,20 +32,36 @@ const removeBg = 'rgba(248, 81, 73, 0.15)'
 const removeBgHover = 'rgba(248, 81, 73, 0.25)'
 const removeBgSelected = 'rgba(248, 81, 73, 0.35)'
 
+export function focusLineTextarea(lineNumber: number, cursorPos?: number) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`textarea[data-line-number="${lineNumber}"]`) as HTMLTextAreaElement | null
+    if (el) {
+      el.focus()
+      if (cursorPos !== undefined) {
+        const pos = Math.min(cursorPos, el.value.length)
+        el.selectionStart = el.selectionEnd = pos
+      }
+    }
+  })
+}
+
 function EditableLineContent({
   content,
   lineNumber,
   onApplyEdit,
   onDeleteLine,
+  onSplitLine,
 }: {
   content: string
   lineNumber: number
   onApplyEdit: (lineNumber: number, newContent: string) => void
   onDeleteLine: (lineNumber: number) => void
+  onSplitLine: (lineNumber: number, before: string, after: string) => void
 }) {
   const [value, setValue] = useState(content)
   const [focused, setFocused] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
+  const deletedRef = useRef(false)
 
   useEffect(() => {
     setValue(content)
@@ -52,6 +69,7 @@ function EditableLineContent({
 
   const handleBlur = useCallback(() => {
     setFocused(false)
+    if (deletedRef.current) return
     if (value !== content) {
       onApplyEdit(lineNumber, value)
     }
@@ -71,7 +89,11 @@ function EditableLineContent({
     }
     if (e.key === 'Enter') {
       e.preventDefault()
-      e.currentTarget.blur()
+      const target = e.currentTarget
+      const cursor = target.selectionStart
+      const before = value.slice(0, cursor)
+      const after = value.slice(cursor)
+      onSplitLine(lineNumber, before, after)
     }
     if (e.key === 'Escape') {
       setValue(content)
@@ -79,15 +101,40 @@ function EditableLineContent({
     }
     if ((e.key === 'Backspace' || e.key === 'Delete') && value === '') {
       e.preventDefault()
+      deletedRef.current = true
       onDeleteLine(lineNumber)
-      e.currentTarget.blur()
     }
-  }, [value, content, lineNumber, onDeleteLine])
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const cursor = e.currentTarget.selectionStart
+      const all = Array.from(document.querySelectorAll<HTMLTextAreaElement>('textarea[data-line-number]'))
+      const idx = all.indexOf(e.currentTarget)
+      if (idx > 0) {
+        const target = all[idx - 1]!
+        target.focus()
+        const pos = Math.min(cursor, target.value.length)
+        target.selectionStart = target.selectionEnd = pos
+      }
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const cursor = e.currentTarget.selectionStart
+      const all = Array.from(document.querySelectorAll<HTMLTextAreaElement>('textarea[data-line-number]'))
+      const idx = all.indexOf(e.currentTarget)
+      if (idx < all.length - 1) {
+        const target = all[idx + 1]!
+        target.focus()
+        const pos = Math.min(cursor, target.value.length)
+        target.selectionStart = target.selectionEnd = pos
+      }
+    }
+  }, [value, content, lineNumber, onDeleteLine, onSplitLine])
 
   return (
     <Box
       as="textarea"
       ref={ref}
+      data-line-number={lineNumber}
       value={value}
       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setValue(e.target.value)}
       onFocus={() => setFocused(true)}
@@ -125,6 +172,7 @@ function DiffLineRow({
   onToggleLine,
   onApplyEdit,
   onDeleteLine,
+  onSplitLine,
 }: {
   line: DiffLine
   hunkIdx: number
@@ -133,6 +181,7 @@ function DiffLineRow({
   onToggleLine: (key: string, shiftKey: boolean) => void
   onApplyEdit: (lineNumber: number, newContent: string) => void
   onDeleteLine: (lineNumber: number) => void
+  onSplitLine: (lineNumber: number, before: string, after: string) => void
 }) {
   const [hovered, setHovered] = useState(false)
   const key = `${hunkIdx}:${lineIdx}`
@@ -218,6 +267,7 @@ function DiffLineRow({
             lineNumber={line.newLineNumber}
             onApplyEdit={onApplyEdit}
             onDeleteLine={onDeleteLine}
+            onSplitLine={onSplitLine}
           />
         ) : (
           <Text
@@ -301,6 +351,7 @@ export function DiffViewer({
   onRevertHunk,
   onApplyEdit,
   onDeleteLine,
+  onSplitLine,
 }: DiffViewerProps) {
   const { t } = useTranslation()
 
@@ -397,6 +448,7 @@ export function DiffViewer({
                 onToggleLine={onToggleLine}
                 onApplyEdit={onApplyEdit}
                 onDeleteLine={onDeleteLine}
+                onSplitLine={onSplitLine}
               />
             ))}
           </Box>

@@ -62,6 +62,7 @@ const api: GlitAPI = {
     revertFile: (worktreePath: string, filePath: string) => ipcRenderer.invoke('git:revertFile', worktreePath, filePath),
     applyEdit: (worktreePath: string, filePath: string, lineNumber: number, newContent: string) => ipcRenderer.invoke('git:applyEdit', worktreePath, filePath, lineNumber, newContent),
     deleteLine: (worktreePath: string, filePath: string, lineNumber: number) => ipcRenderer.invoke('git:deleteLine', worktreePath, filePath, lineNumber),
+    insertLine: (worktreePath: string, filePath: string, afterLineNumber: number, content: string) => ipcRenderer.invoke('git:insertLine', worktreePath, filePath, afterLineNumber, content),
     commit: (worktreePath: string, files: string[], message: string) => ipcRenderer.invoke('git:commit', worktreePath, files, message),
     push: (worktreePath: string, force?: boolean) => ipcRenderer.invoke('git:push', worktreePath, force),
   },

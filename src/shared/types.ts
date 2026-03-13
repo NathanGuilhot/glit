@@ -207,6 +207,7 @@ export interface GlitAPI {
     revertFile: (worktreePath: string, filePath: string) => Promise<{ success: boolean; error?: string }>
     applyEdit: (worktreePath: string, filePath: string, lineNumber: number, newContent: string) => Promise<{ success: boolean; error?: string }>
     deleteLine: (worktreePath: string, filePath: string, lineNumber: number) => Promise<{ success: boolean; error?: string }>
+    insertLine: (worktreePath: string, filePath: string, afterLineNumber: number, content: string) => Promise<{ success: boolean; error?: string }>
     commit: (worktreePath: string, files: string[], message: string) => Promise<{ success: boolean; error?: string }>
     push: (worktreePath: string, force?: boolean) => Promise<{ success: boolean; error?: string }>
   }

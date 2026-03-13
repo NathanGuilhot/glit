@@ -96,6 +96,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
       const result = await api.branch.rebaseOnto(worktree.path, detectedBaseBranch)
       if (result.success) {
         toast({ title: t('worktreeCard.toast.rebased', { branch: detectedBaseBranch }), status: 'success', duration: 3000 })
+        refresh()
       } else {
         toast({
           title: result.hasConflicts ? t('worktreeCard.toast.rebaseConflicts') : t('worktreeCard.toast.rebaseFailed'),
@@ -305,7 +306,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             <TooltipIconButton label={t('worktreeCard.tooltips.openInIDE', { ide: settings.preferredIDE })} icon={<IDEIcon boxSize={4} color="whiteAlpha.800" />} onClick={() => handleOpenIDE(worktree.path)} />
           </HStack>
 
-          <Menu>
+          <Menu isLazy placement="bottom-end" strategy="fixed">
             <MenuButton
               as={IconButton}
               aria-label={t('worktreeCard.ariaLabels.moreActions')}
