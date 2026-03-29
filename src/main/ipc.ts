@@ -1,46 +1,38 @@
 import { ipcMain, clipboard, dialog, shell, BrowserWindow, app } from 'electron'
 import log from 'electron-log'
-import { exec, spawn } from 'child_process'
-import type { ChildProcess } from 'child_process'
+import { exec } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import fs from 'fs/promises'
 import yaml from 'js-yaml'
-import Store from 'electron-store'
 import type {
-  Worktree,
   WorktreeWithDiff,
-  BranchInfo,
   SetupConfig,
-  AppSettings,
   RepoInfo,
-  RecentRepo,
   CreateWorktreeOptions,
   DeleteWorktreeOptions,
   RunningProcess,
   ProcessLog,
   DevCommandInfo,
-  GitFileStatus,
-  FileStatusWithStats,
-  FileDiff,
   RevertLineSpec,
 } from '../shared/types.js'
 import { sanitizeBranchForPath } from '../shared/branch.js'
-import { parseDiff, synthesizeAdditionDiff } from './diffParser.js'
+
+import { runGitCommand, getWorktrees, getWorktreeDiff, getAheadBehind, getWorktreeLastActivity, getLocalBranchNames, getBranches, getDefaultBranch } from './services/git.js'
+import { shortenPathForDisplay, addToRecentRepos, store, getSettings, setSettings, getRecentRepos, getSavedDevCommand, saveDevCommand, getAllDevCommands } from './services/settings.js'
+import { openTerminal, openIDE } from './services/launchers.js'
+import { runSetupSteps, previewSetupConfig, saveSetupConfig } from './services/setup.js'
+import { initProcessService, sendWindowEvent, startProcess, stopProcess, listProcesses, getProcessLogs, cleanupAllProcesses } from './services/process.js'
+import { errorResult } from './services/utils.js'
+import { getGitStatus, getGitStatusWithStats, getGitDiff, revertLines, revertFile, applyEdit, deleteLine, insertLine, commitFiles, pushBranch } from './services/git-operations.js'
 
 const execAsync = promisify(exec)
 
 let activeCreateController: AbortController | null = null
 let activeRepoPath: string | null = null
 
-const runningProcesses = new Map<string, { proc: ChildProcess; info: RunningProcess }>()
-const processLogs = new Map<string, ProcessLog[]>()
-const MAX_LOG_LINES = 500
-
 app.on('will-quit', () => {
-  for (const { proc } of runningProcesses.values()) {
-    try { proc.kill('SIGTERM') } catch { /* ignore */ }
-  }
+  cleanupAllProcesses()
 })
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -56,324 +48,11 @@ function getRepoPath(): string {
   return process.cwd()
 }
 
-function shortenPathForDisplay(fullPath: string): string {
-  const home = process.env.HOME
-  if (home && fullPath.startsWith(home)) {
-    return '~' + fullPath.slice(home.length)
-  }
-  return fullPath
-}
-
-const defaultSettings: AppSettings = {
-  preferredTerminal: 'Terminal',
-  preferredIDE: 'VSCode',
-  autoRefresh: true,
-}
-
-const store = new Store<{ settings: AppSettings; recentRepos: RecentRepo[]; devCommands: Record<string, string> }>({
-  defaults: { settings: defaultSettings, recentRepos: [], devCommands: {} },
-})
-
-function addToRecentRepos(info: RepoInfo): void {
-  if (!info.isRepo || !info.path || !info.name) return
-  const existing = store.get('recentRepos', [])
-  const filtered = existing.filter((r) => r.path !== info.path)
-  const entry: RecentRepo = {
-    path: info.path,
-    name: info.name,
-    displayPath: info.displayPath ?? shortenPathForDisplay(info.path),
-    lastUsedAt: new Date().toISOString(),
-  }
-  store.set('recentRepos', [entry, ...filtered].slice(0, 10))
-}
-
-async function runGitCommand(cwd: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> {
-  const safeArgs = args.map(arg => /[^\w/-]/.test(arg) ? `'${arg.replace(/'/g, "'\\''")}'` : arg)
-  const cmd = `git ${safeArgs.join(' ')}`
-  log.debug(`Git: ${cmd} [${cwd}]`)
-  const { stdout, stderr } = await execAsync(cmd, { cwd, signal: options?.signal })
-  if (stderr) log.debug(`Git stderr: ${stderr}`)
-  return stdout
-}
-
-
-async function getWorktrees(repoPath: string): Promise<Worktree[]> {
-  const output = await runGitCommand(repoPath, ['worktree', 'list', '--porcelain'])
-  const worktrees: Worktree[] = []
-  const entries = output.split('\n\n').filter(Boolean)
-
-  for (const entry of entries) {
-    const lines = entry.split('\n')
-    let wtPath = ''
-    let branch = ''
-    let head = ''
-    let isBare = false
-    let isLocked = false
-
-    for (const line of lines) {
-      if (line.startsWith('worktree ')) {
-        wtPath = line.slice(9)
-      } else if (line.startsWith('branch ')) {
-        branch = line.slice(7).replace('refs/heads/', '')
-      } else if (line.startsWith('HEAD ')) {
-        head = line.slice(5)
-      } else if (line === 'bare') {
-        isBare = true
-      } else if (line.startsWith('locked')) {
-        isLocked = true
-      } else if (line.startsWith('detached')) {
-        branch = `detached:${head.slice(0, 8)}`
-      }
-    }
-
-    if (wtPath) {
-      worktrees.push({ path: wtPath, displayPath: shortenPathForDisplay(wtPath), branch, isBare, isLocked, head })
-    }
-  }
-
-  return worktrees
-}
-
-async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount: number; insertionCount: number; deletionCount: number; isStale: boolean }> {
-  try {
-    // Check if path exists
-    await fs.access(worktreePath)
-    const [indexDiff, headDiff] = await Promise.all([
-      runGitCommand(worktreePath, ['diff', '--numstat']),
-      runGitCommand(worktreePath, ['diff', '--numstat', 'HEAD']),
-    ])
-
-    // Stale: working tree matches index (no user edits) but differs from HEAD (HEAD moved)
-    if (!indexDiff.trim() && headDiff.trim()) {
-      return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: true }
-    }
-
-    if (!headDiff.trim()) {
-      return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: false }
-    }
-
-    const lines = headDiff.trim().split('\n')
-    let fileCount = 0
-    let insertionCount = 0
-    let deletionCount = 0
-
-    for (const line of lines) {
-      const match = line.match(/^(\d+|-)\s+(\d+|-)\s+/)
-      if (match) {
-        fileCount++
-        insertionCount += match[1] === '-' ? 0 : parseInt(match[1]!, 10)
-        deletionCount += match[2] === '-' ? 0 : parseInt(match[2]!, 10)
-      }
-    }
-
-    // Include untracked files in the counts
-    try {
-      const lsOutput = await runGitCommand(worktreePath, ['ls-files', '--others', '--exclude-standard'])
-      const untrackedFiles = lsOutput.trim().split('\n').filter(Boolean)
-      for (const filePath of untrackedFiles) {
-        try {
-          const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
-          let lineCount: number
-          if (content.endsWith('\n') && content.length > 0) {
-            lineCount = content.split('\n').length - 1
-          } else if (content.length > 0) {
-            lineCount = content.split('\n').length
-          } else {
-            lineCount = 0
-          }
-          fileCount++
-          insertionCount += lineCount
-        } catch {
-          // binary or unreadable — skip
-        }
-      }
-    } catch {
-      // status command failed — skip untracked files
-    }
-
-    return { fileCount, insertionCount, deletionCount, isStale: false }
-  } catch {
-    return { fileCount: 0, insertionCount: 0, deletionCount: 0, isStale: false }
-  }
-}
-
-async function getAheadBehind(
-  worktreePath: string,
-  branch: string,
-): Promise<{ aheadCount: number; behindCount: number }> {
-  try {
-    if (!branch || branch.startsWith('detached:')) {
-      return { aheadCount: 0, behindCount: 0 }
-    }
-    const out = await runGitCommand(worktreePath, [
-      'rev-list', '--count', '--left-right', '@{upstream}...HEAD',
-    ])
-    const [behind = '0', ahead = '0'] = out.trim().split('\t')
-    return {
-      aheadCount: parseInt(ahead, 10) || 0,
-      behindCount: parseInt(behind, 10) || 0,
-    }
-  } catch {
-    return { aheadCount: 0, behindCount: 0 }
-  }
-}
-
-async function getWorktreeLastActivity(worktreePath: string): Promise<string | undefined> {
-  try {
-    const output = await runGitCommand(worktreePath, ['log', '-1', '--format=%ar', 'HEAD'])
-    return output.trim() || undefined
-  } catch {
-    return undefined
-  }
-}
-
-async function getLocalBranchNames(
-  repoPath: string,
-  options?: { mergedInto?: string },
-): Promise<string[]> {
-  const args: string[] = ['branch', '--format=%(refname:short)']
-  if (options?.mergedInto) args.push('--merged', options.mergedInto)
-  const output = await runGitCommand(repoPath, args)
-  return output.split('\n').map((l) => l.trim()).filter(Boolean)
-}
-
-async function getBranches(repoPath: string): Promise<BranchInfo[]> {
-  const branches: BranchInfo[] = []
-
-  try {
-    const [localNames, currentBranch] = await Promise.all([
-      getLocalBranchNames(repoPath),
-      runGitCommand(repoPath, ['branch', '--show-current']).then((out) => out.trim()),
-    ])
-    for (const name of localNames) {
-      branches.push({ name, isRemote: false, isCurrent: name === currentBranch })
-    }
-  } catch {
-    log.warn('Failed to get local branches')
-  }
-
-  try {
-    const remoteOutput = await runGitCommand(repoPath, ['branch', '-r', '--format=%(refname:short)'])
-    for (const line of remoteOutput.split('\n').filter(Boolean)) {
-      const name = line.trim()
-      if (name && !name.includes('HEAD')) {
-        branches.push({ name, isRemote: true, isCurrent: false })
-      }
-    }
-  } catch {
-    log.warn('Failed to get remote branches')
-  }
-
-  return branches
-}
-
-async function getDefaultBranch(repoPath: string): Promise<string> {
-  // Try to read the remote HEAD symref (e.g. refs/remotes/origin/HEAD -> origin/master)
-  try {
-    const out = await runGitCommand(repoPath, ['symbolic-ref', 'refs/remotes/origin/HEAD'])
-    const branch = out.trim().replace('refs/remotes/origin/', '')
-    if (branch) return branch
-  } catch {
-    // not set – fall through
-  }
-
-  // Fall back: look for 'main' or 'master' in local branches
-  try {
-    const names = await getLocalBranchNames(repoPath)
-    if (names.includes('main')) return 'main'
-    if (names.includes('master')) return 'master'
-  } catch {
-    // fall through
-  }
-
-  // Last resort: current branch
-  try {
-    const out = await runGitCommand(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
-    const branch = out.trim()
-    if (branch && branch !== 'HEAD') return branch
-  } catch {
-    // fall through
-  }
-
-  return 'main'
-}
-
-function sendWindowEvent(getWindow: () => BrowserWindow | null, channel: string, data: unknown): void {
-  const win = getWindow()
-  if (win && !win.isDestroyed()) {
-    win.webContents.send(channel, data)
-  }
-}
-
-function detectPort(line: string): number | null {
-  const match = line.match(/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{2,5})/)
-  if (match) return parseInt(match[1]!, 10)
-  const portMatch = line.match(/(?:port|PORT)\s*[:\s]\s*(\d{2,5})/)
-  if (portMatch) return parseInt(portMatch[1]!, 10)
-  return null
-}
-
-function appendProcessLog(worktreePath: string, line: string, isError: boolean): void {
-  const logs = processLogs.get(worktreePath) ?? []
-  logs.push({ line, isError, ts: Date.now() })
-  if (logs.length > MAX_LOG_LINES) logs.shift()
-  processLogs.set(worktreePath, logs)
-}
-
-function pipeLines(stream: NodeJS.ReadableStream | null | undefined, isError: boolean, onLine: (line: string, isError: boolean) => void): void {
-  let buf = ''
-  stream?.on('data', (data: Buffer) => {
-    buf += data.toString()
-    let nl: number
-    while ((nl = buf.indexOf('\n')) !== -1) {
-      const line = buf.slice(0, nl).replace(/\r$/, '')
-      buf = buf.slice(nl + 1)
-      if (line) onLine(line, isError)
-    }
-  })
-}
-
-async function runSetupSteps(repoPath: string, worktreePath: string): Promise<void> {
-  const configPath = path.join(repoPath, '.glit', 'setup.yaml')
-  const configContent = await fs.readFile(configPath, 'utf-8') // throws if missing
-  const config = yaml.load(configContent) as SetupConfig
-
-  if (config.packages?.length) {
-    for (const pkgCmd of config.packages) {
-      try { await execAsync(pkgCmd, { cwd: worktreePath }) }
-      catch (e) { log.warn(`Package command failed: ${pkgCmd}`, e) }
-    }
-  }
-  if (config.envFiles?.length) {
-    for (const envFile of config.envFiles) {
-      try {
-        const srcPath = path.join(repoPath, envFile)
-        const destPath = path.join(worktreePath, envFile)
-        await fs.mkdir(path.dirname(destPath), { recursive: true })
-        await fs.copyFile(srcPath, destPath)
-      } catch (e) { log.warn(`Env file copy failed: ${envFile}`, e) }
-    }
-  }
-  if (config.commands?.length) {
-    for (const cmd of config.commands) {
-      try { await execAsync(cmd, { cwd: worktreePath }) }
-      catch (e) { log.warn(`Setup command failed: ${cmd}`, e) }
-    }
-  }
-}
-
-function mapStatusCode(code: string): GitFileStatus['status'] | null {
-  switch (code) {
-    case 'M': return 'modified'
-    case 'A': return 'added'
-    case 'D': return 'deleted'
-    case 'R': return 'renamed'
-    case 'C': return 'copied'
-    default: return null
-  }
-}
-
 export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
+  initProcessService(getWindow)
+
+  // ── Repo ──────────────────────────────────────────────────────────
+
   ipcMain.handle('repo:detect', async () => {
     const cwd = getRepoPath()
     const displayPath = shortenPathForDisplay(cwd)
@@ -402,9 +81,14 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     }
   })
 
-  ipcMain.handle('repo:listRecent', async () => {
-    return store.get('recentRepos', [])
+  ipcMain.handle('repo:listRecent', async () => getRecentRepos())
+
+  ipcMain.handle('repo:defaultBranch', async (_event, repoPath: string) => {
+    log.info(`Detecting default branch for: ${repoPath}`)
+    return getDefaultBranch(repoPath)
   })
+
+  // ── Worktree ──────────────────────────────────────────────────────
 
   ipcMain.handle('worktree:list', async (_event, repoPath: string) => {
     log.info(`Listing worktrees for: ${repoPath}`)
@@ -443,9 +127,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       }
       return { success: true }
     } catch (error) {
-      log.error('Error deleting worktree:', error)
-      const msg = error instanceof Error ? error.message : String(error)
-      return { success: false, error: msg }
+      return errorResult('Error deleting worktree', error)
     }
   })
 
@@ -495,7 +177,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
     }
 
     try {
-      sendWindowEvent(getWindow, 'create:progress', { step: 'creating', message: 'Creating worktree...' })
+      sendWindowEvent('create:progress', { step: 'creating', message: 'Creating worktree...' })
 
       const args = ['worktree', 'add']
       if (createNewBranch) {
@@ -510,7 +192,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       // Load and run setup
       if (!signal.aborted) {
         try {
-          sendWindowEvent(getWindow, 'create:progress', { step: 'packages', message: 'Running setup...' })
+          sendWindowEvent('create:progress', { step: 'packages', message: 'Running setup...' })
           await runSetupSteps(repoPath, worktreePath)
         } catch (e) {
           if (!signal.aborted) {
@@ -528,7 +210,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         return { success: false, error: 'cancelled' }
       }
 
-      sendWindowEvent(getWindow, 'create:progress', { step: 'done', message: 'Worktree ready!' })
+      sendWindowEvent('create:progress', { step: 'done', message: 'Worktree ready!' })
       activeCreateController = null
       return {
         success: true,
@@ -541,7 +223,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       }
       log.error('Error creating worktree:', error)
       const msg = error instanceof Error ? error.message : String(error)
-      sendWindowEvent(getWindow, 'create:progress', { step: 'error', message: 'Failed to create worktree', detail: msg })
+      sendWindowEvent('create:progress', { step: 'error', message: 'Failed to create worktree', detail: msg })
       return { success: false, error: msg }
     }
   })
@@ -559,8 +241,7 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       await runGitCommand(worktreePath, ['reset', '--hard', 'HEAD'])
       return { success: true }
     } catch (error) {
-      log.error('Error syncing worktree:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
+      return errorResult('Error syncing worktree', error)
     }
   })
 
@@ -574,140 +255,69 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
         log.info('No .glit/setup.yaml found, skipping re-run')
         return { success: true }
       }
-      log.error('Setup re-run failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
+      return errorResult('Setup re-run failed', error)
     }
   })
 
-  ipcMain.handle('setup:preview', async (_event, repoPath: string) => {
-    log.info(`Previewing setup config for: ${repoPath}`)
+  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
+    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
     try {
-      const configPath = path.join(repoPath, '.glit', 'setup.yaml')
-      const content = await fs.readFile(configPath, 'utf-8')
-      return yaml.load(content) as SetupConfig
-    } catch {
-      return null
-    }
-  })
-
-  ipcMain.handle('setup:save', async (_event, repoPath: string, config: SetupConfig) => {
-    const glitDir = path.join(repoPath, '.glit')
-    const configPath = path.join(glitDir, 'setup.yaml')
-    await fs.mkdir(glitDir, { recursive: true })
-    await fs.writeFile(configPath, yaml.dump(config), 'utf-8')
-  })
-
-  ipcMain.handle('dialog:pickFile', async (_event, repoPath: string) => {
-    const win = getWindow()
-    if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      defaultPath: repoPath,
-      properties: ['openFile'],
-    })
-    if (result.canceled || !result.filePaths[0]) return null
-    return path.relative(repoPath, result.filePaths[0])
-  })
-
-  ipcMain.handle('dialog:pickFolder', async () => {
-    const win = getWindow()
-    if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      properties: ['openDirectory', 'createDirectory'],
-    })
-    if (result.canceled || !result.filePaths[0]) return null
-    return result.filePaths[0]
-  })
-
-  ipcMain.handle('clipboard:copy', async (_event, text: string) => {
-    clipboard.writeText(text)
-  })
-
-  ipcMain.handle('terminal:open', async (_event, worktreePath: string, terminal?: string) => {
-    const term = terminal ?? store.get('settings').preferredTerminal ?? 'Terminal'
-    log.info(`Opening terminal at: ${worktreePath}, terminal: ${term}`)
-    try {
-      const escapedPath = worktreePath.replace(/'/g, "'\\''")
-      let cmd = ''
-
-      if (term === 'iTerm2' || term === 'iTerm') {
-        cmd = `osascript -e 'tell application "iTerm"
-  activate
-  if (count of windows) = 0 then
-    create window with default profile
-    tell current session of current window
-      write text "cd ${escapedPath}"
-    end tell
-  else
-    tell current window
-      create tab with default profile
-      tell current session
-        write text "cd ${escapedPath}"
-      end tell
-    end tell
-  end if
-end tell'`
-      } else if (term === 'Hyper') {
-        cmd = `open -a Hyper ${JSON.stringify(worktreePath)}`
-      } else if (term === 'Kitty') {
-        cmd = `kitty --directory ${JSON.stringify(worktreePath)}`
-      } else if (term === 'Alacritty') {
-        cmd = `alacritty --working-directory ${JSON.stringify(worktreePath)}`
-      } else if (term === 'Warp') {
-        const encodedPath = encodeURIComponent(worktreePath)
-        cmd = `open "warp://action/new_tab?path=${encodedPath}"`
-      } else {
-        // Terminal.app and default
-        cmd = `osascript -e 'tell application "Terminal"
-  activate
-  if (count of windows) = 0 then
-    do script "cd ${escapedPath}"
-  else
-    do script "cd ${escapedPath}" in front window
-  end if
-end tell'`
+      const remoteRef = `origin/${baseBranch}`
+      let mergeRef = baseBranch
+      try {
+        await runGitCommand(repoPath, ['rev-parse', '--verify', remoteRef])
+        mergeRef = remoteRef
+      } catch {
+        // fall through
       }
-
-      await execAsync(cmd)
-      return { success: true }
+      const [mergedNames, currentBranch, worktrees] = await Promise.all([
+        getLocalBranchNames(repoPath, { mergedInto: mergeRef }),
+        runGitCommand(repoPath, ['branch', '--show-current']).then((out) => out.trim()),
+        getWorktrees(repoPath),
+      ])
+      const worktreeBranches = new Set(worktrees.map((wt) => wt.branch).filter((b) => !b.startsWith('detached:')))
+      const exclude = new Set([baseBranch, currentBranch, ...worktreeBranches])
+      const branches = mergedNames.filter((name) => !exclude.has(name))
+      const mergeRefLabel = mergeRef === remoteRef ? remoteRef : `${baseBranch} (local)`
+      return { branches, mergeRefLabel }
     } catch (error) {
-      log.error('Error opening terminal:', error)
-      const msg = error instanceof Error ? error.message : String(error)
-      return { success: false, error: msg }
+      log.warn('getMergedBranches failed:', error)
+      return []
     }
   })
 
-  ipcMain.handle('ide:open', async (_event, worktreePath: string, ide?: string) => {
-    const resolvedIDE = ide ?? store.get('settings').preferredIDE ?? 'VSCode'
-    log.info(`Opening IDE at: ${worktreePath}, ide: ${resolvedIDE}`)
+  ipcMain.handle('worktree:detectDevCommand', async (_event, worktreePath: string): Promise<DevCommandInfo> => {
+    let pkgManager: DevCommandInfo['pkgManager'] = 'npm'
     try {
-      let cmd = ''
-      if (resolvedIDE === 'Cursor')        cmd = `cursor ${JSON.stringify(worktreePath)}`
-      else if (resolvedIDE === 'Zed')      cmd = `zed ${JSON.stringify(worktreePath)}`
-      else if (resolvedIDE === 'WebStorm') cmd = `open -a WebStorm ${JSON.stringify(worktreePath)}`
-      else if (resolvedIDE === 'Sublime')  cmd = `subl ${JSON.stringify(worktreePath)}`
-      else                                 cmd = `code ${JSON.stringify(worktreePath)}`
-      await execAsync(cmd)
-      return { success: true }
-    } catch (error) {
-      log.error('Error opening IDE:', error)
-      const msg = error instanceof Error ? error.message : String(error)
-      return { success: false, error: msg }
-    }
+      const files = await fs.readdir(worktreePath)
+      if (files.includes('bun.lockb')) pkgManager = 'bun'
+      else if (files.includes('pnpm-lock.yaml')) pkgManager = 'pnpm'
+      else if (files.includes('yarn.lock')) pkgManager = 'yarn'
+    } catch { /* ignore */ }
+
+    try {
+      const setupPath = path.join(worktreePath, '.glit', 'setup.yaml')
+      const content = await fs.readFile(setupPath, 'utf-8')
+      const config = yaml.load(content) as SetupConfig
+      if (config.dev) {
+        return { command: config.dev, pkgManager, scripts: [] }
+      }
+    } catch { /* ignore */ }
+
+    let scripts: string[] = []
+    try {
+      const pkgPath = path.join(worktreePath, 'package.json')
+      const pkgContent = await fs.readFile(pkgPath, 'utf-8')
+      const pkg = JSON.parse(pkgContent) as { scripts?: Record<string, string> }
+      scripts = Object.keys(pkg.scripts ?? {})
+    } catch { /* ignore */ }
+
+    const defaultScript = scripts.includes('dev') ? 'dev' : scripts.includes('start') ? 'start' : null
+    const command = defaultScript ? `${pkgManager} run ${defaultScript}` : null
+    return { command, pkgManager, scripts }
   })
 
-  ipcMain.handle('settings:get', async () => {
-    return { ...defaultSettings, ...store.get('settings', defaultSettings) }
-  })
-
-  ipcMain.handle('settings:set', async (_event, newSettings: Partial<AppSettings>) => {
-    const current = store.get('settings', defaultSettings)
-    store.set('settings', { ...current, ...newSettings })
-  })
-
-  ipcMain.handle('repo:defaultBranch', async (_event, repoPath: string) => {
-    log.info(`Detecting default branch for: ${repoPath}`)
-    return getDefaultBranch(repoPath)
-  })
+  // ── Branch ────────────────────────────────────────────────────────
 
   ipcMain.handle('branch:list', async (_event, repoPath: string) => {
     log.info(`Listing branches for: ${repoPath}`)
@@ -743,31 +353,99 @@ end tell'`
     await runGitCommand(repoPath, ['branch', '-d', branchName])
   })
 
-  ipcMain.handle('worktree:getMergedBranches', async (_event, repoPath: string, baseBranch: string) => {
-    log.info(`Getting merged branches: ${repoPath} (base: ${baseBranch})`)
-    try {
-      const remoteRef = `origin/${baseBranch}`
-      let mergeRef = baseBranch
-      try {
-        await runGitCommand(repoPath, ['rev-parse', '--verify', remoteRef])
-        mergeRef = remoteRef
-      } catch {
-        // fall through
-      }
-      const [mergedNames, currentBranch, worktrees] = await Promise.all([
-        getLocalBranchNames(repoPath, { mergedInto: mergeRef }),
-        runGitCommand(repoPath, ['branch', '--show-current']).then((out) => out.trim()),
-        getWorktrees(repoPath),
-      ])
-      const worktreeBranches = new Set(worktrees.map((wt) => wt.branch).filter((b) => !b.startsWith('detached:')))
-      const exclude = new Set([baseBranch, currentBranch, ...worktreeBranches])
-      const branches = mergedNames.filter((name) => !exclude.has(name))
-      const mergeRefLabel = mergeRef === remoteRef ? remoteRef : `${baseBranch} (local)`
-      return { branches, mergeRefLabel }
-    } catch (error) {
-      log.warn('getMergedBranches failed:', error)
-      return []
-    }
+  // ── Process ───────────────────────────────────────────────────────
+
+  ipcMain.handle('process:start', async (_event, worktreePath: string, command: string) => {
+    return startProcess(worktreePath, command)
+  })
+
+  ipcMain.handle('process:stop', async (_event, worktreePath: string) => {
+    await stopProcess(worktreePath)
+  })
+
+  ipcMain.handle('process:list', async (): Promise<RunningProcess[]> => {
+    return listProcesses()
+  })
+
+  ipcMain.handle('process:getLogs', async (_event, worktreePath: string): Promise<ProcessLog[]> => {
+    return getProcessLogs(worktreePath)
+  })
+
+  ipcMain.handle('process:getSavedCommand', async (_event, worktreePath: string): Promise<string | null> => {
+    return getSavedDevCommand(worktreePath)
+  })
+
+  ipcMain.handle('process:saveCommand', async (_event, worktreePath: string, command: string) => {
+    saveDevCommand(worktreePath, command)
+  })
+
+  ipcMain.handle('process:getAllDevCommands', async (): Promise<Record<string, string>> => {
+    return getAllDevCommands()
+  })
+
+  // ── Settings ──────────────────────────────────────────────────────
+
+  ipcMain.handle('settings:get', async () => getSettings())
+
+  ipcMain.handle('settings:set', async (_event, newSettings) => {
+    setSettings(newSettings)
+  })
+
+  // ── Setup ─────────────────────────────────────────────────────────
+
+  ipcMain.handle('setup:preview', async (_event, repoPath: string) => {
+    return previewSetupConfig(repoPath)
+  })
+
+  ipcMain.handle('setup:save', async (_event, repoPath: string, config: SetupConfig) => {
+    await saveSetupConfig(repoPath, config)
+  })
+
+  // ── Terminal / IDE ────────────────────────────────────────────────
+
+  ipcMain.handle('terminal:open', async (_event, worktreePath: string, terminal?: string) => {
+    const term = (terminal ?? store.get('settings').preferredTerminal ?? 'Terminal') as import('../shared/types.js').TerminalOption
+    return openTerminal(worktreePath, term)
+  })
+
+  ipcMain.handle('ide:open', async (_event, worktreePath: string, ide?: string) => {
+    const resolvedIDE = (ide ?? store.get('settings').preferredIDE ?? 'VSCode') as import('../shared/types.js').IDEOption
+    return openIDE(worktreePath, resolvedIDE)
+  })
+
+  // ── Dialog / Clipboard / Shell ────────────────────────────────────
+
+  ipcMain.handle('dialog:pickFile', async (_event, repoPath: string) => {
+    const win = getWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      defaultPath: repoPath,
+      properties: ['openFile'],
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    return path.relative(repoPath, result.filePaths[0])
+  })
+
+  ipcMain.handle('dialog:pickFolder', async () => {
+    const win = getWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('clipboard:copy', async (_event, text: string) => {
+    clipboard.writeText(text)
+  })
+
+  ipcMain.handle('shell:openUrl', async (_event, url: string) => {
+    await shell.openExternal(url)
+  })
+
+  ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
+    return shell.openPath(filePath)
   })
 
   ipcMain.handle('pr:getStatus', async (_event, worktreePath: string) => {
@@ -780,484 +458,45 @@ end tell'`
     }
   })
 
-  ipcMain.handle('shell:openUrl', async (_event, url: string) => {
-    await shell.openExternal(url)
-  })
+  // ── Git operations ────────────────────────────────────────────────
 
-  ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
-    return shell.openPath(filePath)
-  })
-
-  // Dev command detection
-  ipcMain.handle('worktree:detectDevCommand', async (_event, worktreePath: string): Promise<DevCommandInfo> => {
-    let pkgManager: DevCommandInfo['pkgManager'] = 'npm'
-    try {
-      const files = await fs.readdir(worktreePath)
-      if (files.includes('bun.lockb')) pkgManager = 'bun'
-      else if (files.includes('pnpm-lock.yaml')) pkgManager = 'pnpm'
-      else if (files.includes('yarn.lock')) pkgManager = 'yarn'
-    } catch { /* ignore */ }
-
-    try {
-      const setupPath = path.join(worktreePath, '.glit', 'setup.yaml')
-      const content = await fs.readFile(setupPath, 'utf-8')
-      const config = yaml.load(content) as SetupConfig
-      if (config.dev) {
-        return { command: config.dev, pkgManager, scripts: [] }
-      }
-    } catch { /* ignore */ }
-
-    let scripts: string[] = []
-    try {
-      const pkgPath = path.join(worktreePath, 'package.json')
-      const pkgContent = await fs.readFile(pkgPath, 'utf-8')
-      const pkg = JSON.parse(pkgContent) as { scripts?: Record<string, string> }
-      scripts = Object.keys(pkg.scripts ?? {})
-    } catch { /* ignore */ }
-
-    const defaultScript = scripts.includes('dev') ? 'dev' : scripts.includes('start') ? 'start' : null
-    const command = defaultScript ? `${pkgManager} run ${defaultScript}` : null
-    return { command, pkgManager, scripts }
-  })
-
-  ipcMain.handle('process:getSavedCommand', async (_event, worktreePath: string): Promise<string | null> => {
-    const devCommands = store.get('devCommands', {})
-    return devCommands[worktreePath] ?? null
-  })
-
-  ipcMain.handle('process:saveCommand', async (_event, worktreePath: string, command: string) => {
-    const devCommands = store.get('devCommands', {})
-    store.set('devCommands', { ...devCommands, [worktreePath]: command })
-  })
-
-  ipcMain.handle('process:getAllDevCommands', async (): Promise<Record<string, string>> => {
-    return store.get('devCommands', {})
-  })
-
-  ipcMain.handle('process:start', async (_event, worktreePath: string, command: string) => {
-    const existing = runningProcesses.get(worktreePath)
-    if (existing) {
-      try { existing.proc.kill('SIGTERM') } catch { /* ignore */ }
-      runningProcesses.delete(worktreePath)
-    }
-    processLogs.set(worktreePath, [])
-    log.info(`Starting process in ${worktreePath}: ${command}`)
-
-    const proc = spawn(command, [], { cwd: worktreePath, shell: true, env: { ...process.env } })
-    const info: RunningProcess = { worktreePath, command, pid: proc.pid, startedAt: Date.now() }
-    runningProcesses.set(worktreePath, { proc, info })
-
-    const handleLine = (line: string, isError: boolean) => {
-      appendProcessLog(worktreePath, line, isError)
-      sendWindowEvent(getWindow, 'process:output', { worktreePath, line, isError })
-      if (!info.port) {
-        const port = detectPort(line)
-        if (port) {
-          info.port = port
-          sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'running', port, pid: proc.pid })
-        }
-      }
-    }
-
-    pipeLines(proc.stdout, false, handleLine)
-    pipeLines(proc.stderr, true, handleLine)
-
-    proc.on('close', (code) => {
-      log.info(`Process closed: ${worktreePath}, code: ${code}`)
-      runningProcesses.delete(worktreePath)
-      sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'stopped', exitCode: code ?? undefined })
-    })
-
-    proc.on('error', (err) => {
-      log.error(`Process error in ${worktreePath}`, err)
-      runningProcesses.delete(worktreePath)
-      sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'error', error: err.message })
-    })
-
-    sendWindowEvent(getWindow, 'process:status', { worktreePath, status: 'running', pid: proc.pid })
-    return { success: true, pid: proc.pid }
-  })
-
-  ipcMain.handle('process:stop', async (_event, worktreePath: string) => {
-    const entry = runningProcesses.get(worktreePath)
-    if (!entry) return
-    log.info(`Stopping process: ${worktreePath}`)
-    entry.proc.kill('SIGTERM')
-    setTimeout(() => {
-      if (runningProcesses.has(worktreePath)) {
-        entry.proc.kill('SIGKILL')
-      }
-    }, 3000)
-  })
-
-  ipcMain.handle('process:list', async (): Promise<RunningProcess[]> => {
-    return Array.from(runningProcesses.values()).map(({ info }) => ({ ...info }))
-  })
-
-  ipcMain.handle('process:getLogs', async (_event, worktreePath: string): Promise<ProcessLog[]> => {
-    return processLogs.get(worktreePath) ?? []
-  })
-
-  // Git operations
-  ipcMain.handle('git:status', async (_event, worktreePath: string): Promise<GitFileStatus[]> => {
-    log.info(`Getting git status for: ${worktreePath}`)
-    try {
-      const output = await runGitCommand(worktreePath, ['status', '--porcelain', '-uall'])
-      if (!output.trim()) return []
-
-      const results: GitFileStatus[] = []
-      for (const line of output.split('\n')) {
-        if (!line || line.length < 4) continue
-        const x = line[0]! // staging area
-        const y = line[1]! // working tree
-        const rest = line.slice(3)
-
-        // Handle renames: "R  old -> new"
-        let filePath = rest
-        let oldPath: string | undefined
-        const arrowIdx = rest.indexOf(' -> ')
-        if (arrowIdx !== -1) {
-          oldPath = rest.slice(0, arrowIdx)
-          filePath = rest.slice(arrowIdx + 4)
-        }
-
-        // Map staged changes (X column)
-        if (x !== ' ' && x !== '?') {
-          const status = mapStatusCode(x)
-          if (status) results.push({ path: filePath, status, staged: true, oldPath })
-        }
-
-        // Map unstaged/working tree changes (Y column)
-        if (y !== ' ') {
-          if (x === '?' && y === '?') {
-            results.push({ path: filePath, status: 'untracked', staged: false })
-          } else if (y !== '?') {
-            const status = mapStatusCode(y)
-            if (status) results.push({ path: filePath, status, staged: false, oldPath })
-          }
-        }
-      }
-      return results
-    } catch (error) {
-      log.error('git:status failed:', error)
-      return []
-    }
+  ipcMain.handle('git:status', async (_event, worktreePath: string) => {
+    return getGitStatus(worktreePath)
   })
 
   ipcMain.handle('git:commit', async (_event, worktreePath: string, files: string[], message: string) => {
-    log.info(`Committing ${files.length} files in: ${worktreePath}`)
-    try {
-      await runGitCommand(worktreePath, ['add', '--', ...files])
-      await runGitCommand(worktreePath, ['commit', '-m', message])
-      return { success: true }
-    } catch (error) {
-      log.error('git:commit failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+    return commitFiles(worktreePath, files, message)
   })
 
   ipcMain.handle('git:push', async (_event, worktreePath: string, force?: boolean) => {
-    log.info(`Pushing from: ${worktreePath}, force: ${force ?? false}`)
-    try {
-      const args = ['push']
-      if (force) args.push('--force-with-lease')
-      await runGitCommand(worktreePath, args)
-      return { success: true }
-    } catch (error) {
-      log.error('git:push failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+    return pushBranch(worktreePath, force)
   })
 
-  ipcMain.handle('git:statusWithStats', async (_event, worktreePath: string): Promise<FileStatusWithStats[]> => {
-    log.info(`Getting git status with stats for: ${worktreePath}`)
-    try {
-      const [statusOutput, numstatOutput] = await Promise.all([
-        runGitCommand(worktreePath, ['status', '--porcelain', '-uall']),
-        runGitCommand(worktreePath, ['diff', '--numstat', 'HEAD']).catch(() => ''),
-      ])
-
-      if (!statusOutput.trim()) return []
-
-      const statsMap = new Map<string, { additions: number; deletions: number }>()
-      for (const line of numstatOutput.split('\n')) {
-        if (!line) continue
-        const match = line.match(/^(\d+|-)\s+(\d+|-)\s+(.+)/)
-        if (match) {
-          const adds = match[1] === '-' ? 0 : parseInt(match[1]!, 10)
-          const dels = match[2] === '-' ? 0 : parseInt(match[2]!, 10)
-          // Handle renames: "old => new" or "{old => new}/path"
-          let filePath = match[3]!
-          const arrowIdx = filePath.indexOf(' => ')
-          if (arrowIdx !== -1) {
-            // Simple rename: "old -> new"
-            filePath = filePath.slice(arrowIdx + 4)
-          }
-          const braceMatch = filePath.match(/^(.*)?\{.*? => (.*?)\}(.*)$/)
-          if (braceMatch) {
-            filePath = (braceMatch[1] ?? '') + (braceMatch[2] ?? '') + (braceMatch[3] ?? '')
-          }
-          statsMap.set(filePath, { additions: adds, deletions: dels })
-        }
-      }
-
-      // Parse status
-      const results: FileStatusWithStats[] = []
-      const seen = new Set<string>()
-      for (const line of statusOutput.split('\n')) {
-        if (!line || line.length < 4) continue
-        const x = line[0]!
-        const y = line[1]!
-        const rest = line.slice(3)
-
-        let filePath = rest
-        let oldPath: string | undefined
-        const arrowIdx = rest.indexOf(' -> ')
-        if (arrowIdx !== -1) {
-          oldPath = rest.slice(0, arrowIdx)
-          filePath = rest.slice(arrowIdx + 4)
-        }
-
-        // Deduplicate: only show once per file (prefer unstaged)
-        if (seen.has(filePath)) continue
-
-        let status: GitFileStatus['status'] | null = null
-        let staged = false
-
-        if (x === '?' && y === '?') {
-          status = 'untracked'
-        } else if (y !== ' ' && y !== '?') {
-          status = mapStatusCode(y)
-        } else if (x !== ' ' && x !== '?') {
-          status = mapStatusCode(x)
-          staged = true
-        }
-
-        if (status) {
-          seen.add(filePath)
-          const stats = statsMap.get(filePath) ?? { additions: 0, deletions: 0 }
-          // For untracked files, count lines directly
-          if (status === 'untracked' && stats.additions === 0) {
-            try {
-              const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
-              stats.additions = content.split('\n').filter(l => l !== '' || content.endsWith('\n')).length
-              if (content.endsWith('\n') && content.length > 0) {
-                stats.additions = content.split('\n').length - 1
-              } else if (content.length > 0) {
-                stats.additions = content.split('\n').length
-              }
-            } catch {
-              // binary or unreadable
-            }
-          }
-          results.push({ path: filePath, status, staged, oldPath, additions: stats.additions, deletions: stats.deletions })
-        }
-      }
-      return results
-    } catch (error) {
-      log.error('git:statusWithStats failed:', error)
-      return []
-    }
+  ipcMain.handle('git:statusWithStats', async (_event, worktreePath: string) => {
+    return getGitStatusWithStats(worktreePath)
   })
 
-  ipcMain.handle('git:diff', async (_event, worktreePath: string, filePath: string): Promise<FileDiff> => {
-    log.info(`Getting diff for: ${filePath} in ${worktreePath}`)
-    try {
-      // First, determine file status
-      const statusOutput = await runGitCommand(worktreePath, ['status', '--porcelain', '-uall', '--', filePath])
-      let status: GitFileStatus['status'] = 'modified'
-      let isUntracked = false
-
-      for (const line of statusOutput.split('\n')) {
-        if (!line || line.length < 4) continue
-        const x = line[0]!
-        const y = line[1]!
-        if (x === '?' && y === '?') {
-          status = 'untracked'
-          isUntracked = true
-        } else if (y === 'D' || x === 'D') {
-          status = 'deleted'
-        } else if (y === 'A' || x === 'A') {
-          status = 'added'
-        } else if (y === 'R' || x === 'R') {
-          status = 'renamed'
-        }
-      }
-
-      if (isUntracked) {
-        try {
-          const content = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
-          return synthesizeAdditionDiff(content, filePath)
-        } catch {
-          return { path: filePath, status: 'untracked', hunks: [], isBinary: true, additions: 0, deletions: 0 }
-        }
-      }
-
-      // Try working tree diff against HEAD first, then cached diff
-      let rawDiff = ''
-      try {
-        rawDiff = await runGitCommand(worktreePath, ['diff', 'HEAD', '--', filePath])
-      } catch {
-        // might be a new file only in index
-        try {
-          rawDiff = await runGitCommand(worktreePath, ['diff', '--cached', 'HEAD', '--', filePath])
-        } catch {
-          // fall through
-        }
-      }
-
-      if (!rawDiff.trim()) {
-        // Could be a staged-only new file
-        try {
-          rawDiff = await runGitCommand(worktreePath, ['diff', '--cached', '--', filePath])
-          if (rawDiff.trim()) {
-            status = 'added'
-          }
-        } catch {
-          // fall through
-        }
-      }
-
-      return parseDiff(rawDiff, filePath, status)
-    } catch (error) {
-      log.error('git:diff failed:', error)
-      return { path: filePath, status: 'modified', hunks: [], isBinary: false, additions: 0, deletions: 0 }
-    }
+  ipcMain.handle('git:diff', async (_event, worktreePath: string, filePath: string) => {
+    return getGitDiff(worktreePath, filePath)
   })
 
-  ipcMain.handle('git:revertLines', async (_event, worktreePath: string, filePath: string, linesToRevert: RevertLineSpec[]): Promise<{ success: boolean; error?: string }> => {
-    log.info(`Reverting ${linesToRevert.length} lines in: ${filePath}`)
-    try {
-      const fullPath = path.join(worktreePath, filePath)
-      const currentContent = await fs.readFile(fullPath, 'utf-8')
-      const currentLines = currentContent.split('\n')
-
-      // Get original content from HEAD
-      let originalLines: string[] = []
-      try {
-        const original = await runGitCommand(worktreePath, ['show', `HEAD:${filePath}`])
-        originalLines = original.split('\n')
-      } catch {
-        // File doesn't exist in HEAD (new file)
-      }
-
-      // Separate additions and removals to revert
-      const additionsToRevert = linesToRevert
-        .filter(l => l.type === 'add' && l.newLineNumber != null)
-        .map(l => l.newLineNumber!)
-        .sort((a, b) => b - a) // bottom-to-top
-
-      const removalsToRevert = linesToRevert
-        .filter(l => l.type === 'remove' && l.oldLineNumber != null)
-        .sort((a, b) => (b.oldLineNumber ?? 0) - (a.oldLineNumber ?? 0)) // bottom-to-top
-
-      // 1. Remove added lines (bottom-to-top so indices stay stable)
-      for (const newLineNum of additionsToRevert) {
-        const idx = newLineNum - 1
-        if (idx >= 0 && idx < currentLines.length) {
-          currentLines.splice(idx, 1)
-        }
-      }
-
-      // 2. Re-insert removed lines
-      // After removing additions, we need to figure out where to insert the removed lines.
-      // This is complex — we need to map old line numbers to positions in the current (post-removal) file.
-      // For simplicity, we re-compute by building a line map.
-      // For each removal: find where oldLineNumber content should go in the modified file.
-      for (const spec of removalsToRevert) {
-        if (spec.oldLineNumber == null) continue
-        const oldIdx = spec.oldLineNumber - 1
-        if (oldIdx >= 0 && oldIdx < originalLines.length) {
-          const lineContent = originalLines[oldIdx]!
-          // Insert at position — try to find the right spot based on surrounding context
-          // Simple approach: insert at the position corresponding to oldLineNumber, clamped
-          const insertIdx = Math.min(oldIdx, currentLines.length)
-          currentLines.splice(insertIdx, 0, lineContent)
-        }
-      }
-
-      await fs.writeFile(fullPath, currentLines.join('\n'), 'utf-8')
-      return { success: true }
-    } catch (error) {
-      log.error('git:revertLines failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+  ipcMain.handle('git:revertLines', async (_event, worktreePath: string, filePath: string, linesToRevert: RevertLineSpec[]) => {
+    return revertLines(worktreePath, filePath, linesToRevert)
   })
 
-  ipcMain.handle('git:revertFile', async (_event, worktreePath: string, filePath: string): Promise<{ success: boolean; error?: string }> => {
-    log.info(`Reverting file: ${filePath} in ${worktreePath}`)
-    try {
-      // Check if file is tracked
-      try {
-        await runGitCommand(worktreePath, ['ls-files', '--error-unmatch', '--', filePath])
-        // Tracked: restore from HEAD
-        await runGitCommand(worktreePath, ['checkout', 'HEAD', '--', filePath])
-      } catch {
-        // Untracked: delete the file
-        const fullPath = path.join(worktreePath, filePath)
-        await fs.unlink(fullPath)
-      }
-      return { success: true }
-    } catch (error) {
-      log.error('git:revertFile failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+  ipcMain.handle('git:revertFile', async (_event, worktreePath: string, filePath: string) => {
+    return revertFile(worktreePath, filePath)
   })
 
-  ipcMain.handle('git:applyEdit', async (_event, worktreePath: string, filePath: string, lineNumber: number, newContent: string): Promise<{ success: boolean; error?: string }> => {
-    log.info(`Applying edit to ${filePath}:${lineNumber} in ${worktreePath}`)
-    try {
-      const fullPath = path.join(worktreePath, filePath)
-      const content = await fs.readFile(fullPath, 'utf-8')
-      const lines = content.split('\n')
-      const idx = lineNumber - 1
-      if (idx < 0 || idx >= lines.length) {
-        return { success: false, error: `Line ${lineNumber} out of range (file has ${lines.length} lines)` }
-      }
-      lines[idx] = newContent
-      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
-      return { success: true }
-    } catch (error) {
-      log.error('git:applyEdit failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+  ipcMain.handle('git:applyEdit', async (_event, worktreePath: string, filePath: string, lineNumber: number, newContent: string) => {
+    return applyEdit(worktreePath, filePath, lineNumber, newContent)
   })
 
-  ipcMain.handle('git:deleteLine', async (_event, worktreePath: string, filePath: string, lineNumber: number): Promise<{ success: boolean; error?: string }> => {
-    log.info(`Deleting line ${lineNumber} from ${filePath} in ${worktreePath}`)
-    try {
-      const fullPath = path.join(worktreePath, filePath)
-      const content = await fs.readFile(fullPath, 'utf-8')
-      const lines = content.split('\n')
-      const idx = lineNumber - 1
-      if (idx < 0 || idx >= lines.length) {
-        return { success: false, error: `Line ${lineNumber} out of range (file has ${lines.length} lines)` }
-      }
-      lines.splice(idx, 1)
-      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
-      return { success: true }
-    } catch (error) {
-      log.error('git:deleteLine failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+  ipcMain.handle('git:deleteLine', async (_event, worktreePath: string, filePath: string, lineNumber: number) => {
+    return deleteLine(worktreePath, filePath, lineNumber)
   })
 
-  ipcMain.handle('git:insertLine', async (_event, worktreePath: string, filePath: string, afterLineNumber: number, content: string): Promise<{ success: boolean; error?: string }> => {
-    log.info(`Inserting line after ${afterLineNumber} in ${filePath} in ${worktreePath}`)
-    try {
-      const fullPath = path.join(worktreePath, filePath)
-      const fileContent = await fs.readFile(fullPath, 'utf-8')
-      const lines = fileContent.split('\n')
-      const idx = afterLineNumber
-      if (idx < 0 || idx > lines.length) {
-        return { success: false, error: `Line ${afterLineNumber} out of range (file has ${lines.length} lines)` }
-      }
-      lines.splice(idx, 0, content)
-      await fs.writeFile(fullPath, lines.join('\n'), 'utf-8')
-      return { success: true }
-    } catch (error) {
-      log.error('git:insertLine failed:', error)
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
-    }
+  ipcMain.handle('git:insertLine', async (_event, worktreePath: string, filePath: string, afterLineNumber: number, content: string) => {
+    return insertLine(worktreePath, filePath, afterLineNumber, content)
   })
 }

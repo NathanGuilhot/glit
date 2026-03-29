@@ -13,22 +13,21 @@ import {
   FormControl,
   FormLabel,
   FormHelperText,
-  Input,
   Select,
   Switch,
   Divider,
   Badge,
-  IconButton,
   Alert,
   AlertIcon,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { useTranslation } from 'react-i18next'
-import type { AppSettings, SetupConfig, IDEOption, TerminalOption } from '../../shared/types'
+import type { AppSettings, IDEOption, TerminalOption } from '../../shared/types'
 import { useAPI } from '../api'
 import type { WorktreeWithDiff } from '../api'
-import { CloseIcon } from './Icons'
-import { getBranchColor } from '../utils'
+import { SetupConfigEditor } from './SetupConfigEditor'
+import { DevCommandsEditor } from './DevCommandsEditor'
+import type { SetupConfig } from '../../shared/types'
 
 const SettingsModal = NiceModal.create<{
   settings: AppSettings
@@ -126,75 +125,6 @@ const SettingsModal = NiceModal.create<{
     autoRefresh !== savedBaseline.autoRefresh ||
     setupChanged
 
-  const updateItem = (setter: React.Dispatch<React.SetStateAction<string[]>>, index: number, value: string) => {
-    setter((prev) => prev.map((v, i) => (i === index ? value : v)))
-  }
-
-  const removeItem = (setter: React.Dispatch<React.SetStateAction<string[]>>, index: number) => {
-    setter((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const addItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter((prev) => [...prev, ''])
-  }
-
-  const renderListEditor = (
-    label: string,
-    placeholder: string,
-    items: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    onBrowse?: () => Promise<string | null>,
-  ) => (
-    <VStack align="stretch" spacing={1}>
-      <Text fontSize="xs" fontWeight="semibold" color="whiteAlpha.600" textTransform="uppercase" letterSpacing="wider">
-        {label}
-      </Text>
-      {items.map((item, i) => (
-        <HStack key={i} spacing={1}>
-          <Input
-            value={item}
-            onChange={(e) => updateItem(setter, i, e.target.value)}
-            placeholder={placeholder}
-            fontFamily="mono"
-            fontSize="xs"
-            size="sm"
-            bg="whiteAlpha.50"
-            borderColor="whiteAlpha.200"
-          />
-          {onBrowse && (
-            <Button
-              size="sm"
-              variant="ghost"
-              color="whiteAlpha.500"
-              _hover={{ color: 'whiteAlpha.800' }}
-              onClick={async () => {
-                const picked = await onBrowse()
-                if (picked !== null) updateItem(setter, i, picked)
-              }}
-            >
-              {t('settings.browse')}
-            </Button>
-          )}
-          <IconButton
-            aria-label={t('settings.ariaLabels.remove')}
-            icon={<CloseIcon />}
-            size="sm"
-            variant="ghost"
-            colorScheme="red"
-            onClick={() => removeItem(setter, i)}
-          />
-        </HStack>
-      ))}
-      <Button size="xs" variant="ghost" onClick={() => addItem(setter)} alignSelf="flex-start" color="whiteAlpha.500" _hover={{ color: 'whiteAlpha.800' }}>
-        {t('settings.add')}
-      </Button>
-    </VStack>
-  )
-
-  const handleCommandBlur = async (worktreePath: string, value: string) => {
-    await api.process.saveCommand(worktreePath, value)
-  }
-
   const handleClose = () => {
     if (isDirty) {
       setShowDirtyWarning(true)
@@ -271,66 +201,23 @@ const SettingsModal = NiceModal.create<{
 
             <Divider borderColor="whiteAlpha.100" />
 
-            <VStack align="stretch" spacing={3}>
-              <HStack spacing={2}>
-                <Text fontSize="sm" fontWeight="semibold">{t('settings.setupScript.label')}</Text>
-                <Badge colorScheme="gray" variant="subtle" fontSize="xs" fontFamily="mono">{t('settings.setupScript.badge')}</Badge>
-              </HStack>
-              <Text fontSize="xs" color="whiteAlpha.500">
-                {t('settings.setupScript.helper')}
-              </Text>
-
-              {renderListEditor(t('settings.lists.packages'), t('settings.placeholders.npmInstall'), packages, setPackages)}
-              {renderListEditor(t('settings.lists.envFiles'), t('settings.placeholders.envFile'), envFiles, setEnvFiles,
-                () => api.dialog.pickFile(repoPath)
-              )}
-              {renderListEditor(t('settings.lists.commands'), t('settings.placeholders.command'), commands, setCommands)}
-            </VStack>
+            <SetupConfigEditor
+              packages={packages}
+              setPackages={setPackages}
+              envFiles={envFiles}
+              setEnvFiles={setEnvFiles}
+              commands={commands}
+              setCommands={setCommands}
+              onBrowse={() => api.dialog.pickFile(repoPath)}
+            />
 
             <Divider borderColor="whiteAlpha.100" />
 
-            <VStack align="stretch" spacing={3}>
-              <VStack align="stretch" spacing={0}>
-                <Text fontSize="sm" fontWeight="semibold">{t('settings.runCommands.title')}</Text>
-                <Text fontSize="xs" color="whiteAlpha.500">{t('settings.runCommands.helper')}</Text>
-              </VStack>
-
-              {worktrees.map((wt) => (
-                <HStack key={wt.path} spacing={2} align="center">
-                  <Badge
-                    colorScheme={getBranchColor(wt.branch)}
-                    variant="subtle"
-                    fontSize="xs"
-                    flexShrink={0}
-                  >
-                    {wt.branch}
-                  </Badge>
-                  <Input
-                    value={devCommands[wt.path] ?? ''}
-                    onChange={(e) => setDevCommands((prev) => ({ ...prev, [wt.path]: e.target.value }))}
-                    onBlur={(e) => handleCommandBlur(wt.path, e.target.value)}
-                    placeholder={t('settings.runCommands.placeholder')}
-                    fontFamily="mono"
-                    fontSize="xs"
-                    size="sm"
-                    bg="whiteAlpha.50"
-                    borderColor="whiteAlpha.200"
-                  />
-                  <IconButton
-                    aria-label={t('settings.ariaLabels.clearCommand')}
-                    icon={<CloseIcon />}
-                    size="sm"
-                    variant="ghost"
-                    colorScheme="red"
-                    isDisabled={!devCommands[wt.path]}
-                    onClick={() => {
-                      setDevCommands((prev) => ({ ...prev, [wt.path]: '' }))
-                      void api.process.saveCommand(wt.path, '')
-                    }}
-                  />
-                </HStack>
-              ))}
-            </VStack>
+            <DevCommandsEditor
+              worktrees={worktrees}
+              devCommands={devCommands}
+              setDevCommands={setDevCommands}
+            />
           </VStack>
         </ModalBody>
 

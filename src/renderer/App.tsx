@@ -20,7 +20,7 @@ import WorktreePalette from './components/WorktreePalette'
 import SettingsModal from './components/SettingsModal'
 import NotGitRepo from './components/NotGitRepo'
 import ErrorBoundary from './components/ErrorBoundary'
-import { WorktreeCardSkeleton } from './components/WorktreeCard'
+import { WorktreeCardSkeleton } from './components/WorktreeCardSkeleton'
 import { ModalRegistry } from './components/ModalRegistry'
 
 function AppContent() {
