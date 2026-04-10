@@ -57,7 +57,14 @@ The glit window will open for the current repo
 
 ## How to release
 
+Bump the version in `package.json` (and `package-lock.json`) first — `electron-builder` reads it at build time, so the tag and the published artifacts must match.
+
 ```bash
+# 1. Bump the version in package.json + package-lock.json, then commit
+git commit -am "Bump version to X.Y.Z"
+git push origin master
+
+# 2. Tag the bump commit and push the tag — this triggers the release workflow
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
