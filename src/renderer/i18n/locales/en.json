@@ -24,7 +24,9 @@
       "setupFailed": "Setup failed",
       "syncing": "Syncing working tree…",
       "synced": "Working tree synced",
-      "syncFailed": "Sync failed"
+      "syncFailed": "Sync failed",
+      "openPRFailed": "Couldn't open pull request",
+      "openPRFailedDescription": "This worktree's origin remote is not a GitHub repository, or the branch matches the base branch."
     }
   },
   "header": {
@@ -56,6 +58,7 @@
       "openInTerminal": "Open in {{terminal}}",
       "openInIDE": "Open in {{ide}}",
       "openPR": "PR #{{number}} — click to open",
+      "createPR": "Open GitHub to create a pull request",
       "processRunning": "Process running",
       "openLocalhost": "Open http://localhost:{{port}}",
       "viewLogs": "View logs",
@@ -68,7 +71,8 @@
       "stale": "stale",
       "running": "running",
       "runningWithPort": "● :{{port}}",
-      "runningNoPort": "● running"
+      "runningNoPort": "● running",
+      "createPR": "+ Create PR"
     },
     "prState": {
       "open": "● Open",

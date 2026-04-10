@@ -16,6 +16,8 @@ interface WorktreeCardBadgesProps {
   onCopyBranch: () => void
   prStatus: PRStatus | null | undefined
   runningProcess: RunningProcess | undefined
+  canCreatePR: boolean
+  onCreatePR: () => void
 }
 
 export function WorktreeCardBadges({
@@ -26,6 +28,8 @@ export function WorktreeCardBadges({
   onCopyBranch,
   prStatus,
   runningProcess,
+  canCreatePR,
+  onCreatePR,
 }: WorktreeCardBadgesProps) {
   const api = useAPI()
   const { t } = useTranslation()
@@ -60,6 +64,22 @@ export function WorktreeCardBadges({
       )}
       {worktree.isStale && (
         <Badge colorScheme="yellow" variant="subtle" fontSize="9px">{t('worktreeCard.badges.stale')}</Badge>
+      )}
+      {canCreatePR && !prStatus && (
+        <Tooltip label={t('worktreeCard.tooltips.createPR')} placement="bottom" openDelay={200}>
+          <Badge
+            colorScheme="gray"
+            variant="subtle"
+            fontSize="9px"
+            cursor="pointer"
+            opacity={0.4}
+            onClick={onCreatePR}
+            _hover={{ opacity: 1 }}
+            transition="opacity 0.15s"
+          >
+            {t('worktreeCard.badges.createPR')}
+          </Badge>
+        </Tooltip>
       )}
       {prStatus && (
         <Tooltip label={t('worktreeCard.tooltips.openPR', { number: prStatus.number })} placement="bottom" openDelay={200}>

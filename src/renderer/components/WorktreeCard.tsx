@@ -30,7 +30,7 @@ interface WorktreeCardProps {
 
 export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: WorktreeCardProps) {
   const { settings, prStatuses, repoInfo, detectedBaseBranch, runningProcesses, refresh } = useWorktree()
-  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleRunSetup, handleSyncWorktree } = useAppActions()
+  const { handleCopyPath, handleCopyBranch, handleOpenTerminal, handleOpenIDE, handleOpenFinder, handleOpenPR, handleRunSetup, handleSyncWorktree } = useAppActions()
   const api = useAPI()
   const toast = useToast()
   const { t } = useTranslation()
@@ -164,6 +164,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
 
   const hasDiff = worktree.fileCount > 0
   const hasBranch = !!worktree.branch && !worktree.branch.startsWith('detached:') && !worktree.isBare
+  const canCreatePR = !prStatus && hasBranch && worktree.branch !== detectedBaseBranch
 
   return (
     <Box
@@ -188,6 +189,8 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             onCopyBranch={handleCopyBranchClick}
             prStatus={prStatus}
             runningProcess={runningProcess}
+            canCreatePR={canCreatePR}
+            onCreatePR={() => handleOpenPR(worktree)}
           />
 
           <Tooltip label={t('worktreeCard.tooltips.clickToCopyPath')} placement="bottom" openDelay={200}>

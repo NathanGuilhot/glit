@@ -257,6 +257,27 @@ export async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   return branches
 }
 
+export async function getRemoteUrl(repoPath: string, remoteName = 'origin'): Promise<string | null> {
+  try {
+    const out = await runGitCommand(repoPath, ['remote', 'get-url', remoteName])
+    return out.trim() || null
+  } catch {
+    return null
+  }
+}
+
+export function parseGitHubRemote(remoteUrl: string): { owner: string; repo: string } | null {
+  // git@github.com:owner/repo(.git)
+  const sshShort = remoteUrl.match(/^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/)
+  if (sshShort) return { owner: sshShort[1]!, repo: sshShort[2]! }
+
+  // ssh://git@github.com/owner/repo(.git) or https://github.com/owner/repo(.git)
+  const urlForm = remoteUrl.match(/^(?:ssh:\/\/git@|https?:\/\/(?:[^@]+@)?)github\.com\/([^/]+)\/(.+?)(?:\.git)?\/?$/)
+  if (urlForm) return { owner: urlForm[1]!, repo: urlForm[2]! }
+
+  return null
+}
+
 export async function getDefaultBranch(repoPath: string): Promise<string> {
   // Try to read the remote HEAD symref (e.g. refs/remotes/origin/HEAD -> origin/master)
   try {

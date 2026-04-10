@@ -13,6 +13,7 @@ interface AppActionsContextValue {
   handleOpenTerminal: (worktreePath: string) => Promise<void>
   handleOpenIDE: (worktreePath: string) => Promise<void>
   handleOpenFinder: (worktreePath: string) => Promise<void>
+  handleOpenPR: (worktree: WorktreeWithDiff) => Promise<void>
   handleSaveSettings: (newSettings: AppSettings) => Promise<void>
   handleRunSetup: (worktree: WorktreeWithDiff) => Promise<void>
   handleSyncWorktree: (worktree: WorktreeWithDiff) => Promise<void>
@@ -101,6 +102,21 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     await api.shell.openPath(worktreePath)
   }, [api])
 
+  const handleOpenPR = useCallback(async (worktree: WorktreeWithDiff) => {
+    const url = await api.pr.getCreateUrl(worktree.path)
+    if (url) {
+      await api.shell.openUrl(url)
+    } else {
+      toast({
+        title: t('actions.toast.openPRFailed'),
+        description: t('actions.toast.openPRFailedDescription'),
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      })
+    }
+  }, [api, toast, t])
+
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     await api.settings.set(newSettings)
     setSettings(newSettings)
@@ -139,6 +155,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
     handleOpenTerminal,
     handleOpenIDE,
     handleOpenFinder,
+    handleOpenPR,
     handleSaveSettings,
     handleRunSetup,
     handleSyncWorktree,

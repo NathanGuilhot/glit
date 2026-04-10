@@ -18,7 +18,7 @@ import type {
 } from '../shared/types.js'
 import { sanitizeBranchForPath } from '../shared/branch.js'
 
-import { runGitCommand, getWorktrees, getWorktreeDiff, getAheadBehind, getWorktreeLastActivity, getLocalBranchNames, getBranches, getDefaultBranch, getBranchCommits } from './services/git.js'
+import { runGitCommand, getWorktrees, getWorktreeDiff, getAheadBehind, getWorktreeLastActivity, getLocalBranchNames, getBranches, getDefaultBranch, getBranchCommits, getRemoteUrl, parseGitHubRemote } from './services/git.js'
 import { shortenPathForDisplay, addToRecentRepos, store, getSettings, setSettings, getRecentRepos, getSavedDevCommand, saveDevCommand, getAllDevCommands } from './services/settings.js'
 import { openTerminal, openIDE } from './services/launchers.js'
 import { runSetupSteps, previewSetupConfig, saveSetupConfig } from './services/setup.js'
@@ -453,6 +453,24 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
       const { stdout } = await execAsync('gh pr view --json state,number,url', { cwd: worktreePath })
       const data = JSON.parse(stdout)
       return { number: data.number, state: data.state, url: data.url }
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('pr:getCreateUrl', async (_event, worktreePath: string) => {
+    try {
+      const [remoteUrl, baseBranch, currentBranch] = await Promise.all([
+        getRemoteUrl(worktreePath),
+        getDefaultBranch(worktreePath),
+        runGitCommand(worktreePath, ['branch', '--show-current']).then((s) => s.trim()),
+      ])
+      if (!remoteUrl || !currentBranch || currentBranch === baseBranch) return null
+      const slug = parseGitHubRemote(remoteUrl)
+      if (!slug) return null
+      const head = encodeURIComponent(currentBranch)
+      const base = encodeURIComponent(baseBranch)
+      return `https://github.com/${slug.owner}/${slug.repo}/compare/${base}...${head}?expand=1`
     } catch {
       return null
     }

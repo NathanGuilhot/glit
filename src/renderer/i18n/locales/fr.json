@@ -24,7 +24,9 @@
       "setupFailed": "Échec du script",
       "syncing": "Synchronisation du working tree…",
       "synced": "Working tree synchronisé",
-      "syncFailed": "Échec de la synchronisation"
+      "syncFailed": "Échec de la synchronisation",
+      "openPRFailed": "Impossible d'ouvrir la pull request",
+      "openPRFailedDescription": "Le remote origin de ce worktree n'est pas un dépôt GitHub, ou la branche correspond à la branche de base."
     }
   },
   "header": {
@@ -56,6 +58,7 @@
       "openInTerminal": "Ouvrir dans {{terminal}}",
       "openInIDE": "Ouvrir dans {{ide}}",
       "openPR": "PR #{{number}} — cliquer pour ouvrir",
+      "createPR": "Ouvrir GitHub pour créer une pull request",
       "processRunning": "Processus en cours",
       "openLocalhost": "Ouvrir http://localhost:{{port}}",
       "viewLogs": "Voir les logs",
@@ -66,7 +69,8 @@
       "root": "racine",
       "locked": "verrouillé",
       "stale": "obsolète",
-      "running": "actif"
+      "running": "actif",
+      "createPR": "+ Créer une PR"
     },
     "prState": {
       "open": "● Ouvert",

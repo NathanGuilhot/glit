@@ -49,6 +49,7 @@ const api: GlitAPI = {
   },
   pr: {
     getStatus: (worktreePath: string) => ipcRenderer.invoke('pr:getStatus', worktreePath),
+    getCreateUrl: (worktreePath: string) => ipcRenderer.invoke('pr:getCreateUrl', worktreePath),
   },
   shell: {
     openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),

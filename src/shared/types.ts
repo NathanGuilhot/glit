@@ -227,6 +227,7 @@ export interface GlitAPI {
   }
   pr: {
     getStatus: (worktreePath: string) => Promise<PRStatus | null>
+    getCreateUrl: (worktreePath: string) => Promise<string | null>
   }
   shell: {
     openPath: (path: string) => Promise<string>
