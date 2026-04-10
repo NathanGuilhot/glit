@@ -189,6 +189,26 @@ export const PushIcon = createIcon({
   defaultProps: { ...strokeDefaults },
 })
 
+export const PullIcon = createIcon({
+  displayName: 'PullIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <line key="line" x1="12" y1="5" x2="12" y2="19" />,
+    <polyline key="arrow" points="5 12 12 19 19 12" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
+export const HistoryIcon = createIcon({
+  displayName: 'HistoryIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <circle key="c" cx="12" cy="12" r="9" />,
+    <polyline key="hand" points="12 7 12 12 15 14" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})
+
 export const LogsIcon = createIcon({
   displayName: 'LogsIcon',
   viewBox: '0 0 24 24',

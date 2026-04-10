@@ -14,7 +14,19 @@ export interface DiffStats {
   deletionCount: number
   aheadCount: number
   behindCount: number
+  hasUpstream: boolean
   isStale: boolean
+}
+
+export type CommitCategory = 'base' | 'shared' | 'unique'
+
+export interface CommitEntry {
+  hash: string
+  shortHash: string
+  author: string
+  relativeDate: string
+  subject: string
+  category: CommitCategory
 }
 
 export interface WorktreeWithDiff extends Worktree, DiffStats {}
@@ -58,7 +70,7 @@ export interface CreateProgress {
   detail?: string
 }
 
-export type IDEOption = 'VSCode' | 'Cursor' | 'Zed' | 'WebStorm' | 'Sublime'
+export type IDEOption = 'VSCode' | 'VSCodeInsiders' | 'Cursor' | 'Zed' | 'WebStorm' | 'Sublime' | 'Antigravity'
 export type TerminalOption = 'Terminal' | 'iTerm2' | 'Hyper' | 'Kitty' | 'Alacritty' | 'Warp'
 
 export interface AppSettings {
@@ -210,6 +222,8 @@ export interface GlitAPI {
     insertLine: (worktreePath: string, filePath: string, afterLineNumber: number, content: string) => Promise<{ success: boolean; error?: string }>
     commit: (worktreePath: string, files: string[], message: string) => Promise<{ success: boolean; error?: string }>
     push: (worktreePath: string, force?: boolean) => Promise<{ success: boolean; error?: string }>
+    pull: (worktreePath: string) => Promise<{ success: boolean; hasUpstream?: boolean; isNonFastForward?: boolean; error?: string }>
+    getCommits: (worktreePath: string, baseBranch?: string, limit?: number) => Promise<CommitEntry[]>
   }
   pr: {
     getStatus: (worktreePath: string) => Promise<PRStatus | null>

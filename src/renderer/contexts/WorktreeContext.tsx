@@ -9,6 +9,7 @@ interface WorktreeContextValue {
   worktrees: WorktreeWithDiff[]
   prStatuses: Record<string, PRStatus | null>
   settings: AppSettings
+  setSettings: (settings: AppSettings) => void
   detectedBaseBranch: string
   loading: boolean
   refreshing: boolean
@@ -192,6 +193,7 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     worktrees: filter ? filtered : worktrees,
     prStatuses,
     settings,
+    setSettings,
     detectedBaseBranch,
     loading,
     refreshing,

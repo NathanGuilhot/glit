@@ -18,13 +18,13 @@ import type {
 } from '../shared/types.js'
 import { sanitizeBranchForPath } from '../shared/branch.js'
 
-import { runGitCommand, getWorktrees, getWorktreeDiff, getAheadBehind, getWorktreeLastActivity, getLocalBranchNames, getBranches, getDefaultBranch } from './services/git.js'
+import { runGitCommand, getWorktrees, getWorktreeDiff, getAheadBehind, getWorktreeLastActivity, getLocalBranchNames, getBranches, getDefaultBranch, getBranchCommits } from './services/git.js'
 import { shortenPathForDisplay, addToRecentRepos, store, getSettings, setSettings, getRecentRepos, getSavedDevCommand, saveDevCommand, getAllDevCommands } from './services/settings.js'
 import { openTerminal, openIDE } from './services/launchers.js'
 import { runSetupSteps, previewSetupConfig, saveSetupConfig } from './services/setup.js'
 import { initProcessService, sendWindowEvent, startProcess, stopProcess, listProcesses, getProcessLogs, cleanupAllProcesses } from './services/process.js'
 import { errorResult } from './services/utils.js'
-import { getGitStatus, getGitStatusWithStats, getGitDiff, revertLines, revertFile, applyEdit, deleteLine, insertLine, commitFiles, pushBranch } from './services/git-operations.js'
+import { getGitStatus, getGitStatusWithStats, getGitDiff, revertLines, revertFile, applyEdit, deleteLine, insertLine, commitFiles, pushBranch, pullBranch } from './services/git-operations.js'
 
 const execAsync = promisify(exec)
 
@@ -470,6 +470,14 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle('git:push', async (_event, worktreePath: string, force?: boolean) => {
     return pushBranch(worktreePath, force)
+  })
+
+  ipcMain.handle('git:pull', async (_event, worktreePath: string) => {
+    return pullBranch(worktreePath)
+  })
+
+  ipcMain.handle('git:getCommits', async (_event, worktreePath: string, baseBranch?: string, limit?: number) => {
+    return getBranchCommits(worktreePath, baseBranch, limit)
   })
 
   ipcMain.handle('git:statusWithStats', async (_event, worktreePath: string) => {

@@ -62,11 +62,13 @@ export async function openIDE(worktreePath: string, ide: IDEOption): Promise<{ s
   log.info(`Opening IDE at: ${worktreePath}, ide: ${ide}`)
   try {
     let cmd = ''
-    if (ide === 'Cursor')        cmd = `cursor ${JSON.stringify(worktreePath)}`
-    else if (ide === 'Zed')      cmd = `zed ${JSON.stringify(worktreePath)}`
-    else if (ide === 'WebStorm') cmd = `open -a WebStorm ${JSON.stringify(worktreePath)}`
-    else if (ide === 'Sublime')  cmd = `subl ${JSON.stringify(worktreePath)}`
-    else                         cmd = `code ${JSON.stringify(worktreePath)}`
+    if (ide === 'Cursor')              cmd = `cursor ${JSON.stringify(worktreePath)}`
+    else if (ide === 'Zed')            cmd = `zed ${JSON.stringify(worktreePath)}`
+    else if (ide === 'WebStorm')       cmd = `open -a WebStorm ${JSON.stringify(worktreePath)}`
+    else if (ide === 'Sublime')        cmd = `subl ${JSON.stringify(worktreePath)}`
+    else if (ide === 'VSCodeInsiders') cmd = `open -a "Visual Studio Code - Insiders" ${JSON.stringify(worktreePath)}`
+    else if (ide === 'Antigravity')    cmd = `open -a Antigravity ${JSON.stringify(worktreePath)}`
+    else                               cmd = `code ${JSON.stringify(worktreePath)}`
     await execAsync(cmd)
     return { success: true }
   } catch (error) {

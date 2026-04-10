@@ -9,7 +9,7 @@ import {
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
-import { FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, CommitIcon, PushIcon, TrashIcon } from './Icons'
+import { FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, CommitIcon, PushIcon, PullIcon, HistoryIcon, TrashIcon } from './Icons'
 
 interface WorktreeCardMenuProps {
   worktree: WorktreeWithDiff
@@ -20,12 +20,15 @@ interface WorktreeCardMenuProps {
   hasBranch: boolean
   isRebasing: boolean
   isPushing: boolean
+  isPulling: boolean
   onOpenFinder: () => void
   onChangeBranch?: () => void
   onRebase: () => void
   onQuickCommit: () => void
   onPush: () => void
   onForcePush: () => void
+  onPull: () => void
+  onViewCommits: () => void
   onRunSetup: () => void
   onConfigureRunCommand: () => void
   onSyncWorktree: () => void
@@ -41,12 +44,15 @@ export function WorktreeCardMenu({
   hasBranch,
   isRebasing,
   isPushing,
+  isPulling,
   onOpenFinder,
   onChangeBranch,
   onRebase,
   onQuickCommit,
   onPush,
   onForcePush,
+  onPull,
+  onViewCommits,
   onRunSetup,
   onConfigureRunCommand,
   onSyncWorktree,
@@ -87,20 +93,31 @@ export function WorktreeCardMenu({
             </MenuItem>
           </>
         )}
-        {canRebase && detectedBaseBranch && (
+        {hasBranch && (
           <>
             <MenuDivider borderColor="whiteAlpha.100" />
             <MenuItem
-              icon={isRebasing ? <Spinner size="xs" /> : <RebaseIcon boxSize={4} color="whiteAlpha.700" />}
-              onClick={onRebase}
-              isDisabled={isRebasing}
+              icon={<HistoryIcon boxSize={4} color="whiteAlpha.700" />}
+              onClick={onViewCommits}
               bg="transparent"
               _hover={{ bg: 'whiteAlpha.100' }}
               fontSize="sm"
             >
-              {t('worktreeCard.menu.rebaseOnto', { branch: detectedBaseBranch })}
+              {t('worktreeCard.menu.viewCommits')}
             </MenuItem>
           </>
+        )}
+        {canRebase && detectedBaseBranch && (
+          <MenuItem
+            icon={isRebasing ? <Spinner size="xs" /> : <RebaseIcon boxSize={4} color="whiteAlpha.700" />}
+            onClick={onRebase}
+            isDisabled={isRebasing}
+            bg="transparent"
+            _hover={{ bg: 'whiteAlpha.100' }}
+            fontSize="sm"
+          >
+            {t('worktreeCard.menu.rebaseOnto', { branch: detectedBaseBranch })}
+          </MenuItem>
         )}
         {hasDiff && (
           <MenuItem
@@ -111,6 +128,18 @@ export function WorktreeCardMenu({
             fontSize="sm"
           >
             {t('worktreeCard.menu.quickCommit')}
+          </MenuItem>
+        )}
+        {hasBranch && worktree.hasUpstream && (
+          <MenuItem
+            icon={isPulling ? <Spinner size="xs" /> : <PullIcon boxSize={4} color="whiteAlpha.700" />}
+            onClick={onPull}
+            isDisabled={isPulling}
+            bg="transparent"
+            _hover={{ bg: 'whiteAlpha.100' }}
+            fontSize="sm"
+          >
+            {t('worktreeCard.menu.pull')}
           </MenuItem>
         )}
         {worktree.aheadCount > 0 && (

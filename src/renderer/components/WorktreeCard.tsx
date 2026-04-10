@@ -17,6 +17,7 @@ import { useAPI } from '../api'
 import { ProcessLogDrawer } from './ProcessLogDrawer'
 import { RunCommandModal } from './RunCommandModal'
 import { CodeReviewModal } from './CodeReviewModal'
+import { CommitsModal } from './CommitsModal'
 import { TooltipIconButton } from './TooltipIconButton'
 import { WorktreeCardBadges } from './WorktreeCardBadges'
 import { WorktreeCardMenu } from './WorktreeCardMenu'
@@ -36,6 +37,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
   const [branchJustCopied, setBranchJustCopied] = useState(false)
   const [isRebasing, setIsRebasing] = useState(false)
   const [isPushing, setIsPushing] = useState(false)
+  const [isPulling, setIsPulling] = useState(false)
 
   const isRoot = repoInfo?.path === worktree.path
   const shortPath = worktree.displayPath ?? worktree.path
@@ -125,6 +127,39 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
     } finally {
       setIsPushing(false)
     }
+  }
+
+  const handlePull = async () => {
+    setIsPulling(true)
+    try {
+      const result = await api.git.pull(worktree.path)
+      if (result.success) {
+        toast({ title: t('worktreeCard.toast.pulled'), status: 'success', duration: 3000 })
+        void refresh()
+      } else if (result.hasUpstream === false) {
+        toast({ title: t('worktreeCard.toast.pullNoUpstream'), status: 'warning', duration: 5000, isClosable: true })
+      } else if (result.isNonFastForward) {
+        toast({
+          title: t('worktreeCard.toast.pullNonFastForward'),
+          description: t('worktreeCard.toast.pullNonFastForwardDescription'),
+          status: 'warning',
+          duration: 8000,
+          isClosable: true,
+        })
+      } else {
+        toast({ title: t('worktreeCard.toast.pullFailed'), description: result.error, status: 'error', duration: 5000, isClosable: true })
+      }
+    } finally {
+      setIsPulling(false)
+    }
+  }
+
+  const handleViewCommits = () => {
+    NiceModal.show(CommitsModal, {
+      worktreePath: worktree.path,
+      branch: branchDisplayText,
+      baseBranch: detectedBaseBranch,
+    })
   }
 
   const hasDiff = worktree.fileCount > 0
@@ -229,12 +264,15 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             hasBranch={hasBranch}
             isRebasing={isRebasing}
             isPushing={isPushing}
+            isPulling={isPulling}
             onOpenFinder={() => handleOpenFinder(worktree.path)}
             onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
             onRebase={handleRebase}
             onQuickCommit={handleQuickCommit}
             onPush={() => void handlePush(false)}
             onForcePush={() => void handlePush(true)}
+            onPull={() => void handlePull()}
+            onViewCommits={handleViewCommits}
             onRunSetup={() => handleRunSetup(worktree)}
             onConfigureRunCommand={() => openRunModal(true)}
             onSyncWorktree={() => handleSyncWorktree(worktree)}

@@ -84,10 +84,12 @@
     "menu": {
       "openInFinder": "Ouvrir dans Finder",
       "changeBranch": "Changer de branche",
+      "viewCommits": "Voir les commits",
       "rebaseOnto": "Rebaser sur {{branch}}",
       "runSetup": "Exécuter le script",
       "configureRunCommand": "Configurer la commande…",
       "quickCommit": "Revoir & commiter",
+      "pull": "Récupérer les changements",
       "push": "Pousser",
       "forcePush": "Forcer le push",
       "syncWorkingTree": "Synchroniser le working tree",
@@ -104,7 +106,12 @@
       "rebaseFailed": "Échec du rebase",
       "pushed": "Poussé vers le distant",
       "pushFailed": "Échec du push",
-      "forcePushed": "Push forcé vers le distant"
+      "forcePushed": "Push forcé vers le distant",
+      "pulled": "Changements récupérés",
+      "pullFailed": "Échec du pull",
+      "pullNoUpstream": "Aucune branche distante — poussez d'abord pour en définir une",
+      "pullNonFastForward": "Fast-forward impossible",
+      "pullNonFastForwardDescription": "L'historique local et distant a divergé. Rebasez ou poussez d'abord."
     }
   },
   "worktreeList": {
@@ -234,10 +241,12 @@
     },
     "ides": {
       "VSCode": "Visual Studio Code",
+      "VSCodeInsiders": "VS Code Insiders",
       "Cursor": "Cursor",
       "Zed": "Zed",
       "WebStorm": "WebStorm",
-      "Sublime": "Sublime Text"
+      "Sublime": "Sublime Text",
+      "Antigravity": "Antigravity"
     },
     "dirtyWarning": {
       "message": "Vous avez des modifications non enregistrées.",
@@ -276,6 +285,17 @@
   "processLog": {
     "title": "Logs",
     "noOutput": "Aucune sortie pour l'instant…"
+  },
+  "commits": {
+    "title": "Commits",
+    "vsBase": "Commits en avance sur {{base}}",
+    "legendUnique": "Propre à cette branche",
+    "legendShared": "Depuis la branche parente",
+    "loading": "Chargement des commits…",
+    "empty": "Aucun commit à afficher",
+    "toast": {
+      "hashCopied": "Hash copié"
+    }
   },
   "runCommand": {
     "title": "Lancer une commande",

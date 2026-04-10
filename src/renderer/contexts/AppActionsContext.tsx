@@ -34,7 +34,7 @@ interface AppActionsProviderProps {
 export function AppActionsProvider({ children, api = defaultAPI }: AppActionsProviderProps) {
   const toast = useToast()
   const { t } = useTranslation()
-  const { repoInfo, refresh, settings } = useWorktree()
+  const { repoInfo, refresh, settings, setSettings } = useWorktree()
 
   const handleDelete = useCallback(async (worktree: WorktreeWithDiff, force: boolean, deleteFiles: boolean) => {
     if (!repoInfo) return
@@ -103,8 +103,9 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
 
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     await api.settings.set(newSettings)
+    setSettings(newSettings)
     toast({ title: t('actions.toast.settingsSaved'), status: 'success', duration: 1500 })
-  }, [api, toast, t])
+  }, [api, setSettings, toast, t])
 
   const handleRunSetup = useCallback(async (worktree: WorktreeWithDiff) => {
     if (!repoInfo) return

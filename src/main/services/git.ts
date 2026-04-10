@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import log from 'electron-log'
 import path from 'path'
 import fs from 'fs/promises'
-import type { Worktree, BranchInfo, GitFileStatus } from '../../shared/types.js'
+import type { Worktree, BranchInfo, GitFileStatus, CommitEntry } from '../../shared/types.js'
 import { shortenPathForDisplay } from './settings.js'
 
 const execAsync = promisify(exec)
@@ -120,11 +120,16 @@ export async function getWorktreeDiff(worktreePath: string): Promise<{ fileCount
 export async function getAheadBehind(
   worktreePath: string,
   branch: string,
-): Promise<{ aheadCount: number; behindCount: number }> {
+): Promise<{ aheadCount: number; behindCount: number; hasUpstream: boolean }> {
+  if (!branch || branch.startsWith('detached:')) {
+    return { aheadCount: 0, behindCount: 0, hasUpstream: false }
+  }
   try {
-    if (!branch || branch.startsWith('detached:')) {
-      return { aheadCount: 0, behindCount: 0 }
-    }
+    await runGitCommand(worktreePath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
+  } catch {
+    return { aheadCount: 0, behindCount: 0, hasUpstream: false }
+  }
+  try {
     const out = await runGitCommand(worktreePath, [
       'rev-list', '--count', '--left-right', '@{upstream}...HEAD',
     ])
@@ -132,9 +137,74 @@ export async function getAheadBehind(
     return {
       aheadCount: parseInt(ahead, 10) || 0,
       behindCount: parseInt(behind, 10) || 0,
+      hasUpstream: true,
     }
   } catch {
-    return { aheadCount: 0, behindCount: 0 }
+    return { aheadCount: 0, behindCount: 0, hasUpstream: true }
+  }
+}
+
+const COMMIT_SEP = '\x1f'
+const COMMIT_FIELDS = ['%H', '%h', '%an', '%ar', '%s'].join(COMMIT_SEP)
+
+export async function getBranchCommits(
+  worktreePath: string,
+  baseBranch: string | undefined,
+  limit = 100,
+): Promise<CommitEntry[]> {
+  try {
+    const out = await runGitCommand(worktreePath, [
+      'log', '-n', String(limit), `--pretty=tformat:${COMMIT_FIELDS}`, 'HEAD',
+    ])
+    const lines = out.split('\n').filter(Boolean)
+    const commits = lines.map((line): CommitEntry => {
+      const [hash = '', shortHash = '', author = '', relativeDate = '', subject = ''] = line.split(COMMIT_SEP)
+      return { hash, shortHash, author, relativeDate, subject, category: 'base' }
+    })
+
+    if (!baseBranch) return commits
+    const currentBranch = (await runGitCommand(worktreePath, ['branch', '--show-current'])).trim()
+    if (!currentBranch || currentBranch === baseBranch) return commits
+
+    try {
+      const mergeBase = (await runGitCommand(worktreePath, ['merge-base', baseBranch, 'HEAD'])).trim()
+      if (!mergeBase) return commits
+
+      const aheadOut = await runGitCommand(worktreePath, ['rev-list', `${mergeBase}..HEAD`])
+      const aheadSet = new Set(aheadOut.split('\n').map((l) => l.trim()).filter(Boolean))
+      if (aheadSet.size === 0) return commits
+
+      // Find other local branches that may share commits with HEAD (e.g. parent branch)
+      const branchListOut = await runGitCommand(worktreePath, [
+        'for-each-ref', 'refs/heads/', '--format=%(refname:short)',
+      ])
+      const otherBranches = branchListOut
+        .split('\n')
+        .map((b) => b.trim())
+        .filter((b) => b && b !== currentBranch && b !== baseBranch)
+
+      let sharedSet = new Set<string>()
+      if (otherBranches.length > 0) {
+        try {
+          const sharedOut = await runGitCommand(worktreePath, [
+            'rev-list', ...otherBranches, `^${baseBranch}`,
+          ])
+          sharedSet = new Set(sharedOut.split('\n').map((l) => l.trim()).filter(Boolean))
+        } catch {
+          // ignore — fall back to no shared classification
+        }
+      }
+
+      return commits.map((c) => {
+        if (!aheadSet.has(c.hash)) return c
+        return { ...c, category: sharedSet.has(c.hash) ? 'shared' : 'unique' }
+      })
+    } catch {
+      return commits
+    }
+  } catch (error) {
+    log.warn('getBranchCommits failed:', error)
+    return []
   }
 }
 

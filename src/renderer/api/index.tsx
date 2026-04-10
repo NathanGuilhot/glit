@@ -22,6 +22,7 @@ export type {
   DiffHunk,
   DiffLine,
   RevertLineSpec,
+  CommitEntry,
 } from '../../shared/types'
 
 export type API = GlitAPI

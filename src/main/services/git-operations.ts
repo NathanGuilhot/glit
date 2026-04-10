@@ -334,3 +334,22 @@ export async function pushBranch(worktreePath: string, force?: boolean): Promise
     return errorResult('git:push failed', error)
   }
 }
+
+export async function pullBranch(
+  worktreePath: string,
+): Promise<{ success: boolean; hasUpstream?: boolean; isNonFastForward?: boolean; error?: string }> {
+  log.info(`Pulling in: ${worktreePath}`)
+  try {
+    await runGitCommand(worktreePath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
+  } catch {
+    return { success: false, hasUpstream: false, error: 'No upstream branch configured' }
+  }
+  try {
+    await runGitCommand(worktreePath, ['pull', '--ff-only'])
+    return { success: true, hasUpstream: true }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const isNonFastForward = /non[- ]fast[- ]forward|not possible to fast.?forward|diverg/i.test(msg)
+    return { success: false, hasUpstream: true, isNonFastForward, error: msg }
+  }
+}

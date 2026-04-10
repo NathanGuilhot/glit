@@ -65,6 +65,9 @@ const api: GlitAPI = {
     insertLine: (worktreePath: string, filePath: string, afterLineNumber: number, content: string) => ipcRenderer.invoke('git:insertLine', worktreePath, filePath, afterLineNumber, content),
     commit: (worktreePath: string, files: string[], message: string) => ipcRenderer.invoke('git:commit', worktreePath, files, message),
     push: (worktreePath: string, force?: boolean) => ipcRenderer.invoke('git:push', worktreePath, force),
+    pull: (worktreePath: string) => ipcRenderer.invoke('git:pull', worktreePath),
+    getCommits: (worktreePath: string, baseBranch?: string, limit?: number) =>
+      ipcRenderer.invoke('git:getCommits', worktreePath, baseBranch, limit),
   },
   process: {
     start: (worktreePath: string, command: string) => ipcRenderer.invoke('process:start', worktreePath, command),

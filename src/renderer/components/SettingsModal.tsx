@@ -50,10 +50,12 @@ const SettingsModal = NiceModal.create<{
 
   const IDES: { value: IDEOption; label: string }[] = [
     { value: 'VSCode', label: t('settings.ides.VSCode') },
+    { value: 'VSCodeInsiders', label: t('settings.ides.VSCodeInsiders') },
     { value: 'Cursor', label: t('settings.ides.Cursor') },
     { value: 'Zed', label: t('settings.ides.Zed') },
     { value: 'WebStorm', label: t('settings.ides.WebStorm') },
     { value: 'Sublime', label: t('settings.ides.Sublime') },
+    { value: 'Antigravity', label: t('settings.ides.Antigravity') },
   ]
 
   const [terminal, setTerminal] = useState<TerminalOption>(settings.preferredTerminal)

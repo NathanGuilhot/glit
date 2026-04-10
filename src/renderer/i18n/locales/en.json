@@ -86,10 +86,12 @@
     "menu": {
       "openInFinder": "Open in Finder",
       "changeBranch": "Change branch",
+      "viewCommits": "View commits",
       "rebaseOnto": "Rebase onto {{branch}}",
       "runSetup": "Run setup",
       "configureRunCommand": "Configure run command…",
       "quickCommit": "Review & commit",
+      "pull": "Pull changes",
       "push": "Push",
       "forcePush": "Force push",
       "syncWorkingTree": "Sync working tree",
@@ -106,7 +108,12 @@
       "rebaseFailed": "Rebase failed",
       "pushed": "Pushed to remote",
       "pushFailed": "Push failed",
-      "forcePushed": "Force pushed to remote"
+      "forcePushed": "Force pushed to remote",
+      "pulled": "Pulled latest changes",
+      "pullFailed": "Pull failed",
+      "pullNoUpstream": "No upstream branch — push first to set one",
+      "pullNonFastForward": "Cannot fast-forward",
+      "pullNonFastForwardDescription": "Local and remote have diverged. Rebase or push first."
     }
   },
   "worktreeList": {
@@ -244,10 +251,12 @@
     },
     "ides": {
       "VSCode": "Visual Studio Code",
+      "VSCodeInsiders": "VS Code Insiders",
       "Cursor": "Cursor",
       "Zed": "Zed",
       "WebStorm": "WebStorm",
-      "Sublime": "Sublime Text"
+      "Sublime": "Sublime Text",
+      "Antigravity": "Antigravity"
     },
     "dirtyWarning": {
       "message": "You have unsaved changes.",
@@ -286,6 +295,17 @@
   "processLog": {
     "title": "Logs",
     "noOutput": "No output yet…"
+  },
+  "commits": {
+    "title": "Commits",
+    "vsBase": "Showing commits ahead of {{base}}",
+    "legendUnique": "Unique to this branch",
+    "legendShared": "From parent branch",
+    "loading": "Loading commits…",
+    "empty": "No commits to show",
+    "toast": {
+      "hashCopied": "Hash copied"
+    }
   },
   "runCommand": {
     "title": "Run command",
