@@ -142,7 +142,7 @@ export function WorktreeCardMenu({
             {t('worktreeCard.menu.pull')}
           </MenuItem>
         )}
-        {worktree.aheadCount > 0 && (
+        {(worktree.aheadCount > 0 || (hasBranch && !worktree.hasUpstream)) && (
           <MenuItem
             icon={isPushing ? <Spinner size="xs" /> : <PushIcon boxSize={4} color="whiteAlpha.700" />}
             onClick={onPush}

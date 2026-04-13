@@ -326,9 +326,23 @@ export async function commitFiles(worktreePath: string, files: string[], message
 export async function pushBranch(worktreePath: string, force?: boolean): Promise<{ success: boolean; error?: string }> {
   log.info(`Pushing from: ${worktreePath}, force: ${force ?? false}`)
   try {
-    const args = ['push']
-    if (force) args.push('--force-with-lease')
-    await runGitCommand(worktreePath, args)
+    let hasUpstream = true
+    try {
+      await runGitCommand(worktreePath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
+    } catch {
+      hasUpstream = false
+    }
+    if (!hasUpstream) {
+      const branch = (await runGitCommand(worktreePath, ['branch', '--show-current'])).trim()
+      if (!branch) return { success: false, error: 'Cannot push detached HEAD' }
+      // No upstream → nothing for --force-with-lease to lease against. Plain set-upstream is correct
+      // and safe (push will fail if a same-named branch already exists on origin).
+      await runGitCommand(worktreePath, ['push', '--set-upstream', 'origin', branch])
+    } else {
+      const args = ['push']
+      if (force) args.push('--force-with-lease')
+      await runGitCommand(worktreePath, args)
+    }
     return { success: true }
   } catch (error) {
     return errorResult('git:push failed', error)

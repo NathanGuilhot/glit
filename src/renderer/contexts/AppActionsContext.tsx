@@ -103,6 +103,28 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
   }, [api])
 
   const handleOpenPR = useCallback(async (worktree: WorktreeWithDiff) => {
+    const needsPush = !worktree.hasUpstream || worktree.aheadCount > 0
+    if (needsPush) {
+      const id = toast({
+        title: t('actions.toast.pushingBeforePR'),
+        status: 'loading',
+        duration: null,
+        isClosable: false,
+      })
+      const pushResult = await api.git.push(worktree.path, false)
+      toast.close(id)
+      if (!pushResult.success) {
+        toast({
+          title: t('actions.toast.pushFailedBeforePR'),
+          description: pushResult.error,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        return
+      }
+      refresh()
+    }
     const url = await api.pr.getCreateUrl(worktree.path)
     if (url) {
       await api.shell.openUrl(url)
@@ -115,7 +137,7 @@ export function AppActionsProvider({ children, api = defaultAPI }: AppActionsPro
         isClosable: true,
       })
     }
-  }, [api, toast, t])
+  }, [api, toast, t, refresh])
 
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     await api.settings.set(newSettings)

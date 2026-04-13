@@ -26,7 +26,9 @@
       "synced": "Working tree synchronisé",
       "syncFailed": "Échec de la synchronisation",
       "openPRFailed": "Impossible d'ouvrir la pull request",
-      "openPRFailedDescription": "Le remote origin de ce worktree n'est pas un dépôt GitHub, ou la branche correspond à la branche de base."
+      "openPRFailedDescription": "Le remote origin de ce worktree n'est pas un dépôt GitHub, ou la branche correspond à la branche de base.",
+      "pushingBeforePR": "Envoi de la branche vers le distant…",
+      "pushFailedBeforePR": "Impossible de pousser la branche"
     }
   },
   "header": {

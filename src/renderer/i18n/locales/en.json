@@ -26,7 +26,9 @@
       "synced": "Working tree synced",
       "syncFailed": "Sync failed",
       "openPRFailed": "Couldn't open pull request",
-      "openPRFailedDescription": "This worktree's origin remote is not a GitHub repository, or the branch matches the base branch."
+      "openPRFailedDescription": "This worktree's origin remote is not a GitHub repository, or the branch matches the base branch.",
+      "pushingBeforePR": "Pushing branch to remote…",
+      "pushFailedBeforePR": "Couldn't push branch"
     }
   },
   "header": {
