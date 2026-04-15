@@ -2,6 +2,17 @@ import { SUBCOMMANDS } from './constants.js'
 import { globalFlags } from './flags.js'
 import type { ParsedCommand } from './types.js'
 
+const VALUE_FLAGS = new Set(['repo', 'output', 'color', 'base', 'path', 'format', 'branch', 'terminal', 'ide', 'message'])
+const OUTPUT_VALUES = ['text', 'json'] as const
+const COLOR_VALUES = ['always', 'never', 'auto'] as const
+
+function asOutput(v: unknown): 'text' | 'json' | undefined {
+  return typeof v === 'string' && (OUTPUT_VALUES as readonly string[]).includes(v) ? v as 'text' | 'json' : undefined
+}
+function asColor(v: unknown): 'always' | 'never' | 'auto' | undefined {
+  return typeof v === 'string' && (COLOR_VALUES as readonly string[]).includes(v) ? v as 'always' | 'never' | 'auto' : undefined
+}
+
 export function parseArgs(args: string[]): ParsedCommand {
   const cmd: ParsedCommand = { command: '', args: [], flags: {} }
   let i = 0
@@ -16,8 +27,10 @@ export function parseArgs(args: string[]): ParsedCommand {
       if (flag.includes('=')) {
         const [key, value] = flag.split('=', 2)
         cmd.flags[key!] = value!
-      } else if (['repo', 'output', 'color'].includes(flag)) {
-        cmd.flags[flag] = args[++i] ?? 'true'
+      } else if (VALUE_FLAGS.has(flag)) {
+        const next = args[i + 1]
+        if (next !== undefined && !next.startsWith('-')) { cmd.flags[flag] = next; i++ }
+        else cmd.flags[flag] = true
       } else {
         cmd.flags[flag] = true
       }
@@ -25,6 +38,7 @@ export function parseArgs(args: string[]): ParsedCommand {
       for (const short of arg.slice(1)) {
         if (short === 'r') cmd.flags.repo = args[++i] ?? 'true'
         else if (short === 'o') cmd.flags.output = args[++i] ?? 'text'
+        else if (short === 'm') cmd.flags.message = args[++i] ?? ''
         else if (short === 'q') cmd.flags.quiet = true
         else if (short === 'v') cmd.flags.verbose = ((cmd.flags.verbose as number) || 0) + 1
         else if (short === 'h') cmd.flags.help = true
@@ -46,15 +60,19 @@ export function parseArgs(args: string[]): ParsedCommand {
 
 export function applyEnvOverrides(): void {
   if (process.env.GLIT_REPO_PATH) globalFlags.repo = process.env.GLIT_REPO_PATH
-  if (process.env.GLIT_OUTPUT) globalFlags.output = process.env.GLIT_OUTPUT as 'text' | 'json'
-  if (process.env.GLIT_COLOR) globalFlags.color = process.env.GLIT_COLOR as 'always' | 'never' | 'auto'
+  const envOutput = asOutput(process.env.GLIT_OUTPUT)
+  if (envOutput) globalFlags.output = envOutput
+  const envColor = asColor(process.env.GLIT_COLOR)
+  if (envColor) globalFlags.color = envColor
   if (process.env.GLIT_DEBUG) globalFlags.verbose = 1
 }
 
 export function applyFlags(cmd: ParsedCommand): void {
   if (cmd.flags.repo) globalFlags.repo = String(cmd.flags.repo)
-  if (cmd.flags.output) globalFlags.output = cmd.flags.output as 'text' | 'json'
-  if (cmd.flags.color) globalFlags.color = cmd.flags.color as 'always' | 'never' | 'auto'
+  const output = asOutput(cmd.flags.output)
+  if (output) globalFlags.output = output
+  const color = asColor(cmd.flags.color)
+  if (color) globalFlags.color = color
   if (cmd.flags.quiet) globalFlags.quiet = true
   if (cmd.flags.verbose) globalFlags.verbose = Number(cmd.flags.verbose)
   if (cmd.flags.json) globalFlags.output = 'json'

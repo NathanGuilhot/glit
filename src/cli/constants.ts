@@ -14,8 +14,6 @@ export const EXIT = {
 } as const
 
 export const SUBCOMMANDS = new Set([
-  'list', 'create', 'delete', 'sync', 'setup', 'checkout', 'rebase',
-  'start', 'stop', 'logs', 'get', 'set', 'preview', 'edit', 'validate',
-  'detect', 'switch', 'list-recent', 'terminal', 'ide', 'status', 'commit',
-  'push', 'pull', 'open', 'recent',
+  'list', 'create', 'delete', 'get', 'set', 'detect',
+  'terminal', 'ide', 'status', 'commit', 'push', 'pull',
 ])

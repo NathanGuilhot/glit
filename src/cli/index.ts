@@ -9,23 +9,21 @@ import type { ParsedCommand } from './types.js'
 
 async function dispatch(cmd: ParsedCommand): Promise<void> {
   if (cmd.command === 'help' || cmd.command === '') { showHelp(); return }
-  if (cmd.command === 'version' || cmd.command === '--version' || cmd.command === '-V') {
-    logText(`glit v${VERSION}`); return
-  }
+  if (cmd.command === 'version') { logText(`glit v${VERSION}`); return }
 
   const command = COMMANDS[cmd.command]
   if (!command) { logError(`Unknown command: ${cmd.command}`); logText("Run 'glit --help' for usage."); exit(EXIT.INVALID_USAGE) }
 
   const subcommand = cmd.subcommand ?? ''
-  const handler = command!.handlers[subcommand]
+  const handler = command.handlers[subcommand]
   if (!handler) {
-    const available = Object.keys(command!.handlers).join(', ')
+    const available = Object.keys(command.handlers).join(', ')
     logError(`unknown ${cmd.command} subcommand: ${subcommand || '(none)'}`)
     logText(`Available subcommands: ${available}`)
     exit(EXIT.INVALID_USAGE)
   }
 
-  await handler!(cmd)
+  await handler(cmd)
 }
 
 async function main(): Promise<void> {

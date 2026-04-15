@@ -17,4 +17,6 @@ export const logText = (msg: string): void => {
   if (!globalFlags.quiet) process.stdout.write(msg + '\n')
 }
 
-export const exit = (code: number): never => process.exit(code)
+export function exit(code: number): never {
+  return process.exit(code)
+}

@@ -6,7 +6,6 @@ export const globalFlags: GlobalFlags = {
   color: 'auto',
   quiet: false,
   verbose: 0,
-  json: false,
   help: false,
   version: false,
 }

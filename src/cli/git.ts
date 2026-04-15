@@ -1,18 +1,16 @@
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import * as fs from 'fs'
 
 import type { BranchInfo, GitFileStatus, Worktree } from '../shared/types.js'
 import { logVerbose } from './logger.js'
 
 export async function runGit(cwd: string, args: string[]): Promise<string> {
-  const safeArgs = args.map(arg => /[^\w/-]/.test(arg) ? `'${arg.replace(/'/g, "'\\''")}'` : arg)
-  const cmd = `git ${safeArgs.join(' ')}`
-  logVerbose(`Git: ${cmd} [${cwd}]`)
+  logVerbose(`Git: git ${args.join(' ')} [${cwd}]`)
   try {
-    return execSync(cmd, { cwd, encoding: 'utf-8' }) as string
+    return execFileSync('git', args, { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
   } catch (err: unknown) {
-    const error = err as { stderr?: string }
-    if (error.stderr) logVerbose(`Git stderr: ${error.stderr}`)
+    const error = err as { stderr?: Buffer | string }
+    if (error.stderr) logVerbose(`Git stderr: ${error.stderr.toString()}`)
     throw err
   }
 }

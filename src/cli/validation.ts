@@ -1,4 +1,4 @@
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import * as path from 'path'
 
 import type { Worktree } from '../shared/types.js'
@@ -8,7 +8,7 @@ import { exit, logError } from './logger.js'
 
 export const isGitRepo = (repoPath: string): boolean => {
   try {
-    execSync('git rev-parse --git-dir', { cwd: repoPath, encoding: 'utf-8', stdio: 'pipe' })
+    execFileSync('git', ['rev-parse', '--git-dir'], { cwd: repoPath, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
     return true
   } catch { return false }
 }
@@ -24,9 +24,6 @@ export const requireArg = (value: string | undefined, name: string): string => {
 
 export async function findWorktreeByPath(repoPath: string, targetPath: string): Promise<Worktree | undefined> {
   const worktrees = await getWorktrees(repoPath)
-  const normalizedTarget = path.normalize(targetPath)
-  return worktrees.find(wt => {
-    const normalizedWtPath = path.normalize(wt.path)
-    return normalizedWtPath === normalizedTarget || normalizedWtPath.endsWith(normalizedTarget)
-  })
+  const resolvedTarget = path.resolve(targetPath)
+  return worktrees.find(wt => path.resolve(wt.path) === resolvedTarget)
 }

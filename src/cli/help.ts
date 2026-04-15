@@ -7,84 +7,98 @@ const HELP_TEXT: Record<string, string> = {
 Usage: glit <command> [options] [args]
 
 Global options:
-  --repo <path>, -r <path>   Git repository path (default: cwd)
+  --repo <path>, -r <path>        Git repository path (default: cwd)
   --output <format>, -o <format>  Output format: text or json (default: text)
-  --color <when>             Color: always, never, or auto (default: auto)
-  --quiet, -q                Suppress informational output
-  --verbose, -v               Enable verbose output (can repeat)
-  --json, -j                  Output as JSON
-  --help, -h                 Show this help
-  --version, -V              Show version
+  --color <when>                  Color: always, never, or auto (default: auto)
+  --quiet, -q                     Suppress informational output
+  --verbose, -v                   Enable verbose output (can repeat)
+  --json, -j                      Output as JSON
+  --help, -h                      Show this help
+  --version, -V                   Show version
 
 Commands:
-  worktree                   Manage worktrees (list, create, delete, sync, setup)
-  branch                     Manage branches (list, checkout, rebase, delete)
-  process                    Manage dev processes (start, stop, list, logs)
-  settings                   Get/set settings (get, set)
-  setup                      Manage setup.yaml (preview, edit, validate)
-  repo                       Manage repositories (detect, switch, list-recent)
-  open                       Open in terminal or IDE
+  worktree                   Manage worktrees (list, create, delete)
+  branch                     List branches (list)
   git                        Run git commands (status, commit, push, pull)
-  pr                         GitHub PR operations (status, open)
+  settings                   Get/set settings (get, set)
+  repo                       Detect repo (detect)
+  open                       Open worktree in terminal or IDE (terminal, ide)
+  process                    List saved dev commands (list)
 
 Run 'glit <command> --help' for command-specific help.`,
 
   'worktree': `Usage: glit worktree <subcommand> [options]
 
 Subcommands:
-  list [options]            List all worktrees
+  list [options]             List all worktrees
   create <branch> [options]  Create a new worktree
-  delete <path> [options]   Delete a worktree
-  sync <path>                Sync worktree to HEAD
-  setup <path>               Re-run setup for a worktree
+  delete <path> [options]    Delete a worktree
 
 Run 'glit worktree <subcommand> --help' for subcommand-specific help.`,
 
   'worktree list': `Usage: glit worktree list [options]
 
 Options:
-  --format <style>           Table style: simple, compact, detail (default: simple)
-  --branch <pattern>        Filter by branch name (case-insensitive substring)`,
+  --format <style>           Table style: simple or detail (default: simple)
+  --branch <pattern>         Filter by branch name (case-insensitive substring)`,
 
   'worktree create': `Usage: glit worktree create <branch-name> [options]
 
 Options:
-  --base <branch>           Base branch (default: auto-detected main/master)
-  --path <dir>              Worktree directory path
-  --no-setup                Skip running setup after creation
-  --dry-run                 Show what would be created without creating
-  --force                   Force creation even if worktree exists`,
+  --base <branch>            Base branch (default: auto-detected main/master)
+  --path <dir>               Worktree directory path
+  --dry-run                  Show what would be created without creating`,
 
   'worktree delete': `Usage: glit worktree delete <worktree-path> [options]
 
 Options:
-  --force                   Delete even with uncommitted changes
-  --delete-files            Also remove working directory files
-  --no-gc                   Skip git worktree prune after deletion`,
+  --force                    Required. Delete without confirmation (also passes --force to git)
+  --delete-files             Also remove working directory files after git remove
+  --no-gc                    Skip git worktree prune after deletion`,
 
   'branch': `Usage: glit branch <subcommand> [options]
 
 Subcommands:
-  list [options]            List branches
-  checkout <name>           Checkout a branch
-  rebase <branch> [opts]    Rebase current branch
-  delete <name> [options]   Delete a branch`,
+  list [options]             List branches`,
 
   'branch list': `Usage: glit branch list [options]
 
 Options:
-  --local                   Show only local branches (default)
-  --remote                  Show only remote branches
-  --merged [<branch>]       Show branches merged into branch
-  --no-merged [<branch>]    Show branches NOT merged into branch`,
+  --local                    Show only local branches (default)
+  --remote                   Show only remote branches
+  --merged [<branch>]        Show branches merged into <branch> (default: detected main/master)
+  --no-merged [<branch>]     Show branches NOT merged into <branch>`,
 
   'git': `Usage: glit git <subcommand> [options]
 
 Subcommands:
   status                     Show git status
-  commit [-m <msg>] [files]  Commit files
-  push [--force]             Push branch
-  pull                      Pull with --ff-only`,
+  commit -m <msg> [files]    Commit files (or all if none given)
+  push [--force]             Push branch (--force uses --force-with-lease)
+  pull                       Pull with --ff-only`,
+
+  'open': `Usage: glit open <subcommand> [path]
+
+Subcommands:
+  terminal [path] [--terminal <name>]  Open terminal at worktree
+  ide [path] [--ide <name>]            Open IDE at worktree`,
+
+  'settings': `Usage: glit settings <subcommand> [args]
+
+Subcommands:
+  get [<key>]                Show a setting (or all if key omitted)
+  set <key> <value>          Update a setting
+
+Keys: preferredTerminal, preferredIDE, autoRefresh`,
+
+  'process': `Usage: glit process list
+
+Shows dev commands that have been saved for worktrees.
+(Does not show live processes — those run inside the Electron app.)`,
+
+  'repo': `Usage: glit repo detect
+
+Prints whether the current directory is a git repository.`,
 }
 
 export function showHelp(command?: string, subcommand?: string): void {

@@ -4,7 +4,6 @@ export interface GlobalFlags {
   color: 'always' | 'never' | 'auto'
   quiet: boolean
   verbose: number
-  json: boolean
   help: boolean
   version: boolean
 }

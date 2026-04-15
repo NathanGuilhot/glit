@@ -59,7 +59,6 @@ export async function handleCreate(cmd: ParsedCommand) {
   const branchName = requireArg(cmd.args[0], '<branch-name>')
   const baseBranch = (cmd.flags.base as string) || await getDefaultBranch(globalFlags.repo)
   const worktreePath = (cmd.flags.path as string) || path.join(globalFlags.repo, '..', `glit-worktrees`, branchName.replace(/\//g, '-'))
-  const noSetup = Boolean(cmd.flags['no-setup'])
   const dryRun = Boolean(cmd.flags['dry-run'])
 
   const existingBranches = await getLocalBranchNames(globalFlags.repo)
@@ -78,14 +77,12 @@ export async function handleCreate(cmd: ParsedCommand) {
     logText(`  branch: ${branchName}`)
     logText(`  base: ${baseBranch}`)
     logText(`  path: ${worktreePath}`)
-    logText(`  setup: ${noSetup ? 'skipped' : 'run after creation'}`)
     return
   }
 
   try {
     logText('Creating worktree...')
     await runGit(globalFlags.repo, ['worktree', 'add', '-b', branchName, worktreePath, baseBranch])
-    if (!noSetup) logText('Running setup...')
     logText(`Worktree created at: ${worktreePath}`)
   } catch (err: unknown) {
     const msg = (err as { message?: string }).message || String(err)
@@ -104,15 +101,12 @@ export async function handleDelete(cmd: ParsedCommand) {
 
   const wt = await findWorktreeByPath(globalFlags.repo, worktreePath)
   if (!wt) { logError(`worktree not found: ${worktreePath}`); exit(EXIT.WORKTREE_NOT_FOUND) }
-  const worktree = wt!
-  if (worktree.path === globalFlags.repo) { logError('cannot delete the current worktree'); exit(EXIT.INVALID_USAGE) }
-  if (!force && !globalFlags.quiet) logText(`Confirm delete of worktree at ${worktree.path}? [y/N]`)
+  if (wt.path === globalFlags.repo) { logError('cannot delete the current worktree'); exit(EXIT.INVALID_USAGE) }
+  if (!force) { logError('refusing to delete without --force', 'pass --force to confirm deletion'); exit(EXIT.INVALID_USAGE) }
 
   try {
-    const args = ['worktree', 'remove', worktree.path]
-    if (force) args.push('--force')
-    if (deleteFiles) args.push('--detach')
-    await runGit(globalFlags.repo, args)
+    await runGit(globalFlags.repo, ['worktree', 'remove', '--force', wt.path])
+    if (deleteFiles && fs.existsSync(wt.path)) fs.rmSync(wt.path, { recursive: true, force: true })
     logText('Deleted worktree.')
   } catch (err: unknown) {
     logError(`failed to delete worktree: ${(err as { message?: string }).message || String(err)}`)

@@ -14,13 +14,11 @@ export async function handleStatus() {
 
 export async function handleCommit(cmd: ParsedCommand) {
   requireRepo(globalFlags.repo)
-  const messageIdx = cmd.args.indexOf('-m')
-  const message = messageIdx !== -1 ? cmd.args[messageIdx + 1] : undefined
-  const files = cmd.args.filter(a => a !== '-m' && a !== message)
-
+  const message = typeof cmd.flags.message === 'string' ? cmd.flags.message : undefined
   if (!message) { logError('missing required argument: -m <message>'); exit(EXIT.INVALID_USAGE) }
 
-  const result = await commitFiles(globalFlags.repo, files.length > 0 ? files : ['.'], message as string)
+  const files = cmd.args
+  const result = await commitFiles(globalFlags.repo, files.length > 0 ? files : ['.'], message)
   if (!result.success) { logError(`commit failed: ${result.error}`); exit(EXIT.GENERAL) }
   logText('Committed.')
 }

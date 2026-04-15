@@ -1,16 +1,17 @@
 import { EXIT } from '../constants.js'
 import { globalFlags } from '../flags.js'
 import { exit, logError, logJson, logText } from '../logger.js'
-import { getStore, saveStore } from '../store.js'
+import { defaultSettings, getStore, saveStore } from '../store.js'
 import type { AppSettings, ParsedCommand } from '../types.js'
 
 export async function handleGet(cmd: ParsedCommand) {
   const store = getStore()
-  const key = cmd.args[0] as keyof AppSettings | undefined
+  const rawKey = cmd.args[0]
 
-  if (key) {
+  if (rawKey) {
+    if (!(rawKey in defaultSettings)) { logError(`unknown setting: ${rawKey}`); exit(EXIT.INVALID_USAGE) }
+    const key = rawKey as keyof AppSettings
     const value = store.settings[key]
-    if (value === undefined) { logError(`unknown setting: ${key}`); exit(EXIT.INVALID_USAGE) }
     if (globalFlags.output === 'json') logJson({ [key]: value })
     else logText(`${key}  ${value}`)
   } else {
@@ -24,9 +25,11 @@ export async function handleGet(cmd: ParsedCommand) {
 }
 
 export async function handleSet(cmd: ParsedCommand) {
-  const key = cmd.args[0] as keyof AppSettings
+  const rawKey = cmd.args[0]
   const value = cmd.args[1]
-  if (!key || value === undefined) { logError('usage: glit settings set <key> <value>'); exit(EXIT.INVALID_USAGE) }
+  if (!rawKey || value === undefined) { logError('usage: glit settings set <key> <value>'); exit(EXIT.INVALID_USAGE) }
+  if (!(rawKey in defaultSettings)) { logError(`unknown setting: ${rawKey}`); exit(EXIT.INVALID_USAGE) }
+  const key = rawKey as keyof AppSettings
 
   const store = getStore()
   if (key === 'autoRefresh') store.settings[key] = value === 'true'
