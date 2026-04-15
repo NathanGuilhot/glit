@@ -1,4 +1,7 @@
-export const VERSION = '0.3.2'
+import { createRequire } from 'module'
+
+const pkg = createRequire(import.meta.url)('../../package.json') as { version: string }
+export const VERSION = pkg.version
 
 export const EXIT = {
   SUCCESS: 0,

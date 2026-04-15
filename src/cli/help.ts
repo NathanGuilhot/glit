@@ -2,7 +2,7 @@ import { VERSION } from './constants.js'
 import { logText } from './logger.js'
 
 const HELP_TEXT: Record<string, string> = {
-  '': `glit v${VERSION} - Git worktree manager
+  '': `glit ·.° v${VERSION} - Git worktree manager
 
 Usage: glit <command> [options] [args]
 
