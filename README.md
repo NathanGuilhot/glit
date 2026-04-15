@@ -59,14 +59,17 @@ The glit window will open for the current repo
 
 Bump the version in `package.json` (and `package-lock.json`) first — `electron-builder` reads it at build time, so the tag and the published artifacts must match.
 
+> **Important:** tag the bump commit *before* pushing it, then push the commit and tag together with `--follow-tags`. If you push the commit first and tag afterwards, the release workflow won't be triggered correctly.
+
 ```bash
 # 1. Bump the version in package.json + package-lock.json, then commit
 git commit -am "Bump version to X.Y.Z"
-git push origin master
 
-# 2. Tag the bump commit and push the tag — this triggers the release workflow
+# 2. Tag the bump commit BEFORE pushing
 git tag vX.Y.Z
-git push origin vX.Y.Z
+
+# 3. Push the commit and tag together — this triggers the release workflow
+git push --follow-tags origin master
 ```
 
 ## Stack
