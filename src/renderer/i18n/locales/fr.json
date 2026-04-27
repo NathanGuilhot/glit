@@ -89,6 +89,7 @@
     },
     "menu": {
       "openInFinder": "Ouvrir dans Finder",
+      "launchAgent": "Lancer un agent de codage",
       "changeBranch": "Changer de branche",
       "viewCommits": "Voir les commits",
       "rebaseOnto": "Rebaser sur {{branch}}",
@@ -142,6 +143,44 @@
     "cancel": "Annuler",
     "checkout": "Extraire",
     "checkingOut": "Extraction en cours..."
+  },
+  "launchAgent": {
+    "title": "Lancer un agent de codage sur {{branch}}",
+    "detecting": "Détection des agents sur le PATH…",
+    "fields": {
+      "prompt": "Instruction",
+      "agent": "Agent",
+      "runMode": "Mode d'exécution"
+    },
+    "placeholders": {
+      "prompt": "Décrivez ce que l'agent doit faire…"
+    },
+    "modes": {
+      "background": "En arrière-plan",
+      "terminal": "Dans {{terminal}}"
+    },
+    "alerts": {
+      "noAgentsFound": "Aucun agent CLI supporté trouvé sur le PATH. Installez l'un de : claude, codex, opencode, gemini, cursor-agent, copilot.",
+      "terminalNotSupported": "{{terminal}} ne peut pas exécuter de commande au lancement — basculez en mode arrière-plan."
+    },
+    "validation": {
+      "promptRequired": "L'instruction est requise",
+      "agentRequired": "Choisissez un agent"
+    },
+    "progress": {
+      "launchingBackground": "Lancement de {{agent}} en arrière-plan…",
+      "launchingTerminal": "Ouverture de {{terminal}}…"
+    },
+    "buttons": {
+      "cancel": "Annuler",
+      "launching": "Lancement…",
+      "launchBackground": "Lancer en arrière-plan",
+      "launchTerminal": "Lancer dans {{terminal}}"
+    },
+    "toast": {
+      "launched": "{{agent}} lancé",
+      "failed": "Échec du lancement"
+    }
   },
   "createWorktree": {
     "title": "Nouveau worktree",

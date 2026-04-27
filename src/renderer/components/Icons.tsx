@@ -220,3 +220,13 @@ export const LogsIcon = createIcon({
   ],
   defaultProps: { ...strokeDefaults },
 })
+
+export const AgentIcon = createIcon({
+  displayName: 'AgentIcon',
+  viewBox: '0 0 24 24',
+  path: [
+    <path key="big" d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z" />,
+    <path key="small" d="M19 14l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />,
+  ],
+  defaultProps: { ...strokeDefaults },
+})

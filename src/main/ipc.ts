@@ -25,7 +25,10 @@ import { runSetupSteps, previewSetupConfig, saveSetupConfig } from './services/s
 import { initProcessService, sendWindowEvent, startProcess, stopProcess, listProcesses, getProcessLogs, cleanupAllProcesses } from './services/process.js'
 import { errorResult } from './services/utils.js'
 import { getGitStatus, getGitStatusWithStats, getGitDiff, revertLines, revertFile, applyEdit, deleteLine, insertLine, commitFiles, pushBranch, pullBranch } from './services/git-operations.js'
+import { detectAvailableAgents } from './services/agents.js'
+import { launchAgentBackground, launchAgentInTerminal } from './services/agentLauncher.js'
 import { getCliInstallStatus, installCli, uninstallCli } from './services/cli-install.js'
+import type { AgentId, TerminalOption } from '../shared/types.js'
 
 const execAsync = promisify(exec)
 
@@ -382,6 +385,20 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle('process:getAllDevCommands', async (): Promise<Record<string, string>> => {
     return getAllDevCommands()
+  })
+
+  // ── Agent ─────────────────────────────────────────────────────────
+
+  ipcMain.handle('agent:listAvailable', async () => {
+    return detectAvailableAgents()
+  })
+
+  ipcMain.handle('agent:launchBackground', async (_event, agentId: AgentId, prompt: string, worktreePath: string) => {
+    return launchAgentBackground({ agentId, prompt, worktreePath })
+  })
+
+  ipcMain.handle('agent:launchInTerminal', async (_event, agentId: AgentId, prompt: string, worktreePath: string, terminal: TerminalOption) => {
+    return launchAgentInTerminal({ agentId, prompt, worktreePath, terminal })
   })
 
   // ── CLI shim ──────────────────────────────────────────────────────

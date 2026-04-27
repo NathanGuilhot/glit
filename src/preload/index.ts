@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions, SetupConfig, RevertLineSpec } from '../shared/types'
+import type { GlitAPI, DeleteWorktreeOptions, CreateWorktreeOptions, SetupConfig, RevertLineSpec, AgentId, TerminalOption } from '../shared/types'
 
 const api: GlitAPI = {
   worktree: {
@@ -78,6 +78,13 @@ const api: GlitAPI = {
     saveCommand: (worktreePath: string, command: string) => ipcRenderer.invoke('process:saveCommand', worktreePath, command),
     getSavedCommand: (worktreePath: string) => ipcRenderer.invoke('process:getSavedCommand', worktreePath),
     getAllDevCommands: () => ipcRenderer.invoke('process:getAllDevCommands'),
+  },
+  agent: {
+    listAvailable: () => ipcRenderer.invoke('agent:listAvailable'),
+    launchBackground: (agentId: AgentId, prompt: string, worktreePath: string) =>
+      ipcRenderer.invoke('agent:launchBackground', agentId, prompt, worktreePath),
+    launchInTerminal: (agentId: AgentId, prompt: string, worktreePath: string, terminal: TerminalOption) =>
+      ipcRenderer.invoke('agent:launchInTerminal', agentId, prompt, worktreePath, terminal),
   },
   cli: {
     status: () => ipcRenderer.invoke('cli:status'),

@@ -91,6 +91,7 @@
     },
     "menu": {
       "openInFinder": "Open in Finder",
+      "launchAgent": "Launch coding agent",
       "changeBranch": "Change branch",
       "viewCommits": "View commits",
       "rebaseOnto": "Rebase onto {{branch}}",
@@ -152,6 +153,44 @@
     "cancel": "Cancel",
     "checkout": "Checkout",
     "checkingOut": "Checking out..."
+  },
+  "launchAgent": {
+    "title": "Launch coding agent on {{branch}}",
+    "detecting": "Detecting agents on PATH…",
+    "fields": {
+      "prompt": "Prompt",
+      "agent": "Agent",
+      "runMode": "Run mode"
+    },
+    "placeholders": {
+      "prompt": "Describe what you want the agent to do…"
+    },
+    "modes": {
+      "background": "Background",
+      "terminal": "In {{terminal}}"
+    },
+    "alerts": {
+      "noAgentsFound": "No supported coding-agent CLI found on PATH. Install one of: claude, codex, opencode, gemini, cursor-agent, copilot.",
+      "terminalNotSupported": "{{terminal}} cannot run a command on launch — switch to Background mode."
+    },
+    "validation": {
+      "promptRequired": "Prompt is required",
+      "agentRequired": "Pick an agent"
+    },
+    "progress": {
+      "launchingBackground": "Launching {{agent}} in background…",
+      "launchingTerminal": "Opening {{terminal}}…"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "launching": "Launching…",
+      "launchBackground": "Launch in background",
+      "launchTerminal": "Launch in {{terminal}}"
+    },
+    "toast": {
+      "launched": "{{agent}} launched",
+      "failed": "Launch failed"
+    }
   },
   "createWorktree": {
     "title": "New Worktree",

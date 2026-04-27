@@ -18,6 +18,7 @@ import { ProcessLogDrawer } from './ProcessLogDrawer'
 import { RunCommandModal } from './RunCommandModal'
 import { CodeReviewModal } from './CodeReviewModal'
 import { CommitsModal } from './CommitsModal'
+import LaunchAgentModal from './LaunchAgentModal'
 import { TooltipIconButton } from './TooltipIconButton'
 import { WorktreeCardBadges } from './WorktreeCardBadges'
 import { WorktreeCardMenu } from './WorktreeCardMenu'
@@ -162,6 +163,13 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
     })
   }
 
+  const handleLaunchAgent = () => {
+    NiceModal.show(LaunchAgentModal, {
+      worktreePath: worktree.path,
+      branch: branchDisplayText,
+    })
+  }
+
   const hasDiff = worktree.fileCount > 0
   const hasBranch = !!worktree.branch && !worktree.branch.startsWith('detached:') && !worktree.isBare
   const canCreatePR = !prStatus && hasBranch && worktree.branch !== detectedBaseBranch
@@ -269,6 +277,7 @@ export default function WorktreeCard({ worktree, onDelete, onChangeBranch }: Wor
             isPushing={isPushing}
             isPulling={isPulling}
             onOpenFinder={() => handleOpenFinder(worktree.path)}
+            onLaunchAgent={handleLaunchAgent}
             onChangeBranch={onChangeBranch ? () => onChangeBranch(worktree) : undefined}
             onRebase={handleRebase}
             onQuickCommit={handleQuickCommit}

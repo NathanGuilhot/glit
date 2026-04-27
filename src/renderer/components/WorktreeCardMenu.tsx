@@ -9,7 +9,7 @@ import {
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreeWithDiff } from '../../shared/types'
-import { FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, CommitIcon, PushIcon, PullIcon, HistoryIcon, TrashIcon } from './Icons'
+import { FolderIcon, DotsIcon, RefreshIcon, RebaseIcon, SyncIcon, PlayIcon, CommitIcon, PushIcon, PullIcon, HistoryIcon, TrashIcon, AgentIcon } from './Icons'
 
 interface WorktreeCardMenuProps {
   worktree: WorktreeWithDiff
@@ -22,6 +22,7 @@ interface WorktreeCardMenuProps {
   isPushing: boolean
   isPulling: boolean
   onOpenFinder: () => void
+  onLaunchAgent: () => void
   onChangeBranch?: () => void
   onRebase: () => void
   onQuickCommit: () => void
@@ -46,6 +47,7 @@ export function WorktreeCardMenu({
   isPushing,
   isPulling,
   onOpenFinder,
+  onLaunchAgent,
   onChangeBranch,
   onRebase,
   onQuickCommit,
@@ -79,6 +81,16 @@ export function WorktreeCardMenu({
           fontSize="sm"
         >
           {t('worktreeCard.menu.openInFinder')}
+        </MenuItem>
+        <MenuDivider borderColor="whiteAlpha.100" />
+        <MenuItem
+          icon={<AgentIcon boxSize={4} color="purple.300" />}
+          onClick={onLaunchAgent}
+          bg="transparent"
+          _hover={{ bg: 'whiteAlpha.100' }}
+          fontSize="sm"
+        >
+          {t('worktreeCard.menu.launchAgent')}
         </MenuItem>
         {isRoot && onChangeBranch && (
           <>

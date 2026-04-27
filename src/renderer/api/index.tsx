@@ -23,6 +23,10 @@ export type {
   DiffLine,
   RevertLineSpec,
   CommitEntry,
+  AgentId,
+  AgentInfo,
+  AgentRunMode,
+  TerminalOption,
   CliInstallStatus,
 } from '../../shared/types'
 

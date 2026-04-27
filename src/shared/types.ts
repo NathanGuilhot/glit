@@ -64,6 +64,15 @@ export interface DevCommandInfo {
   scripts: string[]
 }
 
+export type AgentId = 'claude' | 'codex' | 'opencode' | 'gemini' | 'cursor-agent' | 'copilot'
+
+export interface AgentInfo {
+  id: AgentId
+  label: string
+}
+
+export type AgentRunMode = 'background' | 'terminal'
+
 export interface CliInstallStatus {
   available: boolean
   installed: boolean
@@ -189,6 +198,11 @@ export interface GlitAPI {
     saveCommand: (worktreePath: string, command: string) => Promise<void>
     getSavedCommand: (worktreePath: string) => Promise<string | null>
     getAllDevCommands: () => Promise<Record<string, string>>
+  }
+  agent: {
+    listAvailable: () => Promise<AgentInfo[]>
+    launchBackground: (agentId: AgentId, prompt: string, worktreePath: string) => Promise<{ success: boolean; pid?: number; error?: string }>
+    launchInTerminal: (agentId: AgentId, prompt: string, worktreePath: string, terminal: TerminalOption) => Promise<{ success: boolean; error?: string }>
   }
   cli: {
     status: () => Promise<CliInstallStatus>
