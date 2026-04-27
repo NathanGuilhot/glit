@@ -26,6 +26,32 @@ process.on('unhandledRejection', (reason: unknown) => {
 
 const isDev = !app.isPackaged && process.env['NODE_ENV'] !== 'production'
 
+const gotInstanceLock = app.requestSingleInstanceLock()
+if (!gotInstanceLock) {
+  log.info('Another Glit instance is already running, exiting')
+  app.quit()
+}
+
+function extractRepoArg(argv: string[]): string | null {
+  // Skip argv[0] (electron binary) and, in dev, argv[1] (main script).
+  const args = argv.slice(isDev ? 2 : 1)
+  const arg = args.find((a) => a && !a.startsWith('-') && !a.endsWith('.js'))
+  return arg ?? null
+}
+
+app.on('second-instance', (_event, argv) => {
+  const repoArg = extractRepoArg(argv)
+  log.info(`Second instance: argv=${JSON.stringify(argv)}, repoArg=${repoArg}`)
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+    if (repoArg) {
+      mainWindow.webContents.send('repo:externalSwitch', repoArg)
+    }
+  }
+})
+
 async function checkForUpdates(): Promise<void> {
   if (isDev) return
   try {

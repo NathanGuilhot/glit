@@ -182,6 +182,15 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
     }
   }, [api, repoInfo, toast, setFilter, t, updatePrStatuses])
 
+  useEffect(() => {
+    const unsub = api.on('repo:externalSwitch', (newPath: unknown) => {
+      if (typeof newPath === 'string' && newPath) {
+        switchRepo(newPath)
+      }
+    })
+    return unsub
+  }, [api, switchRepo])
+
   const filtered = worktrees.filter((wt) => {
     if (!filter) return true
     const q = filter.toLowerCase()
