@@ -74,6 +74,8 @@ export function WorktreeProvider({ children, api = defaultAPI }: WorktreeProvide
       const info = await api.repo.detect()
       setRepoInfo(info)
       if (!info.isRepo) {
+        const recent = await api.repo.listRecent()
+        setRecentRepos(recent)
         setLoading(false)
         return
       }

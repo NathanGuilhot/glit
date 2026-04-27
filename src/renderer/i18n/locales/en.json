@@ -381,15 +381,10 @@
     "title": "Not a git repository",
     "subtitle": "Glit needs to be run from inside a git repository",
     "currentPath": "Current path",
-    "howToUse": "How to use Glit",
-    "hints": {
-      "navigate": "Navigate to a git repo",
-      "navigateCmd": "cd /path/to/your/repo",
-      "launch": "Launch Glit",
-      "launchCmd": "glit"
-    },
-    "directRun": "Or run <1>glit /path/to/repo</1> directly",
-    "noWorktrees": "No worktrees to manage"
+    "chooseFolder": "Choose a repository folder…",
+    "recentRepos": "Recent repositories",
+    "cliHint": "Tip: cd into a repo and run",
+    "cliCmd": "glit"
   },
   "shortcutHints": {
     "palette": "palette",

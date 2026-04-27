@@ -371,15 +371,10 @@
     "title": "Pas un dépôt git",
     "subtitle": "Glit doit être lancé depuis un dépôt git",
     "currentPath": "Chemin actuel",
-    "howToUse": "Comment utiliser Glit",
-    "hints": {
-      "navigate": "Naviguer vers un dépôt git",
-      "navigateCmd": "cd /chemin/vers/votre/repo",
-      "launch": "Lancer Glit",
-      "launchCmd": "glit"
-    },
-    "directRun": "Ou lancer <1>glit /chemin/vers/repo</1> directement",
-    "noWorktrees": "Aucun worktree à gérer"
+    "chooseFolder": "Choisir un dossier de dépôt…",
+    "recentRepos": "Dépôts récents",
+    "cliHint": "Astuce : placez-vous dans un dépôt puis lancez",
+    "cliCmd": "glit"
   },
   "shortcutHints": {
     "palette": "palette",
