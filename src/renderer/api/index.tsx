@@ -23,6 +23,7 @@ export type {
   DiffLine,
   RevertLineSpec,
   CommitEntry,
+  CliInstallStatus,
 } from '../../shared/types'
 
 export type API = GlitAPI

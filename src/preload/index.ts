@@ -79,6 +79,11 @@ const api: GlitAPI = {
     getSavedCommand: (worktreePath: string) => ipcRenderer.invoke('process:getSavedCommand', worktreePath),
     getAllDevCommands: () => ipcRenderer.invoke('process:getAllDevCommands'),
   },
+  cli: {
+    status: () => ipcRenderer.invoke('cli:status'),
+    install: () => ipcRenderer.invoke('cli:install'),
+    uninstall: () => ipcRenderer.invoke('cli:uninstall'),
+  },
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args)
     ipcRenderer.on(channel, listener)

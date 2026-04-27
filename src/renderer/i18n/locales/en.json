@@ -221,6 +221,18 @@
       "label": "Auto-refresh",
       "helper": "Refresh worktree list automatically"
     },
+    "cli": {
+      "label": "Command line tool",
+      "helper": "Install the glit shell command to launch Glit from any terminal at",
+      "install": "Install",
+      "uninstall": "Uninstall",
+      "toast": {
+        "installed": "glit installed at {{path}}",
+        "installFailed": "Could not install glit",
+        "uninstalled": "glit removed",
+        "uninstallFailed": "Could not remove glit"
+      }
+    },
     "setupScript": {
       "label": "Setup script",
       "badge": ".glit/setup.yaml",

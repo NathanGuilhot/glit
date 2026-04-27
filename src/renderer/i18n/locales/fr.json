@@ -211,6 +211,18 @@
       "label": "Actualisation auto",
       "helper": "Actualiser la liste des worktrees automatiquement"
     },
+    "cli": {
+      "label": "Outil en ligne de commande",
+      "helper": "Installer la commande shell glit pour lancer Glit depuis n'importe quel terminal à",
+      "install": "Installer",
+      "uninstall": "Désinstaller",
+      "toast": {
+        "installed": "glit installé dans {{path}}",
+        "installFailed": "Échec de l'installation de glit",
+        "uninstalled": "glit supprimé",
+        "uninstallFailed": "Échec de la suppression de glit"
+      }
+    },
     "setupScript": {
       "label": "Script de configuration",
       "badge": ".glit/setup.yaml",

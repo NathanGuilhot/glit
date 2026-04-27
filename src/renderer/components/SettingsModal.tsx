@@ -19,10 +19,12 @@ import {
   Badge,
   Alert,
   AlertIcon,
+  Code,
+  useToast,
 } from '@chakra-ui/react'
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { useTranslation } from 'react-i18next'
-import type { AppSettings, IDEOption, TerminalOption } from '../../shared/types'
+import type { AppSettings, IDEOption, TerminalOption, CliInstallStatus } from '../../shared/types'
 import { useAPI } from '../api'
 import type { WorktreeWithDiff } from '../api'
 import { SetupConfigEditor } from './SetupConfigEditor'
@@ -80,15 +82,45 @@ const SettingsModal = NiceModal.create<{
   const [worktrees, setWorktrees] = useState<WorktreeWithDiff[]>([])
   const [devCommands, setDevCommands] = useState<Record<string, string>>({})
 
+  const toast = useToast()
+  const [cliStatus, setCliStatus] = useState<CliInstallStatus | null>(null)
+  const [cliBusy, setCliBusy] = useState(false)
+
   useEffect(() => {
-    Promise.all([
-      api.worktree.list(repoPath),
-      api.process.getAllDevCommands(),
-    ]).then(([wts, cmds]) => {
-      setWorktrees(wts)
-      setDevCommands(cmds)
-    })
+    api.worktree.list(repoPath).then(setWorktrees).catch(() => setWorktrees([]))
+    api.process.getAllDevCommands().then(setDevCommands).catch(() => setDevCommands({}))
+    api.cli.status().then(setCliStatus).catch(() => setCliStatus(null))
   }, [api, repoPath])
+
+  const handleInstallCli = async () => {
+    setCliBusy(true)
+    try {
+      const result = await api.cli.install()
+      if (result.success) {
+        toast({ title: t('settings.cli.toast.installed', { path: result.path }), status: 'success', duration: 4000, isClosable: true })
+        setCliStatus(await api.cli.status())
+      } else {
+        toast({ title: t('settings.cli.toast.installFailed'), description: result.error, status: 'error', duration: 6000, isClosable: true })
+      }
+    } finally {
+      setCliBusy(false)
+    }
+  }
+
+  const handleUninstallCli = async () => {
+    setCliBusy(true)
+    try {
+      const result = await api.cli.uninstall()
+      if (result.success) {
+        toast({ title: t('settings.cli.toast.uninstalled'), status: 'success', duration: 3000, isClosable: true })
+        setCliStatus(await api.cli.status())
+      } else {
+        toast({ title: t('settings.cli.toast.uninstallFailed'), description: result.error, status: 'error', duration: 6000, isClosable: true })
+      }
+    } finally {
+      setCliBusy(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -200,6 +232,32 @@ const SettingsModal = NiceModal.create<{
                 />
               </HStack>
             </FormControl>
+
+            {cliStatus?.available && (
+              <>
+                <Divider borderColor="whiteAlpha.100" />
+                <FormControl>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={0} flex={1} minW={0}>
+                      <FormLabel fontSize="sm" mb={0}>{t('settings.cli.label')}</FormLabel>
+                      <Text fontSize="xs" color="whiteAlpha.500">
+                        {t('settings.cli.helper')}{' '}
+                        <Code fontSize="xs" bg="whiteAlpha.100" px={1}>{cliStatus.path}</Code>
+                      </Text>
+                    </VStack>
+                    {cliStatus.installed ? (
+                      <Button size="sm" variant="outline" colorScheme="red" onClick={handleUninstallCli} isLoading={cliBusy} flexShrink={0}>
+                        {t('settings.cli.uninstall')}
+                      </Button>
+                    ) : (
+                      <Button size="sm" colorScheme="brand" onClick={handleInstallCli} isLoading={cliBusy} flexShrink={0}>
+                        {t('settings.cli.install')}
+                      </Button>
+                    )}
+                  </HStack>
+                </FormControl>
+              </>
+            )}
 
             <Divider borderColor="whiteAlpha.100" />
 

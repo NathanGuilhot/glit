@@ -25,6 +25,7 @@ import { runSetupSteps, previewSetupConfig, saveSetupConfig } from './services/s
 import { initProcessService, sendWindowEvent, startProcess, stopProcess, listProcesses, getProcessLogs, cleanupAllProcesses } from './services/process.js'
 import { errorResult } from './services/utils.js'
 import { getGitStatus, getGitStatusWithStats, getGitDiff, revertLines, revertFile, applyEdit, deleteLine, insertLine, commitFiles, pushBranch, pullBranch } from './services/git-operations.js'
+import { getCliInstallStatus, installCli, uninstallCli } from './services/cli-install.js'
 
 const execAsync = promisify(exec)
 
@@ -382,6 +383,12 @@ export function setupIpcHandlers(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('process:getAllDevCommands', async (): Promise<Record<string, string>> => {
     return getAllDevCommands()
   })
+
+  // ── CLI shim ──────────────────────────────────────────────────────
+
+  ipcMain.handle('cli:status', async () => getCliInstallStatus())
+  ipcMain.handle('cli:install', async () => installCli())
+  ipcMain.handle('cli:uninstall', async () => uninstallCli())
 
   // ── Settings ──────────────────────────────────────────────────────
 

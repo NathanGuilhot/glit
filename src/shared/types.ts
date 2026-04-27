@@ -64,6 +64,12 @@ export interface DevCommandInfo {
   scripts: string[]
 }
 
+export interface CliInstallStatus {
+  available: boolean
+  installed: boolean
+  path: string
+}
+
 export interface CreateProgress {
   step: 'creating' | 'packages' | 'env' | 'commands' | 'done' | 'error'
   message: string
@@ -183,6 +189,11 @@ export interface GlitAPI {
     saveCommand: (worktreePath: string, command: string) => Promise<void>
     getSavedCommand: (worktreePath: string) => Promise<string | null>
     getAllDevCommands: () => Promise<Record<string, string>>
+  }
+  cli: {
+    status: () => Promise<CliInstallStatus>
+    install: () => Promise<{ success: boolean; path?: string; error?: string }>
+    uninstall: () => Promise<{ success: boolean; error?: string }>
   }
   settings: {
     get: () => Promise<AppSettings>
